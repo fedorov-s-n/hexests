@@ -14,8 +14,7 @@
     /* Generates corresponding '.d.ts' file. */
     "sourceMap": true,
     /* Concatenate and emit output to single file. */
-    "outDir": "./target/gen-js",
-    "rootDir": "./src/ts",
+    "rootDir": "./",
     // "removeComments": true,                /* Do not emit comments to output. */
     // "noEmit": true,                        /* Do not emit outputs. */
     // "importHelpers": true,                 /* Import emit helpers from 'tslib'. */
