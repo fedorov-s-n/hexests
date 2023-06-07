@@ -4,7 +4,7 @@ const config: Config = {
     verbose: true,
     preset: 'ts-jest',
     testEnvironment: 'node',
-    testMatch: ['**/*.ts'],
+    testMatch: ['**/*Test.ts'],
     rootDir: 'src/test/ts'
 };
 
