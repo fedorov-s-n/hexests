@@ -16,6 +16,18 @@ export class DIContainer {
         this.components.set(name, value);
         return value;
     }
+
+    getAll<T>(sp: Implementations<T>): T[] {
+        return sp.classes.map(type => this.get(type));
+    }
 }
 
 type Constructor<T = {}> = new (...args: any[]) => T
+
+export class Implementations<I> {
+    classes: Constructor<I>[];
+
+    constructor(...classes: Constructor<I>[]) {
+        this.classes = classes;
+    }
+}
