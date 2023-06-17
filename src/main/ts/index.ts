@@ -1,6 +1,6 @@
-import {hailObject} from "./lib0";
-import _ from 'lodash';
+import {DIContainer} from "./di/DIContainer";
+import {HexesFieldStartPoint} from "./HexesFieldStartPoint";
 
-console.log("hello");
-console.log(_.join(['Hello', 'webpack'], ' '));
-console.warn(hailObject());
+const container = new DIContainer();
+const startPoint = container.get(HexesFieldStartPoint);
+startPoint.gogogo(window);
