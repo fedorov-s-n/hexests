@@ -17,17 +17,22 @@ import {Object3D} from "three/src/core/Object3D";
 import {CellFieldProvider} from "../fieldmodel/CellFieldProvider";
 import {HexesPlaneGeometry} from "./HexesPlaneGeometry";
 import {Component} from "../di/Component";
+import {PositionHelper} from "./PositionHelper";
 
 @Component
 export class SecondScene {
     private readonly cellFieldProvider: CellFieldProvider;
+    private readonly positionHelper: PositionHelper;
 
     scene!: Scene;
     camera!: Camera;
     renderer!: Renderer;
+    planeGeometry!: HexesPlaneGeometry;
+    planeMesh!: Mesh;
 
-    constructor(cellFieldProvider: CellFieldProvider) {
+    constructor(cellFieldProvider: CellFieldProvider, positionHelper: PositionHelper) {
         this.cellFieldProvider = cellFieldProvider;
+        this.positionHelper = positionHelper;
     }
 
     installScene(window: Window) {
@@ -38,7 +43,7 @@ export class SecondScene {
         });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         window.document.body.appendChild(this.renderer.domElement);
-        this.camera.position.z = 5;
+        this.positionHelper.subscribe(this.renderer.domElement.ownerDocument, this.camera);
     }
 
     installHelper(): Object3D {
@@ -58,7 +63,7 @@ export class SecondScene {
     installHexesPlane() {
         let side = 10;
         const cellField = this.cellFieldProvider.getField(0, 0);
-        const geometry = new HexesPlaneGeometry(side, side, cellField);
+        const geometry = new HexesPlaneGeometry(side, side, side, cellField);
         const material = new MeshLambertMaterial({
             color: new Color(0x00c500),
             side: DoubleSide
@@ -69,7 +74,20 @@ export class SecondScene {
         plane.receiveShadow = true;
 
         this.scene.add(plane);
+        this.planeGeometry = geometry;
+        this.planeMesh = plane;
         return plane;
+    }
+
+    animationStep() {
+        if (this.positionHelper.changed) {
+            const dx = this.positionHelper.offset.x;
+            const dy = this.positionHelper.offset.y;
+            const r = this.planeGeometry.updateHeightsAndNormals(dx, dy);
+            this.planeMesh.position.x = -r[0];
+            this.planeMesh.position.y = -r[1];
+            this.positionHelper.changed = false;
+        }
     }
 
     animationLoop(action: () => void) {
@@ -77,6 +95,7 @@ export class SecondScene {
 
         function animate() {
             requestAnimationFrame(animate);
+            self.animationStep();
             action();
             self.renderer.render(self.scene, self.camera);
         }

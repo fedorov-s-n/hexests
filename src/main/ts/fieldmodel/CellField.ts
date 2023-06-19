@@ -13,6 +13,10 @@ export interface CellField {
 
     getNeighbours(index: number): number[];
 
+    getShiftRemainder(dx: number, dy: number): number[];
+    
+    getShiftedCell(index: number, dx: number, dy: number): number;
+
     getData<T>(index: number, descriptor: CellDataDescriptor<T>): T;
 
     setData<T>(index: number, descriptor: CellDataDescriptor<T>, value: T): void;

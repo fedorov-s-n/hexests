@@ -2,13 +2,17 @@ import {Component} from "./di/Component";
 import {SecondScene} from "./three/SecondScene";
 import {OrbitControls} from "three/examples/jsm/controls/OrbitControls";
 import {SpotLight} from "three";
+import {CellDataTable} from "./fieldmodel/CellDataTable";
+import {CellDataDescriptor} from "./fieldmodel/CellDataDescriptor";
 
 @Component
 export class HexesFieldStartPoint {
     private readonly scene: SecondScene;
+    private readonly cellDataTable: CellDataTable;
 
-    constructor(scene: SecondScene) {
+    constructor(scene: SecondScene, cellDataTable: CellDataTable) {
         this.scene = scene;
+        this.cellDataTable = cellDataTable;
     }
 
     gogogo(window: Window) {
@@ -19,8 +23,12 @@ export class HexesFieldStartPoint {
         new OrbitControls(this.scene.camera, this.scene.renderer.domElement);
 
         this.scene.camera.position.z = 5;
-        plane.position.x = -5;
-        plane.position.y = -5;
+
+        this.cellDataTable.set(24, 0, 0, CellDataDescriptor.HEIGHT, 0.05);
+        this.cellDataTable.set(26, 0, 0, CellDataDescriptor.HEIGHT, 0.04);
+        this.cellDataTable.set(351, 0, 0, CellDataDescriptor.HEIGHT, 0.06);
+
+        this.scene.planeGeometry.updateHeightsAndNormals(0, 0);
 
         // let ambientLight = new AmbientLight(0x0c0c0c);
         // this.scene.scene.add(ambientLight);

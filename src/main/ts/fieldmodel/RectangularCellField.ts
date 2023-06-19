@@ -15,6 +15,7 @@ export abstract class RectangularCellField implements CellField {
     protected readonly depthLevel: number;
     protected readonly zoomLevel: number;
     protected readonly dataTable: CellDataTable;
+    protected readonly savedShiftData: ShiftData = new ShiftData();
 
     protected constructor(rowCount: number, columnCount: number, depthLevel: number, zoomLevel: number, data: CellDataTable) {
         this.rowCount = rowCount;
@@ -27,6 +28,10 @@ export abstract class RectangularCellField implements CellField {
     abstract getXPos(rowPos: number, columnPos: number): number;
 
     abstract getYPos(rowPos: number, columnPos: number): number;
+
+    abstract getRowPos(xPos: number, yPos: number): number;
+
+    abstract getColumnPos(xPos: number, yPos: number): number;
 
     getData<T>(index: number, descriptor: CellDataDescriptor<T>): T {
         return this.dataTable.get(index, this.depthLevel, this.zoomLevel, descriptor);
@@ -50,11 +55,45 @@ export abstract class RectangularCellField implements CellField {
         ];
     }
 
+    getShiftRemainder(dx: number, dy: number): number[] {
+        return this.getShiftData(dx, dy).remainder;
+    }
+
+    getShiftedCell(index: number, dx: number, dy: number): number {
+        const column = index % this.columnCount;
+        const row = (index - column) / this.columnCount;
+        const shiftData = this.getShiftData(dx, dy);
+        return this.getIndex(row + shiftData.rowShift, column + shiftData.columnShift);
+    }
+
+    getShiftData(dx: number, dy: number): ShiftData {
+        const shiftData = this.savedShiftData;
+        if (shiftData.dx !== dx || shiftData.dy !== dy) {
+            const rowMult = (1.5 * this.rowCount) / (1.5 * this.rowCount + 0.5);
+            const columnMult = this.columnCount / (this.columnCount + 0.5);
+
+            const rowShift = Math.round(this.rowCount * this.getRowPos(dx, dy) / rowMult);
+            const columnShift = Math.round(this.columnCount * this.getColumnPos(dx, dy) / columnMult);
+
+            const columnCorrection = (Math.abs(rowShift) % 2) * 0.5 / (this.columnCount + 0.5);
+            const dRow = (rowShift / this.rowCount) * rowMult;
+            const dColumn = (columnShift / this.columnCount) * columnMult - columnCorrection;
+
+            shiftData.dx = dx;
+            shiftData.dy = dy;
+            shiftData.rowShift = rowShift;
+            shiftData.columnShift = columnShift;
+            shiftData.remainder[0] = dx - this.getXPos(dRow, dColumn);
+            shiftData.remainder[1] = dy - this.getYPos(dRow, dColumn);
+        }
+        return shiftData;
+    }
+
     getIndex(row: number, column: number): number {
-        if (column < 0) column = this.columnCount - 1;
-        if (row < 0) row = this.rowCount - 1;
-        if (column >= this.columnCount) column = 0;
-        if (row >= this.rowCount) row = 0;
+        while (column < 0) column += this.columnCount;
+        while (row < 0) row += this.rowCount;
+        while (column >= this.columnCount) column -= this.columnCount;
+        while (row >= this.rowCount) row -= this.rowCount;
         return this.getIndexUnchecked(row, column);
     }
 
@@ -111,6 +150,14 @@ export class EvenRectangularCellField extends RectangularCellField {
     getYPos(rowPos: number, columnPos: number): number {
         return rowPos;
     }
+
+    getRowPos(xPos: number, yPos: number): number {
+        return yPos;
+    }
+
+    getColumnPos(xPos: number, yPos: number): number {
+        return xPos;
+    }
 }
 
 export class OddRectangularCellField extends RectangularCellField {
@@ -127,4 +174,20 @@ export class OddRectangularCellField extends RectangularCellField {
     getYPos(rowPos: number, columnPos: number): number {
         return columnPos;
     }
+
+    getRowPos(xPos: number, yPos: number): number {
+        return xPos;
+    }
+
+    getColumnPos(xPos: number, yPos: number): number {
+        return yPos;
+    }
+}
+
+class ShiftData {
+    dx: number = 0;
+    dy: number = 0;
+    rowShift: number = 0;
+    columnShift: number = 0;
+    remainder: number[] = [0, 0];
 }
