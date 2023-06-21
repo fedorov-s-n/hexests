@@ -28,8 +28,6 @@ export class HexesFieldStartPoint {
         this.cellDataTable.set(26, 0, 0, CellDataDescriptor.HEIGHT, 0.04);
         this.cellDataTable.set(351, 0, 0, CellDataDescriptor.HEIGHT, 0.06);
 
-        this.scene.planeGeometry.updateHeightsAndNormals(0, 0);
-
         // let ambientLight = new AmbientLight(0x0c0c0c);
         // this.scene.scene.add(ambientLight);
         let spotLight = new SpotLight(0xcccccc);

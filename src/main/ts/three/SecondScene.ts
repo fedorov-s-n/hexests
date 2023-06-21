@@ -2,14 +2,15 @@ import {
     AxesHelper,
     BoxGeometry,
     Camera,
-    Color,
     DoubleSide,
     Mesh,
     MeshBasicMaterial,
     MeshLambertMaterial,
     PerspectiveCamera,
     Renderer,
+    RepeatWrapping,
     Scene,
+    UVMapping,
     WebGLRenderer
 } from "three";
 import WebGL from "three/examples/jsm/capabilities/WebGL";
@@ -18,6 +19,8 @@ import {CellFieldProvider} from "../fieldmodel/CellFieldProvider";
 import {HexesPlaneGeometry} from "./HexesPlaneGeometry";
 import {Component} from "../di/Component";
 import {PositionHelper} from "./PositionHelper";
+import {CellField} from "../fieldmodel/CellField";
+import {Texture1} from "./Texture1";
 
 @Component
 export class SecondScene {
@@ -27,8 +30,10 @@ export class SecondScene {
     scene!: Scene;
     camera!: Camera;
     renderer!: Renderer;
+    cellField!: CellField;
     planeGeometry!: HexesPlaneGeometry;
     planeMesh!: Mesh;
+    planeTexture!: Texture1;
 
     constructor(cellFieldProvider: CellFieldProvider, positionHelper: PositionHelper) {
         this.cellFieldProvider = cellFieldProvider;
@@ -64,8 +69,24 @@ export class SecondScene {
         let side = 10;
         const cellField = this.cellFieldProvider.getField(0, 0);
         const geometry = new HexesPlaneGeometry(side, side, side, cellField);
+
+
+        const canvasElement = this.renderer.domElement.ownerDocument.createElement('canvas');
+        const texture = new Texture1(canvasElement, 32, 32);
+
+        texture.paintExample(5);
+        texture.remember()
+
+        texture.mapping = UVMapping;
+        texture.wrapS = RepeatWrapping;
+        texture.wrapT = RepeatWrapping;
+
+        // texture.repeat.set(4, 4);
+        texture.needsUpdate = true;
+
         const material = new MeshLambertMaterial({
-            color: new Color(0x00c500),
+            // color: new Color(0x00c500),
+            map: texture,
             side: DoubleSide
         });
         const plane = new Mesh(geometry, material);
@@ -74,18 +95,31 @@ export class SecondScene {
         plane.receiveShadow = true;
 
         this.scene.add(plane);
+        this.cellField = cellField;
         this.planeGeometry = geometry;
         this.planeMesh = plane;
+        this.planeTexture = texture;
         return plane;
     }
 
     animationStep() {
         if (this.positionHelper.changed) {
-            const dx = this.positionHelper.offset.x;
-            const dy = this.positionHelper.offset.y;
-            const r = this.planeGeometry.updateHeightsAndNormals(dx, dy);
-            this.planeMesh.position.x = -r[0];
-            this.planeMesh.position.y = -r[1];
+            const dx = this.positionHelper.offset.x / this.planeGeometry.length;
+            const dy = this.positionHelper.offset.y / this.planeGeometry.width;
+            const shift = this.cellField.getShift(dx, dy);
+
+            this.planeGeometry.computeVertexHeights(this.cellField, shift);
+            this.planeGeometry.computeVertexNormals();
+
+            this.planeMesh.position.x = -shift.getRemainedX() * this.planeGeometry.length;
+            this.planeMesh.position.y = -shift.getRemainedY() * this.planeGeometry.width;
+
+            this.planeTexture.repeat.set(1 / shift.getWorkingAreaX(), 1 / shift.getWorkingAreaY());
+            this.planeTexture.translate(
+                this.planeTexture.width * shift.getActualX(),
+                this.planeTexture.height * shift.getActualY()
+            );
+
             this.positionHelper.changed = false;
         }
     }

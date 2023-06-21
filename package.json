@@ -15,7 +15,6 @@
   "private": true,
   "devDependencies": {
     "@jest/globals": "29.5.0",
-    "@types/lodash": "4.14.191",
     "@types/three": "0.149.0",
     "copyfiles": "2.4.1",
     "jest": "29.5.0",
@@ -28,7 +27,6 @@
     "webpack-cli": "5.0.1"
   },
   "dependencies": {
-    "lodash": "4.17.21",
     "reflect-metadata": "0.1.13",
     "three": "0.149.0"
   }

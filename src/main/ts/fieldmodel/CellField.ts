@@ -1,4 +1,5 @@
 import {CellDataDescriptor} from "./CellDataDescriptor";
+import {Shift} from "./Shift";
 
 export interface CellField {
     traversePoints(callback: (
@@ -13,9 +14,7 @@ export interface CellField {
 
     getNeighbours(index: number): number[];
 
-    getShiftRemainder(dx: number, dy: number): number[];
-    
-    getShiftedCell(index: number, dx: number, dy: number): number;
+    getShift(dx: number, dy: number): Shift;
 
     getData<T>(index: number, descriptor: CellDataDescriptor<T>): T;
 

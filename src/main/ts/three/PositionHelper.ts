@@ -3,7 +3,7 @@ import {Camera, Quaternion, Vector3} from "three";
 
 @Component
 export class PositionHelper {
-    changed: boolean = false;
+    changed: boolean = true; // to trigger shifting code right on the start
     readonly offset: Vector3 = new Vector3();
     private readonly temp: Vector3 = new Vector3();
     private offsetStep: number = 0.2;

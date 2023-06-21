@@ -1,17 +1,16 @@
 import {BufferGeometry, Float32BufferAttribute} from "three";
 import {CellField} from "../fieldmodel/CellField";
 import {CellDataDescriptor} from "../fieldmodel/CellDataDescriptor";
+import {Shift} from "../fieldmodel/Shift";
 
 const UNSET_MARK = -1;
 const CENTER_MARK = -2;
-const SHIFTS = [0, 0];
 
 export class HexesPlaneGeometry extends BufferGeometry {
-    private readonly length: number;
-    private readonly width: number;
-    private readonly height: number;
+    readonly length: number;
+    readonly width: number;
+    readonly height: number;
     private readonly neighbours: number[];
-    private readonly cellField: CellField;
 
     constructor(length: number, width: number, height: number, cellField: CellField) {
         super();
@@ -84,7 +83,6 @@ export class HexesPlaneGeometry extends BufferGeometry {
         this.length = length;
         this.width = width;
         this.height = height;
-        this.cellField = cellField;
         this.neighbours = neighbours;
         this.setIndex(indices);
         this.setAttribute('position', new Float32BufferAttribute(vertices, 3));
@@ -92,17 +90,15 @@ export class HexesPlaneGeometry extends BufferGeometry {
         this.setAttribute('uv', new Float32BufferAttribute(uvs, 2));
     }
 
-    updateHeightsAndNormals(dx: number, dy: number): number[] {
-        dx /= this.length;
-        dy /= this.width;
+    computeVertexHeights(cellField: CellField, shift: Shift) {
         const vertices = this.getAttribute('position') as Float32BufferAttribute;
 
         for (let i = 0; i < vertices.count; ++i) {
             if (this.neighbours[3 * i + 1] === CENTER_MARK) {
                 // this is a special meaning of 3rd neighbour: cell index corresponding to the center point
                 const cellIndex = this.neighbours[3 * i + 2];
-                const shiftedCellIndex = this.cellField.getShiftedCell(cellIndex, dx, dy);
-                const dataHeight = this.cellField.getData(shiftedCellIndex, CellDataDescriptor.HEIGHT) || 0;
+                const shiftedCellIndex = shift.getShiftedCell(cellIndex);
+                const dataHeight = cellField.getData(shiftedCellIndex, CellDataDescriptor.HEIGHT) || 0;
                 vertices.setZ(i, dataHeight * this.height);
             }
         }
@@ -129,11 +125,5 @@ export class HexesPlaneGeometry extends BufferGeometry {
         }
 
         vertices.needsUpdate = true;
-        this.computeVertexNormals();
-
-        const r = this.cellField.getShiftRemainder(dx, dy);
-        SHIFTS[0] = r[0] * this.length;
-        SHIFTS[1] = r[1] * this.width;
-        return SHIFTS;
     }
 }
