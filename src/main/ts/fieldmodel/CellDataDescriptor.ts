@@ -1,8 +1,6 @@
 export class CellDataDescriptor<T> {
-    static X_POS = new CellDataDescriptor<number>('xpos');
-    static Y_POS = new CellDataDescriptor<number>('ypos');
-    static Z_POS = new CellDataDescriptor<number>('zpos');
     static HEIGHT = new CellDataDescriptor<number>('height');
+    static COLOR = new CellDataDescriptor<string>('color');
 
     readonly key: string;
 

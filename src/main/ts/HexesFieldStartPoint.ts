@@ -24,9 +24,10 @@ export class HexesFieldStartPoint {
 
         this.scene.camera.position.z = 5;
 
-        this.cellDataTable.set(24, 0, 0, CellDataDescriptor.HEIGHT, 0.05);
-        this.cellDataTable.set(26, 0, 0, CellDataDescriptor.HEIGHT, 0.04);
-        this.cellDataTable.set(351, 0, 0, CellDataDescriptor.HEIGHT, 0.06);
+        const cellField = this.scene.cellField;
+        this.cellDataTable.set(24, cellField, CellDataDescriptor.HEIGHT, 0.05);
+        this.cellDataTable.set(26, cellField, CellDataDescriptor.HEIGHT, 0.04);
+        this.cellDataTable.set(351, cellField, CellDataDescriptor.HEIGHT, 0.06);
 
         // let ambientLight = new AmbientLight(0x0c0c0c);
         // this.scene.scene.add(ambientLight);

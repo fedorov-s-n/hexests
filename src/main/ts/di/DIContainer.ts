@@ -17,6 +17,11 @@ export class DIContainer {
         return value;
     }
 
+    put<T>(type: Constructor<T>, instance: T) {
+        const name: string = Reflect.getMetadata('class:name', type);
+        this.components.set(name, instance);
+    }
+
     getAll<T>(sp: Implementations<T>): T[] {
         return sp.classes.map(type => this.get(type));
     }

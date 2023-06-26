@@ -8,9 +8,7 @@ import {
     MeshLambertMaterial,
     PerspectiveCamera,
     Renderer,
-    RepeatWrapping,
     Scene,
-    UVMapping,
     WebGLRenderer
 } from "three";
 import WebGL from "three/examples/jsm/capabilities/WebGL";
@@ -21,6 +19,7 @@ import {Component} from "../di/Component";
 import {PositionHelper} from "./PositionHelper";
 import {CellField} from "../fieldmodel/CellField";
 import {Texture1} from "./Texture1";
+import {CellDataDescriptor} from "../fieldmodel/CellDataDescriptor";
 
 @Component
 export class SecondScene {
@@ -70,19 +69,17 @@ export class SecondScene {
         const cellField = this.cellFieldProvider.getField(0, 0);
         const geometry = new HexesPlaneGeometry(side, side, side, cellField);
 
-
         const canvasElement = this.renderer.domElement.ownerDocument.createElement('canvas');
-        const texture = new Texture1(canvasElement, 32, 32);
+        canvasElement.width = 512;
+        canvasElement.height = 512;
+        const texture = new Texture1(canvasElement);
 
-        texture.paintExample(5);
-        texture.remember()
-
-        texture.mapping = UVMapping;
-        texture.wrapS = RepeatWrapping;
-        texture.wrapT = RepeatWrapping;
-
-        // texture.repeat.set(4, 4);
-        texture.needsUpdate = true;
+        const colors = ['#ff0000', '#00ff00', '#0000ff']
+        for (let i = 0; i < cellField.getSize(); ++i) {
+            cellField.setData(i, CellDataDescriptor.COLOR, colors[i % 3]);
+        }
+        texture.loadFrom(cellField);
+        // texture.paintExample(5);
 
         const material = new MeshLambertMaterial({
             // color: new Color(0x00c500),
@@ -104,7 +101,7 @@ export class SecondScene {
 
     animationStep() {
         if (this.positionHelper.changed) {
-            const dx = this.positionHelper.offset.x / this.planeGeometry.length;
+            const dx = this.positionHelper.offset.x / this.planeGeometry.length; // divide by any constant really
             const dy = this.positionHelper.offset.y / this.planeGeometry.width;
             const shift = this.cellField.getShift(dx, dy);
 
@@ -114,11 +111,7 @@ export class SecondScene {
             this.planeMesh.position.x = -shift.getRemainedX() * this.planeGeometry.length;
             this.planeMesh.position.y = -shift.getRemainedY() * this.planeGeometry.width;
 
-            this.planeTexture.repeat.set(1 / shift.getWorkingAreaX(), 1 / shift.getWorkingAreaY());
-            this.planeTexture.translate(
-                this.planeTexture.width * shift.getActualX(),
-                this.planeTexture.height * shift.getActualY()
-            );
+            this.planeTexture.translate(shift);
 
             this.positionHelper.changed = false;
         }

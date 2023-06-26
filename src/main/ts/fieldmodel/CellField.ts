@@ -25,4 +25,8 @@ export interface CellField {
     getDepthLevel(): number;
 
     getZoomLevel(): number;
+
+    getWorkingAreaX(): number;
+
+    getWorkingAreaY(): number;
 }

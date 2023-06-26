@@ -1,7 +1,7 @@
 import {CellField} from "./CellField";
 import {CellDataDescriptor} from "./CellDataDescriptor";
 import {CellDataTable} from "./CellDataTable";
-import {Shift} from "./Shift";
+import {Shift, ShiftImpl} from "./Shift";
 
 const SQRT3 = Math.sqrt(3);
 const COS_MODS = [0, 0, +SQRT3 / 2, +SQRT3 / 2, 0, -SQRT3 / 2, -SQRT3 / 2];
@@ -17,12 +17,22 @@ export abstract class RectangularCellField implements CellField {
     protected readonly zoomLevel: number;
     protected readonly dataTable: CellDataTable;
 
+    protected readonly rowMult: number;
+    protected readonly columnMult: number;
+    protected readonly workingAreaX: number;
+    protected readonly workingAreaY: number;
+
     protected constructor(rowCount: number, columnCount: number, depthLevel: number, zoomLevel: number, data: CellDataTable) {
         this.rowCount = rowCount;
         this.columnCount = columnCount;
         this.depthLevel = depthLevel;
         this.zoomLevel = zoomLevel;
         this.dataTable = data;
+
+        this.rowMult = (1.5 * this.rowCount) / (1.5 * this.rowCount + 0.5);
+        this.columnMult = this.columnCount / (this.columnCount + 0.5);
+        this.workingAreaX = this.getXPos(this.rowMult, this.columnMult);
+        this.workingAreaY = this.getYPos(this.rowMult, this.columnMult);
     }
 
     abstract getXPos(rowPos: number, columnPos: number): number;
@@ -34,11 +44,11 @@ export abstract class RectangularCellField implements CellField {
     abstract getColumnPos(xPos: number, yPos: number): number;
 
     getData<T>(index: number, descriptor: CellDataDescriptor<T>): T {
-        return this.dataTable.get(index, this.depthLevel, this.zoomLevel, descriptor);
+        return this.dataTable.get(index, this, descriptor);
     }
 
     setData<T>(index: number, descriptor: CellDataDescriptor<T>, value: T): void {
-        return this.dataTable.set(index, this.depthLevel, this.zoomLevel, descriptor, value);
+        return this.dataTable.set(index, this, descriptor, value);
     }
 
     getNeighbours(index: number): number[] {
@@ -56,15 +66,12 @@ export abstract class RectangularCellField implements CellField {
     }
 
     getShift(dx: number, dy: number): Shift {
-        const rowMult = (1.5 * this.rowCount) / (1.5 * this.rowCount + 0.5);
-        const columnMult = this.columnCount / (this.columnCount + 0.5);
-
-        const rowShift = Math.round(this.rowCount * this.getRowPos(dx, dy) / rowMult);
-        const columnShift = Math.round(this.columnCount * this.getColumnPos(dx, dy) / columnMult);
+        const rowShift = Math.round(this.rowCount * this.getRowPos(dx, dy) / this.rowMult);
+        const columnShift = Math.round(this.columnCount * this.getColumnPos(dx, dy) / this.columnMult);
 
         const columnCorrection = (Math.abs(rowShift) % 2) * 0.5 / (this.columnCount + 0.5);
-        const dRow = (rowShift / this.rowCount) * rowMult;
-        const dColumn = (columnShift / this.columnCount) * columnMult - columnCorrection;
+        const dRow = (rowShift / this.rowCount) * this.rowMult;
+        const dColumn = (columnShift / this.columnCount) * this.columnMult - columnCorrection;
 
         const actualX = this.getXPos(dRow, dColumn);
         const actualY = this.getYPos(dRow, dColumn);
@@ -72,10 +79,7 @@ export abstract class RectangularCellField implements CellField {
         const remainedX = dx - actualX;
         const remainedY = dy - actualY;
 
-        const workingAreaX = this.getXPos(rowMult, columnMult);
-        const workingAreaY = this.getYPos(rowMult, columnMult);
-
-        return new ShiftImpl(dx, dy, actualX, actualY, remainedX, remainedY, rowShift, columnShift, workingAreaX, workingAreaY, index => {
+        return new ShiftImpl(dx, dy, actualX, actualY, remainedX, remainedY, rowShift, columnShift, index => {
             const column = index % this.columnCount;
             const row = (index - column) / this.columnCount;
             return this.getIndex(row + rowShift, column + columnShift);
@@ -127,6 +131,14 @@ export abstract class RectangularCellField implements CellField {
     getZoomLevel(): number {
         return this.zoomLevel;
     }
+
+    getWorkingAreaX(): number {
+        return this.workingAreaX;
+    }
+
+    getWorkingAreaY(): number {
+        return this.workingAreaY;
+    }
 }
 
 export class EvenRectangularCellField extends RectangularCellField {
@@ -174,76 +186,5 @@ export class OddRectangularCellField extends RectangularCellField {
 
     getColumnPos(xPos: number, yPos: number): number {
         return yPos;
-    }
-}
-
-class ShiftImpl implements Shift {
-    private readonly requestedX: number;
-    private readonly requestedY: number;
-    private readonly actualX: number;
-    private readonly actualY: number;
-    private readonly remainedX: number;
-    private readonly remainedY: number;
-    private readonly workingAreaX: number;
-    private readonly workingAreaY: number;
-    private readonly rowShift: number;
-    private readonly columnShift: number;
-    private readonly shiftFunction: (index: number) => number;
-
-    constructor(
-        requestedX: number, requestedY: number,
-        actualX: number, actualY: number,
-        remainedX: number, remainedY: number,
-        rowShift: number, columnShift: number,
-        workingAreaX: number, workingAreaY: number,
-        shiftFunction: (index: number) => number
-    ) {
-        this.requestedX = requestedX;
-        this.requestedY = requestedY;
-        this.actualX = actualX;
-        this.actualY = actualY;
-        this.remainedX = remainedX;
-        this.remainedY = remainedY;
-        this.rowShift = rowShift;
-        this.columnShift = columnShift;
-        this.workingAreaX = workingAreaX;
-        this.workingAreaY = workingAreaY;
-        this.shiftFunction = shiftFunction;
-    }
-
-    getRequestedX(): number {
-        return this.requestedX;
-    }
-
-    getRequestedY(): number {
-        return this.requestedY;
-    }
-
-    getActualX(): number {
-        return this.actualX;
-    }
-
-    getActualY(): number {
-        return this.actualY;
-    }
-
-    getRemainedX(): number {
-        return this.remainedX;
-    }
-
-    getRemainedY(): number {
-        return this.remainedY;
-    }
-
-    getWorkingAreaX(): number {
-        return this.workingAreaX;
-    }
-
-    getWorkingAreaY(): number {
-        return this.workingAreaY;
-    }
-
-    getShiftedCell(index: number): number {
-        return this.shiftFunction(index);
     }
 }
