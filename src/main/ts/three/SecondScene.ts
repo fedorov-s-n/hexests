@@ -101,8 +101,10 @@ export class SecondScene {
 
     animationStep() {
         if (this.positionHelper.changed) {
-            const dx = this.positionHelper.offset.x / this.planeGeometry.length; // divide by any constant really
-            const dy = this.positionHelper.offset.y / this.planeGeometry.width;
+            const offsetPlaneMult = this.planeGeometry.length; // divide by any constant really
+
+            const dx = this.positionHelper.offset.x / offsetPlaneMult;
+            const dy = this.positionHelper.offset.y / offsetPlaneMult;
             const shift = this.cellField.getShift(dx, dy);
 
             this.planeGeometry.computeVertexHeights(this.cellField, shift);
@@ -113,6 +115,8 @@ export class SecondScene {
 
             this.planeTexture.translate(shift);
 
+            this.positionHelper.offset.x = shift.getRequestedX() * offsetPlaneMult;
+            this.positionHelper.offset.y = shift.getRequestedY() * offsetPlaneMult;
             this.positionHelper.changed = false;
         }
     }

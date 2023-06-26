@@ -27,7 +27,8 @@ export class PositionHelper {
     applyShift(dx: number, dy: number, rotation: Quaternion) {
         this.temp.set(dx, dy, 0);
         this.temp.applyQuaternion(rotation);
-        this.offset.add(this.temp);
+        this.offset.x += this.temp.x;
+        this.offset.y += this.temp.y;
         this.changed = true;
     }
 }

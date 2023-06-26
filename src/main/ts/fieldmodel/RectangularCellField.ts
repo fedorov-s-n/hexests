@@ -66,24 +66,45 @@ export abstract class RectangularCellField implements CellField {
     }
 
     getShift(dx: number, dy: number): Shift {
-        const rowShift = Math.round(this.rowCount * this.getRowPos(dx, dy) / this.rowMult);
-        const columnShift = Math.round(this.columnCount * this.getColumnPos(dx, dy) / this.columnMult);
+        let rowShift = Math.round(this.rowCount * this.getRowPos(dx, dy) / this.rowMult);
+        let columnShift = Math.round(this.columnCount * this.getColumnPos(dx, dy) / this.columnMult);
 
         const columnCorrection = (Math.abs(rowShift) % 2) * 0.5 / (this.columnCount + 0.5);
-        const dRow = (rowShift / this.rowCount) * this.rowMult;
-        const dColumn = (columnShift / this.columnCount) * this.columnMult - columnCorrection;
+        let dRow = (rowShift / this.rowCount) * this.rowMult;
+        let dColumn = (columnShift / this.columnCount) * this.columnMult - columnCorrection;
 
-        const actualX = this.getXPos(dRow, dColumn);
-        const actualY = this.getYPos(dRow, dColumn);
+        let actualX = this.getXPos(dRow, dColumn);
+        let actualY = this.getYPos(dRow, dColumn);
 
         const remainedX = dx - actualX;
         const remainedY = dy - actualY;
 
-        return new ShiftImpl(dx, dy, actualX, actualY, remainedX, remainedY, rowShift, columnShift, index => {
-            const column = index % this.columnCount;
-            const row = (index - column) / this.columnCount;
-            return this.getIndex(row + rowShift, column + columnShift);
-        });
+        while (rowShift > this.rowCount) rowShift -= this.rowCount;
+        while (rowShift < -this.rowCount) rowShift += this.rowCount;
+        while (columnShift > this.columnCount) columnShift -= this.columnCount;
+        while (columnShift < -this.columnCount) columnShift += this.columnCount;
+
+        dRow = (rowShift / this.rowCount) * this.rowMult;
+        dColumn = (columnShift / this.columnCount) * this.columnMult - columnCorrection;
+
+        actualX = this.getXPos(dRow, dColumn);
+        actualY = this.getYPos(dRow, dColumn);
+
+        const normalizedDx = actualX + remainedX;
+        const normalizedDy = actualY + remainedY;
+
+        return new ShiftImpl(
+            normalizedDx, normalizedDy,
+            actualX, actualY,
+            remainedX, remainedY,
+            rowShift, columnShift,
+            this.workingAreaX, this.workingAreaY,
+            index => {
+                const column = index % this.columnCount;
+                const row = (index - column) / this.columnCount;
+                return this.getIndex(row + rowShift, column + columnShift);
+            }
+        );
     }
 
     getIndex(row: number, column: number): number {
