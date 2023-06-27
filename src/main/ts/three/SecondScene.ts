@@ -107,13 +107,14 @@ export class SecondScene {
             const dy = this.positionHelper.offset.y / offsetPlaneMult;
             const shift = this.cellField.getShift(dx, dy);
 
-            this.planeGeometry.computeVertexHeights(this.cellField, shift);
+            this.planeGeometry.shift = shift;
+            this.planeGeometry.computeVertexHeights(this.cellField);
             this.planeGeometry.computeVertexNormals();
 
             this.planeMesh.position.x = -shift.getRemainedX() * this.planeGeometry.length;
             this.planeMesh.position.y = -shift.getRemainedY() * this.planeGeometry.width;
 
-            this.planeTexture.translate(shift);
+            this.planeTexture.setShift(shift);
 
             this.positionHelper.offset.x = shift.getRequestedX() * offsetPlaneMult;
             this.positionHelper.offset.y = shift.getRequestedY() * offsetPlaneMult;

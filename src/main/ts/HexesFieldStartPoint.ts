@@ -7,6 +7,7 @@ import {CellDataDescriptor} from "./fieldmodel/CellDataDescriptor";
 import {GenericMetropolis} from "./algorithms/GenericMetropolis";
 import {Random} from "./algorithms/Random";
 import {ColorGenerator} from "./three/ColorGenerator";
+import {BrownianDrift} from "./algorithms/BrownianDrift";
 
 @Component
 export class HexesFieldStartPoint {
@@ -27,13 +28,6 @@ export class HexesFieldStartPoint {
 
         this.scene.camera.position.z = 5;
 
-        const cellField = this.scene.cellField;
-        this.cellDataTable.set(24, cellField, CellDataDescriptor.HEIGHT, 0.05);
-        this.cellDataTable.set(26, cellField, CellDataDescriptor.HEIGHT, 0.04);
-        this.cellDataTable.set(351, cellField, CellDataDescriptor.HEIGHT, 0.06);
-
-        // let ambientLight = new AmbientLight(0x0c0c0c);
-        // this.scene.scene.add(ambientLight);
         let spotLight = new SpotLight(0xcccccc);
         spotLight.position.set(0, 0, -50);
         // spotLight.castShadow = true;
@@ -43,6 +37,7 @@ export class HexesFieldStartPoint {
         // spotLight.castShadow = true;
         this.scene.scene.add(spotLight2);
 
+        const cellField = this.scene.cellField;
         const dtc = 3;
         const cg = new ColorGenerator(dtc);
         const gm = new GenericMetropolis(cellField, new Random(), dtc);
@@ -54,6 +49,11 @@ export class HexesFieldStartPoint {
             cellField.setData(i, CellDataDescriptor.COLOR, color);
         }
         this.scene.planeTexture.loadFrom(cellField);
+
+        const bdrift = new BrownianDrift(cellField, new Random(), index => cellField.getData(index, GenericMetropolis.DOMAIN_TYPE));
+        bdrift.generateDefault();
+        this.scene.planeGeometry.computeVertexHeights(cellField);
+        this.scene.planeGeometry.computeVertexNormals();
 
         this.scene.animationLoop(() => {
 

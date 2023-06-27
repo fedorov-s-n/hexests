@@ -1,5 +1,6 @@
 import {CellDataDescriptor} from "./CellDataDescriptor";
 import {Shift} from "./Shift";
+import {GraphSearchBuilder} from "../algorithms/GraphSearchBuilder";
 
 export interface CellField {
     traversePoints(callback: (
@@ -14,6 +15,8 @@ export interface CellField {
 
     getNeighbours(index: number): number[];
 
+    search(...indices: number[]): GraphSearchBuilder<number>;
+
     getShift(dx: number, dy: number): Shift;
 
     getData<T>(index: number, descriptor: CellDataDescriptor<T>): T;
@@ -25,8 +28,4 @@ export interface CellField {
     getDepthLevel(): number;
 
     getZoomLevel(): number;
-
-    getWorkingAreaX(): number;
-
-    getWorkingAreaY(): number;
 }

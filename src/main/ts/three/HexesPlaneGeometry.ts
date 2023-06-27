@@ -10,6 +10,7 @@ export class HexesPlaneGeometry extends BufferGeometry {
     readonly length: number;
     readonly width: number;
     readonly height: number;
+    shift: Shift;
     private readonly neighbours: number[];
 
     constructor(length: number, width: number, height: number, cellField: CellField) {
@@ -84,20 +85,23 @@ export class HexesPlaneGeometry extends BufferGeometry {
         this.width = width;
         this.height = height;
         this.neighbours = neighbours;
+        this.shift = cellField.getShift(0, 0);
         this.setIndex(indices);
         this.setAttribute('position', new Float32BufferAttribute(vertices, 3));
         this.setAttribute('normal', new Float32BufferAttribute(normals, 3));
         this.setAttribute('uv', new Float32BufferAttribute(uvs, 2));
+
+        this.computeVertexHeights(cellField);
     }
 
-    computeVertexHeights(cellField: CellField, shift: Shift) {
+    computeVertexHeights(cellField: CellField) {
         const vertices = this.getAttribute('position') as Float32BufferAttribute;
 
         for (let i = 0; i < vertices.count; ++i) {
             if (this.neighbours[3 * i + 1] === CENTER_MARK) {
                 // this is a special meaning of 3rd neighbour: cell index corresponding to the center point
                 const cellIndex = this.neighbours[3 * i + 2];
-                const shiftedCellIndex = shift.getShiftedCell(cellIndex);
+                const shiftedCellIndex = this.shift.getShiftedCell(cellIndex);
                 const dataHeight = cellField.getData(shiftedCellIndex, CellDataDescriptor.HEIGHT) || 0;
                 vertices.setZ(i, dataHeight * this.height);
             }

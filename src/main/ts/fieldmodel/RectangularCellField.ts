@@ -2,6 +2,7 @@ import {CellField} from "./CellField";
 import {CellDataDescriptor} from "./CellDataDescriptor";
 import {CellDataTable} from "./CellDataTable";
 import {Shift, ShiftImpl} from "./Shift";
+import {ArraySearchStorageFactory, GraphSearchBuilder} from "../algorithms/GraphSearchBuilder";
 
 const SQRT3 = Math.sqrt(3);
 const COS_MODS = [0, 0, +SQRT3 / 2, +SQRT3 / 2, 0, -SQRT3 / 2, -SQRT3 / 2];
@@ -63,6 +64,13 @@ export abstract class RectangularCellField implements CellField {
             this.getIndex(row + 1, adjustedColumn + 1),
             this.getIndex(row + 1, adjustedColumn)
         ];
+    }
+
+    search(...indices: number[]): GraphSearchBuilder<number> {
+        const size = this.getSize();
+        if (indices.length === 0) indices = Array.from(new Array(size).keys());
+        return new GraphSearchBuilder<number>(indices, index => this.getNeighbours(index))
+            .withStorageFactory(new ArraySearchStorageFactory(size));
     }
 
     getShift(dx: number, dy: number): Shift {
@@ -151,14 +159,6 @@ export abstract class RectangularCellField implements CellField {
 
     getZoomLevel(): number {
         return this.zoomLevel;
-    }
-
-    getWorkingAreaX(): number {
-        return this.workingAreaX;
-    }
-
-    getWorkingAreaY(): number {
-        return this.workingAreaY;
     }
 }
 

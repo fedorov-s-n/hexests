@@ -19,6 +19,11 @@ export class CellDataTable {
         array[index] = value;
     }
 
+    removeAll<T>(cellField: CellField, descriptor: CellDataDescriptor<T>) {
+        const key = this.composeKey(cellField, descriptor);
+        this.map.delete(key);
+    }
+
     composeKey(cellField: CellField, descriptor: CellDataDescriptor<any>): string {
         return `${descriptor.key}:${cellField.getZoomLevel()}:${cellField.getDepthLevel()}`;
     }

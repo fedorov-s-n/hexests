@@ -8,6 +8,7 @@ export class Texture1 extends CanvasTexture {
     private readonly context: CanvasRenderingContext2D
     private canvasAsPattern!: CanvasPattern
     private canvasChanged: boolean = false;
+    private shift!: Shift;
 
     constructor(canvas: HTMLCanvasElement) {
         super(canvas);
@@ -40,10 +41,12 @@ export class Texture1 extends CanvasTexture {
         const xifs = [false, true, false];
         const yifs = [false, true, false];
 
+        const shift = this.shift = cellField.getShift(0, 0);
+
         cellField.traversePoints((cellIndex: number, pointId: number, pointOrder: number, xpos: number, ypos: number) => {
             if (pointOrder !== 0) {
-                const x = xpos / cellField.getWorkingAreaX() * this.canvas.width;
-                const y = (1 - ypos / cellField.getWorkingAreaY()) * this.canvas.height;
+                const x = xpos / shift.getWorkingAreaX() * this.canvas.width;
+                const y = (1 - ypos / shift.getWorkingAreaY()) * this.canvas.height;
                 xs[pointOrder - 1] = x;
                 ys[pointOrder - 1] = y;
                 if (pointOrder === 6) {
@@ -71,12 +74,17 @@ export class Texture1 extends CanvasTexture {
                 }
             }
         });
-        this.repeat.set(1 / cellField.getWorkingAreaX(), 1 / cellField.getWorkingAreaY());
+        this.repeat.set(1 / shift.getWorkingAreaX(), 1 / shift.getWorkingAreaY());
         this.canvasChanged = true;
         this.needsUpdate = true;
     }
 
-    translate(shift: Shift) {
+    getShift(): Shift {
+        return this.shift;
+    }
+
+    setShift(shift: Shift) {
+        this.shift = shift;
         const dx: number = this.canvas.width * shift.getActualX() / shift.getWorkingAreaX();
         const dy: number = this.canvas.height * shift.getActualY() / shift.getWorkingAreaY();
         if (this.canvasChanged) {
