@@ -4,6 +4,9 @@ import {OrbitControls} from "three/examples/jsm/controls/OrbitControls";
 import {SpotLight} from "three";
 import {CellDataTable} from "./fieldmodel/CellDataTable";
 import {CellDataDescriptor} from "./fieldmodel/CellDataDescriptor";
+import {GenericMetropolis} from "./algorithms/GenericMetropolis";
+import {Random} from "./algorithms/Random";
+import {ColorGenerator} from "./three/ColorGenerator";
 
 @Component
 export class HexesFieldStartPoint {
@@ -39,6 +42,18 @@ export class HexesFieldStartPoint {
         spotLight2.position.set(0, 0, +50);
         // spotLight.castShadow = true;
         this.scene.scene.add(spotLight2);
+
+        const dtc = 3;
+        const cg = new ColorGenerator(dtc);
+        const gm = new GenericMetropolis(cellField, new Random(), dtc);
+
+        gm.generateDefault();
+        for (let i = 0; i < cellField.getSize(); ++i) {
+            const dt = cellField.getData(i, GenericMetropolis.DOMAIN_TYPE) || 0;
+            const color = cg.toColor(dt);
+            cellField.setData(i, CellDataDescriptor.COLOR, color);
+        }
+        this.scene.planeTexture.loadFrom(cellField);
 
         this.scene.animationLoop(() => {
 

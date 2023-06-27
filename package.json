@@ -27,6 +27,7 @@
     "webpack-cli": "5.0.1"
   },
   "dependencies": {
+    "rand-seed": "1.0.2",
     "reflect-metadata": "0.1.13",
     "three": "0.149.0"
   }
