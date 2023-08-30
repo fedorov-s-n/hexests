@@ -2,3 +2,22 @@ body {
     margin: 0;
     overflow: hidden;
 }
+
+html, body, .ht-three-js-panel {
+    height: 100%;
+}
+
+.ht-help-panel {
+    min-width: 200px;
+    overflow-y: auto;
+}
+
+.ht-command-line {
+    width: calc(100% - 12px);
+    padding: 5px;
+    border-color: #d3d9df;
+    border-radius: 3px;
+    border-width: 1px;
+    line-height: 21px;
+    font-size: 16px;
+}

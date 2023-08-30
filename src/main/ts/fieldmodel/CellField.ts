@@ -1,31 +1,10 @@
-import {CellDataDescriptor} from "./CellDataDescriptor";
-import {Shift} from "./Shift";
 import {GraphSearchBuilder} from "../algorithms/GraphSearchBuilder";
 
 export interface CellField {
-    traversePoints(callback: (
-        cellIndex: number, // unique index of cell
-        pointId: number, // unique identifier of point
-        pointOrder: number, // relative order of point, central is 0
-        xpos: number, // position in unshifted grid mapped to [0, 1]
-        ypos: number  // position in unshifted grid mapped to [0, 1]
-    ) => void): void;
+    size: number;
+    zoom: number;
 
-    getPointIdUpperBorder(): number;
-
-    getNeighbours(index: number): number[];
+    fillNeighbours(index: number, neighbours: number[]): void;
 
     search(...indices: number[]): GraphSearchBuilder<number>;
-
-    getShift(dx: number, dy: number): Shift;
-
-    getData<T>(index: number, descriptor: CellDataDescriptor<T>): T;
-
-    setData<T>(index: number, descriptor: CellDataDescriptor<T>, value: T): void;
-
-    getSize(): number;
-
-    getDepthLevel(): number;
-
-    getZoomLevel(): number;
 }

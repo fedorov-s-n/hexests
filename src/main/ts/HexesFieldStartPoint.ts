@@ -2,28 +2,34 @@ import {Component} from "./di/Component";
 import {SecondScene} from "./three/SecondScene";
 import {OrbitControls} from "three/examples/jsm/controls/OrbitControls";
 import {SpotLight} from "three";
-import {CellDataTable} from "./fieldmodel/CellDataTable";
-import {CellDataDescriptor} from "./fieldmodel/CellDataDescriptor";
+import {DataDescriptor} from "./data/DataDescriptor";
 import {GenericMetropolis} from "./algorithms/GenericMetropolis";
-import {Random} from "./algorithms/Random";
 import {ColorGenerator} from "./three/ColorGenerator";
 import {BrownianDrift} from "./algorithms/BrownianDrift";
+import {CellFieldProvider} from "./fieldmodel/CellFieldProvider";
+import {LevelController} from "./three/LevelController";
 
 @Component
 export class HexesFieldStartPoint {
     private readonly scene: SecondScene;
-    private readonly cellDataTable: CellDataTable;
+    private readonly brownianDrift: BrownianDrift;
+    private readonly genericMetropolis: GenericMetropolis;
+    private readonly cellFieldProvider: CellFieldProvider;
+    private readonly levels: LevelController;
 
-    constructor(scene: SecondScene, cellDataTable: CellDataTable) {
+    constructor(scene: SecondScene, brownianDrift: BrownianDrift, genericMetropolis: GenericMetropolis, cellFieldProvider: CellFieldProvider, levels: LevelController) {
         this.scene = scene;
-        this.cellDataTable = cellDataTable;
+        this.brownianDrift = brownianDrift;
+        this.genericMetropolis = genericMetropolis;
+        this.cellFieldProvider = cellFieldProvider;
+        this.levels = levels;
     }
 
-    gogogo(window: Window) {
-        this.scene.installScene(window);
+    gogogo(container: HTMLElement) {
+        this.scene.installScene(container);
         this.scene.installHelper();
         // const cube = this.scene.installCube();
-        const plane = this.scene.installHexesPlane();
+        this.scene.installHexesPlanes();
         new OrbitControls(this.scene.camera, this.scene.renderer.domElement);
 
         this.scene.camera.position.z = 5;
@@ -37,26 +43,36 @@ export class HexesFieldStartPoint {
         // spotLight.castShadow = true;
         this.scene.scene.add(spotLight2);
 
-        const cellField = this.scene.cellField;
-        const dtc = 3;
+        const cellField = this.cellFieldProvider.getField(0);
+        const dtc = 5;
         const cg = new ColorGenerator(dtc);
-        const gm = new GenericMetropolis(cellField, new Random(), dtc);
 
-        gm.generateDefault();
-        for (let i = 0; i < cellField.getSize(); ++i) {
-            const dt = cellField.getData(i, GenericMetropolis.DOMAIN_TYPE) || 0;
+        this.genericMetropolis.init(cellField, dtc);
+        this.genericMetropolis.generateDefault();
+
+        const dtDS = this.cellFieldProvider.getDataStorage(GenericMetropolis.DOMAIN_TYPE, 0, 0);
+        const colorDS = this.cellFieldProvider.getDataStorage(DataDescriptor.COLOR, 0, 0);
+        for (let i = 0; i < cellField.size; ++i) {
+            const dt = dtDS.getOrDefault(i, 0);
             const color = cg.toColor(dt);
-            cellField.setData(i, CellDataDescriptor.COLOR, color);
+            colorDS.putValue(i, color)
         }
-        this.scene.planeTexture.loadFrom(cellField);
+        const finitePlane = this.cellFieldProvider.getFinitePlane(0);
+        this.levels.getLevel(0).planeTexture.loadFrom(finitePlane, (index) => colorDS.getOrDefault(index, '#ffffff'));
 
-        const bdrift = new BrownianDrift(cellField, new Random(), index => cellField.getData(index, GenericMetropolis.DOMAIN_TYPE));
-        bdrift.generateDefault();
-        this.scene.planeGeometry.computeVertexHeights(cellField);
-        this.scene.planeGeometry.computeVertexNormals();
+        this.brownianDrift.init(cellField, (index: number) => dtDS.getValue(index)!!);
+        this.brownianDrift.generateDefault();
+
+        const shift000 = finitePlane.getShift(0, 0);
+        const shift100 = this.cellFieldProvider.getFinitePlane(1).getShift(0, 0);
+        const heightDS00 = this.cellFieldProvider.getDataStorage(DataDescriptor.HEIGHT, 0, 0);
+        const heightDS10 = this.cellFieldProvider.getDataStorage(DataDescriptor.HEIGHT, 1, 0);
+        this.levels.getLevel(0).planeGeometry.computeVertexHeights(shift000, heightDS00);
+        this.cellFieldProvider.interpolateDS(DataDescriptor.HEIGHT, 0, 1, 0);
+        this.levels.getLevel(1).planeGeometry.computeVertexHeights(shift100, heightDS10);
+        this.levels.setCurrentZoomLevel(1);
 
         this.scene.animationLoop(() => {
-
         });
     }
 }

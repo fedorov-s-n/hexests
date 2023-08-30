@@ -2,10 +2,8 @@ import {
     AxesHelper,
     BoxGeometry,
     Camera,
-    DoubleSide,
     Mesh,
     MeshBasicMaterial,
-    MeshLambertMaterial,
     PerspectiveCamera,
     Renderer,
     Scene,
@@ -14,40 +12,36 @@ import {
 import WebGL from "three/examples/jsm/capabilities/WebGL";
 import {Object3D} from "three/src/core/Object3D";
 import {CellFieldProvider} from "../fieldmodel/CellFieldProvider";
-import {HexesPlaneGeometry} from "./HexesPlaneGeometry";
 import {Component} from "../di/Component";
 import {PositionHelper} from "./PositionHelper";
-import {CellField} from "../fieldmodel/CellField";
-import {Texture1} from "./Texture1";
-import {CellDataDescriptor} from "../fieldmodel/CellDataDescriptor";
+import {LevelController} from "./LevelController";
+import {DataDescriptor} from "../data/DataDescriptor";
 
 @Component
 export class SecondScene {
     private readonly cellFieldProvider: CellFieldProvider;
     private readonly positionHelper: PositionHelper;
+    private readonly levels: LevelController;
 
     scene!: Scene;
     camera!: Camera;
     renderer!: Renderer;
-    cellField!: CellField;
-    planeGeometry!: HexesPlaneGeometry;
-    planeMesh!: Mesh;
-    planeTexture!: Texture1;
 
-    constructor(cellFieldProvider: CellFieldProvider, positionHelper: PositionHelper) {
+    constructor(cellFieldProvider: CellFieldProvider, positionHelper: PositionHelper, levels: LevelController) {
         this.cellFieldProvider = cellFieldProvider;
         this.positionHelper = positionHelper;
+        this.levels = levels;
     }
 
-    installScene(window: Window) {
+    installScene(container: HTMLElement) {
         this.scene = new Scene();
-        this.camera = new PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        this.camera = new PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
         this.renderer = new WebGLRenderer({
             antialias: true
         });
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
-        window.document.body.appendChild(this.renderer.domElement);
-        this.positionHelper.subscribe(this.renderer.domElement.ownerDocument, this.camera);
+        this.renderer.setSize(container.clientWidth, container.clientHeight);
+        container.appendChild(this.renderer.domElement);
+        this.positionHelper.subscribe(this.renderer.domElement.parentElement!, this.camera);
     }
 
     installHelper(): Object3D {
@@ -64,62 +58,15 @@ export class SecondScene {
         return cube;
     }
 
-    installHexesPlane() {
-        let side = 10;
-        const cellField = this.cellFieldProvider.getField(0, 0);
-        const geometry = new HexesPlaneGeometry(side, side, side, cellField);
+    installHexesPlanes() {
+        this.levels.installLevels(2);
+        this.levels.setCurrentZoomLevel(0);
+        this.levels.getLevel(0).loadTexture(this.cellFieldProvider.getDataStorage(DataDescriptor.COLOR, 0, 0));
 
-        const canvasElement = this.renderer.domElement.ownerDocument.createElement('canvas');
-        canvasElement.width = 512;
-        canvasElement.height = 512;
-        const texture = new Texture1(canvasElement);
-
-        const colors = ['#ff0000', '#00ff00', '#0000ff']
-        for (let i = 0; i < cellField.getSize(); ++i) {
-            cellField.setData(i, CellDataDescriptor.COLOR, colors[i % 3]);
-        }
-        texture.loadFrom(cellField);
-        // texture.paintExample(5);
-
-        const material = new MeshLambertMaterial({
-            // color: new Color(0x00c500),
-            map: texture,
-            side: DoubleSide
+        this.levels.getAllLevels().forEach(level => {
+            this.scene.add(level.planeMesh);
+            level.objects.forEach(object => this.scene.add(object));
         });
-        const plane = new Mesh(geometry, material);
-
-        plane.castShadow = true;
-        plane.receiveShadow = true;
-
-        this.scene.add(plane);
-        this.cellField = cellField;
-        this.planeGeometry = geometry;
-        this.planeMesh = plane;
-        this.planeTexture = texture;
-        return plane;
-    }
-
-    animationStep() {
-        if (this.positionHelper.changed) {
-            const offsetPlaneMult = this.planeGeometry.length; // divide by any constant really
-
-            const dx = this.positionHelper.offset.x / offsetPlaneMult;
-            const dy = this.positionHelper.offset.y / offsetPlaneMult;
-            const shift = this.cellField.getShift(dx, dy);
-
-            this.planeGeometry.shift = shift;
-            this.planeGeometry.computeVertexHeights(this.cellField);
-            this.planeGeometry.computeVertexNormals();
-
-            this.planeMesh.position.x = -shift.getRemainedX() * this.planeGeometry.length;
-            this.planeMesh.position.y = -shift.getRemainedY() * this.planeGeometry.width;
-
-            this.planeTexture.setShift(shift);
-
-            this.positionHelper.offset.x = shift.getRequestedX() * offsetPlaneMult;
-            this.positionHelper.offset.y = shift.getRequestedY() * offsetPlaneMult;
-            this.positionHelper.changed = false;
-        }
     }
 
     animationLoop(action: () => void) {
@@ -127,7 +74,7 @@ export class SecondScene {
 
         function animate() {
             requestAnimationFrame(animate);
-            self.animationStep();
+            self.positionHelper.onAnimationStep();
             action();
             self.renderer.render(self.scene, self.camera);
         }

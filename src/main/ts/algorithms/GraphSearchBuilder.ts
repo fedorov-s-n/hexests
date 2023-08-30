@@ -1,3 +1,5 @@
+import {DataStorage, DataStorageFactory, MapDataStorageFactory} from "../data/DataStorage";
+
 export class GraphSearchBuilder<T> {
     private readonly startVertices: T[];
     private readonly traversalSupport: (vertex: T) => T[];
@@ -6,7 +8,7 @@ export class GraphSearchBuilder<T> {
     private onStartFunctions: ((vertex: T) => boolean)[] = [];
     private onFinishFunctions: ((vertex: T) => boolean)[] = [];
     private onExitFunctions: ((vertex: T) => void)[] = [];
-    private storageFactory: SearchStorageFactory<T> = MapSearchStorageFactory.INSTANCE;
+    private storageFactory: DataStorageFactory<T> = MapDataStorageFactory.INSTANCE;
 
     constructor(startVertices: T[], traversalSupport: (vertex: T) => T[]) {
         this.startVertices = startVertices;
@@ -84,7 +86,7 @@ export class GraphSearchBuilder<T> {
      * @param storageFactory an object to keep intermediate results.
      * May be overridden for performance gains or when a default one can't handle the key type.
      */
-    public withStorageFactory(storageFactory: SearchStorageFactory<T>): GraphSearchBuilder<T> {
+    public withStorageFactory(storageFactory: DataStorageFactory<T>): GraphSearchBuilder<T> {
         this.storageFactory = storageFactory;
         return this;
     }
@@ -106,7 +108,7 @@ export class GraphSearchBuilder<T> {
      * undefined if there is no such vertex
      */
     public bfs(): T | undefined {
-        const searchStorage: SearchStorage<T, Color> = this.storageFactory.createStorage();
+        const searchStorage: DataStorage<T, Color> = this.storageFactory.createStorage();
 
         const list: T[] = [];
         for (const vertex of this.startVertices) {
@@ -153,7 +155,7 @@ export class GraphSearchBuilder<T> {
      * undefined if there is no such vertex
      */
     public dfs(): T | undefined {
-        const searchStorage: SearchStorage<T, Color> = this.storageFactory.createStorage();
+        const searchStorage: DataStorage<T, Color> = this.storageFactory.createStorage();
         for (const vertex of this.startVertices) {
             if (searchStorage.getOrDefault(vertex, Color.WHITE) != Color.WHITE) continue;
             this.onEnterFunctions.forEach(f => f(vertex));
@@ -164,7 +166,7 @@ export class GraphSearchBuilder<T> {
         return undefined;
     }
 
-    private dfs0(startVertex: T, colors: SearchStorage<T, Color>): T | undefined {
+    private dfs0(startVertex: T, colors: DataStorage<T, Color>): T | undefined {
         const vertexStack: T[] = [startVertex];
         const childrenStack: T[][] = [this.traversalSupport(startVertex)];
         const indexStack: number[] = [0];
@@ -214,76 +216,6 @@ export class GraphSearchBuilder<T> {
         } while (stackPointer >= 0);
 
         return undefined;
-    }
-}
-
-export interface SearchStorageFactory<T> {
-    createStorage<V>(): SearchStorage<T, V>;
-}
-
-export interface SearchStorage<K, V> {
-    getValue(key: K): V | undefined;
-
-    putValue(key: K, value: V): void;
-
-    getOrDefault(key: K, defaultValue: V): V
-}
-
-export class MapSearchStorageFactory<T> implements SearchStorageFactory<T> {
-    public static INSTANCE = new MapSearchStorageFactory();
-
-    createStorage<V>(): SearchStorage<T, V> {
-        return new MapSearchStorage<T, V>();
-    }
-}
-
-export class ArraySearchStorageFactory implements SearchStorageFactory<number> {
-    private readonly size: number;
-
-    constructor(size: number) {
-        this.size = size;
-    }
-
-    createStorage<V>(): SearchStorage<number, V> {
-        return new ArraySearchStorage(new Array<V>(this.size));
-    }
-}
-
-class MapSearchStorage<K, V> implements SearchStorage<K, V> {
-    private readonly map: Map<K, V> = new Map<K, V>();
-
-    public getValue(key: K): V | undefined {
-        return this.map.get(key);
-    }
-
-    public putValue(key: K, value: V): void {
-        this.map.set(key, value);
-    }
-
-    public getOrDefault(key: K, defaultValue: V): V {
-        const value = this.map.get(key);
-        return value === undefined ? defaultValue : value;
-    }
-}
-
-class ArraySearchStorage<V> implements SearchStorage<number, V> {
-    private readonly array: V[];
-
-    constructor(array: V[]) {
-        this.array = array;
-    }
-
-    public getValue(key: number): V | undefined {
-        return this.array[key];
-    }
-
-    public putValue(key: number, value: V): void {
-        this.array[key] = value;
-    }
-
-    public getOrDefault(key: number, defaultValue: V): V {
-        const value = this.array[key];
-        return value === undefined ? defaultValue : value;
     }
 }
 

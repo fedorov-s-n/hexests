@@ -1,13 +1,13 @@
 import {CanvasTexture, RepeatWrapping, UVMapping} from "three";
 import {Shift} from "../fieldmodel/Shift";
-import {CellField} from "../fieldmodel/CellField";
-import {CellDataDescriptor} from "../fieldmodel/CellDataDescriptor";
+import {FinitePlaneAbstraction} from "../fieldmodel/FinitePlaneAbstraction";
+import {Point2d} from "../fieldmodel/Point2d";
 
 export class Texture1 extends CanvasTexture {
-    private readonly canvas: HTMLCanvasElement
-    private readonly context: CanvasRenderingContext2D
-    private canvasAsPattern!: CanvasPattern
-    private canvasChanged: boolean = false;
+    private readonly canvas: HTMLCanvasElement;
+    private readonly context: CanvasRenderingContext2D;
+    private fpOffset!: Point2d;
+    private canvasAsPattern!: CanvasPattern;
     private shift!: Shift;
 
     constructor(canvas: HTMLCanvasElement) {
@@ -25,11 +25,10 @@ export class Texture1 extends CanvasTexture {
         this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
         this.context.fillStyle = '#0000ff';
         this.context.fillRect(border, border, this.canvas.width - 2 * border, this.canvas.height - 2 * border);
-        this.canvasChanged = true;
         this.needsUpdate = true;
     }
 
-    loadFrom(cellField: CellField) {
+    loadFrom(finitePlane: FinitePlaneAbstraction, fillStyleProcedure: (index: number) => string | CanvasGradient | CanvasPattern) {
         this.clear();
 
         const xs = new Array<number>(6);
@@ -41,42 +40,41 @@ export class Texture1 extends CanvasTexture {
         const xifs = [false, true, false];
         const yifs = [false, true, false];
 
-        const shift = this.shift = cellField.getShift(0, 0);
+        const shift = this.shift = finitePlane.getShift(0, 0);
+        const offset = this.fpOffset = finitePlane.offset;
 
-        cellField.traversePoints((cellIndex: number, pointId: number, pointOrder: number, xpos: number, ypos: number) => {
-            if (pointOrder !== 0) {
-                const x = xpos / shift.getWorkingAreaX() * this.canvas.width;
-                const y = (1 - ypos / shift.getWorkingAreaY()) * this.canvas.height;
-                xs[pointOrder - 1] = x;
-                ys[pointOrder - 1] = y;
-                if (pointOrder === 6) {
-                    xifs[0] = Math.max(...xs) > this.canvas.width;
-                    xifs[2] = Math.min(...xs) < 0;
-                    yifs[0] = Math.max(...ys) > this.canvas.height;
-                    yifs[2] = Math.min(...ys) < 0;
+        for (let cellIndex = 0; cellIndex < finitePlane.size; ++cellIndex) {
+            finitePlane.fillPoints(cellIndex, xs, ys);
+            for (let j = 0; j < 6; ++j) {
+                xs[j] = (xs[j] - offset.x) / shift.workArea.x * this.canvas.width;
+                ys[j] = (1 - (ys[j] - offset.y) / shift.workArea.y) * this.canvas.height;
+            }
+            xifs[0] = Math.max(...xs) > this.canvas.width;
+            xifs[2] = Math.min(...xs) < 0;
+            yifs[0] = Math.max(...ys) > this.canvas.height;
+            yifs[2] = Math.min(...ys) < 0;
 
-                    this.context.fillStyle = cellField.getData(cellIndex, CellDataDescriptor.COLOR) || '#ffffff';
+            this.context.fillStyle = fillStyleProcedure(cellIndex);
 
-                    for (let ix = 0; ix < 3; ++ix) {
-                        if (xifs[ix]) {
-                            for (let iy = 0; iy < 3; ++iy) {
-                                if (yifs[iy]) {
-                                    this.context.beginPath();
-                                    this.context.moveTo(xs[0] + dxs[ix], ys[0] + dys[iy]);
-                                    for (let i = 1; i < 6; ++i) {
-                                        this.context.lineTo(xs[i] + dxs[ix], ys[i] + dys[iy]);
-                                    }
-                                    this.context.fill();
-                                }
+            for (let ix = 0; ix < 3; ++ix) {
+                if (xifs[ix]) {
+                    for (let iy = 0; iy < 3; ++iy) {
+                        if (yifs[iy]) {
+                            this.context.beginPath();
+                            this.context.moveTo(xs[0] + dxs[ix], ys[0] + dys[iy]);
+                            for (let i = 1; i < 6; ++i) {
+                                this.context.lineTo(xs[i] + dxs[ix], ys[i] + dys[iy]);
                             }
+                            this.context.fill();
                         }
                     }
                 }
             }
-        });
-        this.repeat.set(1 / shift.getWorkingAreaX(), 1 / shift.getWorkingAreaY());
-        this.canvasChanged = true;
-        this.needsUpdate = true;
+        }
+
+        this.repeat.set(1 / shift.workArea.x, 1 / shift.workArea.y);
+        this.canvasAsPattern = this.context.createPattern(this.canvas, "repeat")!!;
+        this.repaint();
     }
 
     getShift(): Shift {
@@ -85,21 +83,22 @@ export class Texture1 extends CanvasTexture {
 
     setShift(shift: Shift) {
         this.shift = shift;
-        const dx: number = this.canvas.width * shift.getActualX() / shift.getWorkingAreaX();
-        const dy: number = this.canvas.height * shift.getActualY() / shift.getWorkingAreaY();
-        if (this.canvasChanged) {
-            this.canvasAsPattern = this.context.createPattern(this.canvas, "repeat")!!;
-            this.canvasChanged = false;
-        }
-        this.clear();
-        this.context.fillStyle = this.canvasAsPattern;
-        this.context.setTransform(1, 0, 0, 1, -dx, dy);
-        this.context.fillRect(dx, -dy, this.canvas.width, this.canvas.height);
-        this.needsUpdate = true;
+        this.repaint();
     }
 
     clear() {
         this.context.setTransform(1, 0, 0, 1, 0, 0);
         this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+
+    repaint() {
+        const dx: number = this.canvas.width * (this.shift.actual.x - this.fpOffset.x) / this.shift.workArea.x;
+        const dy: number = this.canvas.height * (this.shift.actual.y - this.fpOffset.y) / this.shift.workArea.y;
+
+        this.clear();
+        this.context.fillStyle = this.canvasAsPattern;
+        this.context.setTransform(1, 0, 0, 1, -dx, dy);
+        this.context.fillRect(dx, -dy, this.canvas.width, this.canvas.height);
+        this.needsUpdate = true;
     }
 }

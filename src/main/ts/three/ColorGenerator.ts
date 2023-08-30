@@ -10,8 +10,16 @@ export class ColorGenerator {
             return '#ff0000';
         } else if (index === 1) {
             return '#00ff00';
-        } else {
+        } else if (index === 2) {
             return '#0000ff';
+        } else if (index === 3) {
+            return '#00ffff';
+        } else if (index === 4) {
+            return '#ff00ff';
+        } else if (index === 5) {
+            return '#ffff00';
+        } else {
+            return '#ffffff';
         }
         // let num = Math.round((0xFF0000 * index) / this.colorsCount);
 
