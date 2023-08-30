@@ -5,6 +5,7 @@ import {CircusComponent} from "./htmlcomponents/CircusComponent";
 import {SingleElementComponent} from "./htmlcomponents/SingleElementComponent";
 import {SingleLineComponent} from "./htmlcomponents/SingleLineComponent";
 import {CommandCentre} from "./command/CommandCentre";
+import {RecentCommandTracker} from "./command/RecentCommandTracker";
 
 const document = window.document;
 const container = new DIContainer();
@@ -21,28 +22,16 @@ circus.attach(document.body);
 circus.right = new SingleElementComponent(document.createElement('div')).setup(right => {
     right.className = 'ht-help-panel';
 
-    let historyIndex = -1;
+    const rct = new RecentCommandTracker();
     const onCommand = (command: string) => {
-        historyIndex = -1;
+        rct.pushCommand(command);
+        rct.resetIndex();
         right.innerText += '\n' + commandCentre.execute(command);
     }
     circus.footer = new SingleLineComponent(document.createElement('input'), onCommand).setup(input => {
         input.className = 'ht-command-line';
         input.placeholder = 'Enter command...';
-        input.addEventListener("keydown", event => {
-            event.stopPropagation();
-            const lastHistoryIndex = historyIndex;
-            if (event.key === "ArrowUp") {
-                historyIndex = Math.min(historyIndex + 1, commandCentre.getRecentCommands().length - 1);
-            } else if (event.key === "ArrowDown") {
-                historyIndex = Math.max(historyIndex - 1, -1);
-            } else {
-                return;
-            }
-            if (historyIndex == lastHistoryIndex) return;
-            input.value = historyIndex === -1 ? '' : commandCentre.getRecentCommands()[historyIndex];
-            input.selectionStart = input.selectionEnd = input.value.length;
-        });
+        rct.subscribeToEvents(input);
     });
 });
 

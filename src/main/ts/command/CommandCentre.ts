@@ -1,19 +1,16 @@
 import {Component} from "../di/Component";
 import {DIContainer} from "../di/DIContainer";
 
-const COMMANDS_CACHE_SIZE = 20;
 
 @Component
 export class CommandCentre {
     private readonly diContainer: DIContainer;
-    private readonly commandsCache: Array<string> = [];
 
     constructor(diContainer: DIContainer) {
         this.diContainer = diContainer;
     }
 
     public execute(command: string): string {
-        this.pushCommand(command);
         const chain = command.split('.');
         if (!chain.length) return 'Empty request';
         let object = this.diContainer.getIfExists(chain[0]);
@@ -51,16 +48,6 @@ export class CommandCentre {
         return command + ' >> ' + this.formatObject(object);
     }
 
-    private pushCommand(command: string) {
-        this.commandsCache.unshift(command);
-        if (this.commandsCache.length > COMMANDS_CACHE_SIZE) {
-            this.commandsCache.length = COMMANDS_CACHE_SIZE;
-        }
-    }
-
-    public getRecentCommands(): string[] {
-        return this.commandsCache;
-    }
 
     private formatObject(object: any): string {
         return object != null && typeof object === 'object' ? object?.constructor?.name || '{}' : '' + object;
