@@ -86,7 +86,7 @@ export class Texture1 extends CanvasTexture {
         if (!this.repaintData) return;
         const finitePlane = this.repaintData.finitePlane;
         const dx: number = this.canvas.width * (finitePlane.shift.x - finitePlane.offset.x) / finitePlane.workArea.x;
-        const dy: number = this.canvas.height * (finitePlane.shift.y - finitePlane.offset.y) / finitePlane.workArea.y;
+        const dy: number = this.canvas.height * (finitePlane.shift.y + finitePlane.offset.y) / finitePlane.workArea.y;
 
         this.clear();
         this.context.fillStyle = this.repaintData.pattern;
