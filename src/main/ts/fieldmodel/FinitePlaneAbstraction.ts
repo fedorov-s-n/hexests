@@ -24,9 +24,7 @@ export class FinitePlaneAbstraction {
     public readonly size: number;
     public readonly workArea: Point2d;
     public readonly offset: Point2d;
-    private _shift: Point2d;
-    private _shiftRemainder: Point2d;
-    private _shiftData: ShiftData;
+    private readonly shiftData: ShiftData;
 
     constructor(
         cellField: RectangularCellField,
@@ -39,16 +37,20 @@ export class FinitePlaneAbstraction {
         this.lowCellField = lowCellField;
         this.heightDS = heightDS;
         this.lowHeightDS = lowHeightDS;
+
+        this.size = cellField.size;
         this.orientation = cellField.zoom % 2 === 0 ? EVEN_ORIENTATION : ODD_ORIENTATION;
 
         this.rowsSize = 1.5 * cellField.rowCount + 0.5;
         this.columnsSize = SQRT3 * (cellField.columnCount + 0.5);
-        this.rowMult = (1.5 * cellField.rowCount) / (1.5 * cellField.rowCount + 0.5);
-        this.columnMult = cellField.columnCount / (cellField.columnCount + 0.5);
+        this.rowMult = 1.5 / (1.5 * cellField.rowCount + 0.5);
+        this.columnMult = 1 / (cellField.columnCount + 0.5);
 
+        const rowArea = cellField.rowCount * this.rowMult;
+        const columnArea = cellField.columnCount * this.columnMult;
         this.workArea = new Point2d(
-            this.orientation.getXPos(this.rowMult, this.columnMult),
-            this.orientation.getYPos(this.rowMult, this.columnMult)
+            this.orientation.getXPos(rowArea, columnArea),
+            this.orientation.getYPos(rowArea, columnArea)
         );
 
         // todo: recalculate
@@ -57,15 +59,16 @@ export class FinitePlaneAbstraction {
             this.orientation.getXPos(0, columnShift) + (parentAbstraction?.offset?.x || 0),
             this.orientation.getYPos(0, columnShift) + (parentAbstraction?.offset?.y || 0)
         );
-        this.size = cellField.size;
 
-        this._shift = new Point2d(0, 0);
-        this._shiftRemainder = new Point2d(0, 0);
-        this._shiftData = new ShiftData(0, 0, 0);
+        this.shiftData = new ShiftData();
+    }
+
+    get totalShift(): Point2d {
+        return this.shiftData.xyTotalShift as Point2d;
     }
 
     get shift(): Point2d {
-        return this._shift;
+        return this.shiftData.xyShift as Point2d;
     }
 
     set shift(value: Point2d) {
@@ -74,13 +77,13 @@ export class FinitePlaneAbstraction {
         const rowCount = this.cellField.rowCount;
         const columnCount = this.cellField.columnCount;
 
-        let rowShift = Math.round(rowCount * this.orientation.getRowPos(dx, dy) / this.rowMult);
-        let columnShift = Math.round(columnCount * this.orientation.getColumnPos(dx, dy) / this.columnMult);
+        let rowShift = Math.round(this.orientation.getRowPos(dx, dy) / this.rowMult);
+        let columnShift = Math.round(this.orientation.getColumnPos(dx, dy) / this.columnMult);
 
         const rowShiftMod2 = Math.abs(rowShift) % 2;
-        const columnCorrection = rowShiftMod2 * 0.5 / (columnCount + 0.5);
-        let dRow = (rowShift / rowCount) * this.rowMult;
-        let dColumn = (columnShift / columnCount) * this.columnMult - columnCorrection;
+        const columnCorrection = rowShiftMod2 * 0.5 * this.columnMult;
+        let dRow = (rowShift) * this.rowMult;
+        let dColumn = (columnShift) * this.columnMult - columnCorrection;
 
         let actualX = this.orientation.getXPos(dRow, dColumn);
         let actualY = this.orientation.getYPos(dRow, dColumn);
@@ -93,28 +96,29 @@ export class FinitePlaneAbstraction {
         while (columnShift > columnCount) columnShift -= columnCount;
         while (columnShift < -columnCount) columnShift += columnCount;
 
-        dRow = (rowShift / rowCount) * this.rowMult;
-        dColumn = (columnShift / columnCount) * this.columnMult - columnCorrection;
+        dRow = (rowShift) * this.rowMult;
+        dColumn = (columnShift) * this.columnMult;
+        dColumn -= columnCorrection;
 
         actualX = this.orientation.getXPos(dRow, dColumn);
         actualY = this.orientation.getYPos(dRow, dColumn);
 
-        this._shift = new Point2d(actualX, actualY);
-        this._shiftRemainder = new Point2d(remainedX, remainedY);
-        this._shiftData = new ShiftData(rowShiftMod2, rowShift, columnShift);
+        this.shiftData.xyShift.x = actualX;
+        this.shiftData.xyShift.y = actualY;
+        this.shiftData.xyTotalShift.x = actualX + remainedX;
+        this.shiftData.xyTotalShift.y = actualY + remainedY;
+        this.shiftData.rowShiftMod2 = rowShiftMod2;
+        this.shiftData.rowShift = rowShift;
+        this.shiftData.columnShift = columnShift;
     }
 
-    get shiftRemainder(): Point2d {
-        return this._shiftRemainder;
-    }
-
-    getShiftedCellIndex(index: number) {
+    private getShiftedCellIndex(index: number) {
         const column = index % this.cellField.columnCount;
         const row = (index - column) / this.cellField.columnCount;
-        const colMod = -(row % 2) * this._shiftData.rowShiftMod2;
+        const colMod = -(row % 2) * this.shiftData.rowShiftMod2;
         return this.cellField.getIndex(
-            row + this._shiftData.rowShift,
-            column + this._shiftData.columnShift + colMod
+            row + this.shiftData.rowShift,
+            column + this.shiftData.columnShift + colMod
         );
     }
 
@@ -221,15 +225,16 @@ class EvenPlaneOrientation implements FinitePlaneOrientation {
 }
 
 class ShiftData {
-    readonly rowShiftMod2: number;
-    readonly rowShift: number;
-    readonly columnShift: number;
+    rowShiftMod2: number = 0;
+    rowShift: number = 0;
+    columnShift: number = 0;
+    readonly xyShift = new MutablePoint();
+    readonly xyTotalShift = new MutablePoint();
+}
 
-    constructor(rowShiftMod2: number, rowShift: number, columnShift: number) {
-        this.rowShiftMod2 = rowShiftMod2;
-        this.rowShift = rowShift;
-        this.columnShift = columnShift;
-    }
+class MutablePoint {
+    x: number = 0;
+    y: number = 0;
 }
 
 const ODD_ORIENTATION = new OddPlaneOrientation();

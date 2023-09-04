@@ -4,7 +4,7 @@ import {FinitePlaneAbstraction} from "../fieldmodel/FinitePlaneAbstraction";
 export class Texture1 extends CanvasTexture {
     private readonly canvas: HTMLCanvasElement;
     private readonly context: CanvasRenderingContext2D;
-    private repaintProcedure!: () => void;
+    private repaintData!: RepaintData;
 
     constructor(canvas: HTMLCanvasElement) {
         super(canvas);
@@ -67,8 +67,14 @@ export class Texture1 extends CanvasTexture {
 
         this.repeat.set(1 / finitePlane.workArea.x, 1 / finitePlane.workArea.y);
         const canvasAsPattern = this.context.createPattern(this.canvas, "repeat")!!;
-        this.repaintProcedure = () => this.repaint0(canvasAsPattern, finitePlane);
+        this.repaintData = new RepaintData(finitePlane, canvasAsPattern);
         this.repaint();
+    }
+
+    updatePlane(finitePlane: FinitePlaneAbstraction) {
+        if (this.repaintData) {
+            this.repaintData.finitePlane = finitePlane;
+        }
     }
 
     clear() {
@@ -77,19 +83,25 @@ export class Texture1 extends CanvasTexture {
     }
 
     repaint() {
-        if (this.repaintProcedure) {
-            this.repaintProcedure();
-        }
-    }
-
-    private repaint0(canvasAsPattern: CanvasPattern, finitePlane: FinitePlaneAbstraction) {
+        if (!this.repaintData) return;
+        const finitePlane = this.repaintData.finitePlane;
         const dx: number = this.canvas.width * (finitePlane.shift.x - finitePlane.offset.x) / finitePlane.workArea.x;
         const dy: number = this.canvas.height * (finitePlane.shift.y - finitePlane.offset.y) / finitePlane.workArea.y;
 
         this.clear();
-        this.context.fillStyle = canvasAsPattern;
+        this.context.fillStyle = this.repaintData.pattern;
         this.context.setTransform(1, 0, 0, 1, -dx, dy);
         this.context.fillRect(dx, -dy, this.canvas.width, this.canvas.height);
         this.needsUpdate = true;
+    }
+}
+
+class RepaintData {
+    finitePlane: FinitePlaneAbstraction;
+    pattern: CanvasPattern;
+
+    constructor(finitePlane: FinitePlaneAbstraction, pattern: CanvasPattern) {
+        this.finitePlane = finitePlane;
+        this.pattern = pattern;
     }
 }

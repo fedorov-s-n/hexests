@@ -8,7 +8,7 @@ export class PositionHelper {
     private readonly settingsStub: SettingsStub;
 
     public changed: boolean = true; // to trigger shifting code right on the start
-    private readonly offset: Vector3 = new Vector3();
+    private readonly accumulator: Vector3 = new Vector3();
     private readonly temp: Vector3 = new Vector3();
     private offsetStep: number = 0.2;
 
@@ -21,33 +21,33 @@ export class PositionHelper {
             // http://www.foreui.com/articles/Key_Code_Table.htm
             const keyCode = event.code;
             if (keyCode === 'KeyW') {
-                this.applyShift(0, this.offsetStep, camera.quaternion);
+                this.makeStep(0, this.offsetStep, camera.quaternion);
             } else if (keyCode === 'KeyS') {
-                this.applyShift(0, -this.offsetStep, camera.quaternion);
+                this.makeStep(0, -this.offsetStep, camera.quaternion);
             } else if (keyCode === 'KeyA') {
-                this.applyShift(-this.offsetStep, 0, camera.quaternion);
+                this.makeStep(-this.offsetStep, 0, camera.quaternion);
             } else if (keyCode === 'KeyD') {
-                this.applyShift(this.offsetStep, 0, camera.quaternion);
+                this.makeStep(this.offsetStep, 0, camera.quaternion);
             }
         });
     }
 
-    private applyShift(dx: number, dy: number, rotation: Quaternion) {
+    private makeStep(dx: number, dy: number, rotation: Quaternion) {
         this.temp.set(dx, dy, 0);
         this.temp.applyQuaternion(rotation);
-        this.offset.x += this.temp.x;
-        this.offset.y += this.temp.y;
+        this.accumulator.x += this.temp.x;
+        this.accumulator.y += this.temp.y;
         this.changed = true;
     }
 
     get shift(): Point2d {
-        const dx = this.offset.x / this.settingsStub.shiftMultiplier;
-        const dy = this.offset.y / this.settingsStub.shiftMultiplier;
-        return new Point2d(dx, dy);
+        this.temp.x = this.accumulator.x / this.settingsStub.shiftMultiplier
+        this.temp.y = this.accumulator.y / this.settingsStub.shiftMultiplier;
+        return this.temp as Point2d;
     }
 
     set shift(value: Point2d) {
-        this.offset.x = value.x * this.settingsStub.shiftMultiplier;
-        this.offset.y = value.y * this.settingsStub.shiftMultiplier;
+        this.accumulator.x = value.x * this.settingsStub.shiftMultiplier;
+        this.accumulator.y = value.y * this.settingsStub.shiftMultiplier;
     }
 }

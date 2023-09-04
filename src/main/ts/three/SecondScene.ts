@@ -77,7 +77,7 @@ export class SecondScene {
             if (self.positionHelper.changed) {
                 const level = self.levels.getCurrentLevel();
                 level.shift = self.positionHelper.shift; // active property
-                self.positionHelper.shift = level.shift;
+                self.positionHelper.shift = level.finitePlane.totalShift;
                 self.positionHelper.changed = false;
             }
             action();

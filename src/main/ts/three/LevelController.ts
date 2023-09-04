@@ -75,7 +75,7 @@ export class LevelController {
 
         // todo: to be removed! positionHelper should not be a dependency
         newLevel.shift = this.positionHelper.shift;
-        this.positionHelper.shift = newLevel.shift;
+        this.positionHelper.shift = newLevel.finitePlane.totalShift;
         
         this.zoom = zoom;
     }
@@ -125,8 +125,9 @@ export class Level {
     set shift(value: Point2d) {
         this.finitePlane.shift = value;
         this.planeGeometry.computeVertexHeights();
-        this.planeMesh.position.x = -this.finitePlane.shiftRemainder.x * this.planeGeometry.length;
-        this.planeMesh.position.y = -this.finitePlane.shiftRemainder.y * this.planeGeometry.width;
+        this.planeMesh.position.x = -(this.finitePlane.totalShift.x - this.finitePlane.shift.x) * this.planeGeometry.length;
+        this.planeMesh.position.y = -(this.finitePlane.totalShift.y - this.finitePlane.shift.y) * this.planeGeometry.width;
+        this.planeTexture.updatePlane(this.finitePlane);
         this.planeTexture.repaint();
     }
 }
