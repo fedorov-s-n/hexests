@@ -3,7 +3,6 @@ import {HexesFieldStartPoint} from "./HexesFieldStartPoint";
 import {Random} from "./algorithms/Random";
 import {CircusComponent} from "./htmlcomponents/CircusComponent";
 import {SingleElementComponent} from "./htmlcomponents/SingleElementComponent";
-import {SingleLineComponent} from "./htmlcomponents/SingleLineComponent";
 import {CommandCentre} from "./command/CommandCentre";
 import {RecentCommandTracker} from "./command/RecentCommandTracker";
 
@@ -22,16 +21,12 @@ circus.attach(document.body);
 circus.right = new SingleElementComponent(document.createElement('div')).setup(right => {
     right.className = 'ht-help-panel';
 
-    const rct = new RecentCommandTracker();
-    const onCommand = (command: string) => {
-        rct.pushCommand(command);
-        rct.resetIndex();
-        right.innerText += '\n' + commandCentre.execute(command);
-    }
-    circus.footer = new SingleLineComponent(document.createElement('input'), onCommand).setup(input => {
+    circus.footer = new SingleElementComponent(document.createElement('input')).setup(input => {
         input.className = 'ht-command-line';
         input.placeholder = 'Enter command...';
-        rct.subscribeToEvents(input);
+        new RecentCommandTracker().subscribeToEvents(input, command => {
+            right.innerText += '\n' + commandCentre.execute(command);
+        });
     });
 });
 

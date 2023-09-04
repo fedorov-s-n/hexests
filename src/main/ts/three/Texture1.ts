@@ -1,14 +1,10 @@
 import {CanvasTexture, RepeatWrapping, UVMapping} from "three";
-import {Shift} from "../fieldmodel/Shift";
 import {FinitePlaneAbstraction} from "../fieldmodel/FinitePlaneAbstraction";
-import {Point2d} from "../fieldmodel/Point2d";
 
 export class Texture1 extends CanvasTexture {
     private readonly canvas: HTMLCanvasElement;
     private readonly context: CanvasRenderingContext2D;
-    private fpOffset!: Point2d;
-    private canvasAsPattern!: CanvasPattern;
-    private shift!: Shift;
+    private repaintProcedure!: () => void;
 
     constructor(canvas: HTMLCanvasElement) {
         super(canvas);
@@ -40,14 +36,11 @@ export class Texture1 extends CanvasTexture {
         const xifs = [false, true, false];
         const yifs = [false, true, false];
 
-        const shift = this.shift = finitePlane.getShift(0, 0);
-        const offset = this.fpOffset = finitePlane.offset;
-
         for (let cellIndex = 0; cellIndex < finitePlane.size; ++cellIndex) {
-            finitePlane.fillPoints(cellIndex, xs, ys);
+            finitePlane.fillPointsXY(cellIndex, xs, ys);
             for (let j = 0; j < 6; ++j) {
-                xs[j] = (xs[j] - offset.x) / shift.workArea.x * this.canvas.width;
-                ys[j] = (1 - (ys[j] - offset.y) / shift.workArea.y) * this.canvas.height;
+                xs[j] = (xs[j] - finitePlane.offset.x) / finitePlane.workArea.x * this.canvas.width;
+                ys[j] = (1 - (ys[j] - finitePlane.offset.y) / finitePlane.workArea.y) * this.canvas.height;
             }
             xifs[0] = Math.max(...xs) > this.canvas.width;
             xifs[2] = Math.min(...xs) < 0;
@@ -72,17 +65,9 @@ export class Texture1 extends CanvasTexture {
             }
         }
 
-        this.repeat.set(1 / shift.workArea.x, 1 / shift.workArea.y);
-        this.canvasAsPattern = this.context.createPattern(this.canvas, "repeat")!!;
-        this.repaint();
-    }
-
-    getShift(): Shift {
-        return this.shift;
-    }
-
-    setShift(shift: Shift) {
-        this.shift = shift;
+        this.repeat.set(1 / finitePlane.workArea.x, 1 / finitePlane.workArea.y);
+        const canvasAsPattern = this.context.createPattern(this.canvas, "repeat")!!;
+        this.repaintProcedure = () => this.repaint0(canvasAsPattern, finitePlane);
         this.repaint();
     }
 
@@ -92,11 +77,17 @@ export class Texture1 extends CanvasTexture {
     }
 
     repaint() {
-        const dx: number = this.canvas.width * (this.shift.actual.x - this.fpOffset.x) / this.shift.workArea.x;
-        const dy: number = this.canvas.height * (this.shift.actual.y - this.fpOffset.y) / this.shift.workArea.y;
+        if (this.repaintProcedure) {
+            this.repaintProcedure();
+        }
+    }
+
+    private repaint0(canvasAsPattern: CanvasPattern, finitePlane: FinitePlaneAbstraction) {
+        const dx: number = this.canvas.width * (finitePlane.shift.x - finitePlane.offset.x) / finitePlane.workArea.x;
+        const dy: number = this.canvas.height * (finitePlane.shift.y - finitePlane.offset.y) / finitePlane.workArea.y;
 
         this.clear();
-        this.context.fillStyle = this.canvasAsPattern;
+        this.context.fillStyle = canvasAsPattern;
         this.context.setTransform(1, 0, 0, 1, -dx, dy);
         this.context.fillRect(dx, -dy, this.canvas.width, this.canvas.height);
         this.needsUpdate = true;

@@ -7,24 +7,26 @@ import {Texture1} from "./Texture1";
 import {Object3D} from "three/src/core/Object3D";
 import {Component} from "../di/Component";
 import {SettingsStub} from "./SettingsStub";
-import {Shift} from "../fieldmodel/Shift";
-import {DataStorage} from "../data/DataStorage";
+import {PositionHelper} from "./PositionHelper";
+import {Point2d} from "../fieldmodel/Point2d";
 
 @Component
 export class LevelController {
     private readonly cellFieldProvider: CellFieldProvider;
     private readonly settingsStub: SettingsStub;
     private readonly document: Document;
+    private readonly positionHelper: PositionHelper;
     private readonly levels!: Level[];
     private zoom: number = 0;
     private depth: number = 0;
 
     private texture1common: Texture1;
 
-    constructor(cellFieldProvider: CellFieldProvider, settingsStub: SettingsStub, document: Document) {
+    constructor(cellFieldProvider: CellFieldProvider, settingsStub: SettingsStub, document: Document, positionHelper: PositionHelper) {
         this.cellFieldProvider = cellFieldProvider;
         this.settingsStub = settingsStub;
         this.document = document;
+        this.positionHelper = positionHelper;
         this.levels = [];
 
         const canvasElement = document.createElement('canvas');
@@ -70,6 +72,11 @@ export class LevelController {
         oldLevel.objects.forEach(object => object.visible = false);
         newLevel.planeMesh.visible = true;
         newLevel.objects.forEach(object => object.visible = true);
+
+        // todo: to be removed! positionHelper should not be a dependency
+        newLevel.shift = this.positionHelper.shift;
+        this.positionHelper.shift = newLevel.shift;
+        
         this.zoom = zoom;
     }
 
@@ -107,19 +114,19 @@ export class Level {
         this.objects = objects;
     }
 
-    applyShift(dx: number, dy: number, heightDS: DataStorage<number, number>): Shift {
-        const shift = this.finitePlane.getShift(dx, dy);
-
-        this.planeGeometry.computeVertexHeights(shift, heightDS);
-
-        this.planeMesh.position.x = -shift.remained.x * this.planeGeometry.length;
-        this.planeMesh.position.y = -shift.remained.y * this.planeGeometry.width;
-
-        this.planeTexture.setShift(shift);
-        return shift;
+    get zoom(): number {
+        return this.cellField.zoom;
     }
 
-    loadTexture(colorDS: DataStorage<number, string>) {
-        this.planeTexture.loadFrom(this.finitePlane, (index) => colorDS.getValue(index) || '#ffffff');
+    get shift(): Point2d {
+        return this.finitePlane.shift;
+    }
+
+    set shift(value: Point2d) {
+        this.finitePlane.shift = value;
+        this.planeGeometry.computeVertexHeights();
+        this.planeMesh.position.x = -this.finitePlane.shiftRemainder.x * this.planeGeometry.length;
+        this.planeMesh.position.y = -this.finitePlane.shiftRemainder.y * this.planeGeometry.width;
+        this.planeTexture.repaint();
     }
 }

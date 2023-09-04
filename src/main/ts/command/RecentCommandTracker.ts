@@ -2,7 +2,9 @@ const COMMANDS_CACHE_SIZE = 20;
 
 export class RecentCommandTracker {
     private index = -1;
-    private readonly commandsCache: Array<string> = [];
+    private readonly commandsCache: Array<string> = [
+        'LevelController.setCurrentZoomLevel(0)'
+    ];
 
     public resetIndex() {
         this.index = -1;
@@ -22,8 +24,17 @@ export class RecentCommandTracker {
         }
     }
 
-    public handleEvent(event: KeyboardEvent, input: HTMLInputElement) {
+    public handleEvent(event: KeyboardEvent, input: HTMLInputElement, onCommand: (command: string) => void) {
         event.stopPropagation();
+        if (event.key === "Enter") {
+            const command = input.value;
+            input.value = '';
+            this.pushCommand(command);
+            this.resetIndex();
+            event.preventDefault();
+            onCommand(command);
+            return;
+        }
         const di = event.key === 'ArrowUp' ? +1 : event.key === 'ArrowDown' ? -1 : 0;
         if (this.maybeIncrement(di)) {
             const value = this.index === -1 ? '' : this.commandsCache[this.index];
@@ -35,8 +46,8 @@ export class RecentCommandTracker {
         }
     }
 
-    public subscribeToEvents(input: HTMLInputElement) {
-        input.addEventListener("keydown", event => this.handleEvent(event, input));
+    public subscribeToEvents(input: HTMLInputElement, onCommand: (command: string) => void) {
+        input.addEventListener("keydown", event => this.handleEvent(event, input, onCommand));
     }
 }
     

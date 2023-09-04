@@ -1,9 +1,9 @@
 import {RectangularCellField} from "./RectangularCellField";
 import {Component} from "../di/Component";
 import {CellField} from "./CellField";
-import {EvenPlaneAbstraction, FinitePlaneAbstraction, OddPlaneAbstraction} from "./FinitePlaneAbstraction";
 import {DataDescriptor} from "../data/DataDescriptor";
 import {ArraySearchStorage, DataStorage} from "../data/DataStorage";
+import {FinitePlaneAbstraction} from "./FinitePlaneAbstraction";
 
 @Component
 export class CellFieldProvider {
@@ -14,7 +14,6 @@ export class CellFieldProvider {
     constructor() {
         const hardcodedSize: number = 60;
         this.fields.push(new RectangularCellField(hardcodedSize, hardcodedSize, 0));
-        this.planeAbstractions.push(new EvenPlaneAbstraction(this.fields[0]));
     }
 
     getField(zoom: number): CellField {
@@ -25,12 +24,15 @@ export class CellFieldProvider {
     }
 
     getFinitePlane(zoom: number): FinitePlaneAbstraction {
+        this.getField(zoom + 1);
         for (let zoomLevel = this.planeAbstractions.length; zoomLevel <= zoom; ++zoomLevel) {
-            const cellField = this.getField(zoomLevel) as RectangularCellField;
-            const parentAbstraction = this.planeAbstractions[zoomLevel - 1];
-            this.planeAbstractions.push(zoomLevel % 2 === 0
-                ? new EvenPlaneAbstraction(cellField, parentAbstraction)
-                : new OddPlaneAbstraction(cellField, parentAbstraction));
+            this.planeAbstractions.push(new FinitePlaneAbstraction(
+                this.fields[zoomLevel],
+                this.fields[zoomLevel + 1],
+                this.getDataStorage(DataDescriptor.HEIGHT, zoomLevel, 0),
+                this.getDataStorage(DataDescriptor.HEIGHT, zoomLevel + 1, 0),
+                zoomLevel == 0 ? undefined : this.planeAbstractions[zoomLevel - 1]
+            ));
         }
         return this.planeAbstractions[zoom];
     }

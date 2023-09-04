@@ -19,12 +19,12 @@ export class RectangularCellField implements CellField {
         const column = index % this.columnCount;
         const row = (index - column) / this.columnCount;
         const adjustedColumn = column + (row % 2 == 0 ? 0 : -1);
-        neighbours[0] = this.getIndex(row, column - 1);
-        neighbours[1] = this.getIndex(row + 1, adjustedColumn);
-        neighbours[2] = this.getIndex(row + 1, adjustedColumn + 1);
-        neighbours[3] = this.getIndex(row, column + 1);
-        neighbours[4] = this.getIndex(row - 1, adjustedColumn + 1);
-        neighbours[5] = this.getIndex(row - 1, adjustedColumn);
+        neighbours[0] = this.getIndex(row, column + 1);
+        neighbours[1] = this.getIndex(row + 1, adjustedColumn + 1);
+        neighbours[2] = this.getIndex(row + 1, adjustedColumn);
+        neighbours[3] = this.getIndex(row, column - 1);
+        neighbours[4] = this.getIndex(row - 1, adjustedColumn);
+        neighbours[5] = this.getIndex(row - 1, adjustedColumn + 1);
     }
 
     search(...indices: number[]): GraphSearchBuilder<number> {

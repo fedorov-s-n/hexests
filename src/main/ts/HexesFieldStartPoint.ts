@@ -63,13 +63,9 @@ export class HexesFieldStartPoint {
         this.brownianDrift.init(cellField, (index: number) => dtDS.getValue(index)!!);
         this.brownianDrift.generateDefault();
 
-        const shift000 = finitePlane.getShift(0, 0);
-        const shift100 = this.cellFieldProvider.getFinitePlane(1).getShift(0, 0);
-        const heightDS00 = this.cellFieldProvider.getDataStorage(DataDescriptor.HEIGHT, 0, 0);
-        const heightDS10 = this.cellFieldProvider.getDataStorage(DataDescriptor.HEIGHT, 1, 0);
-        this.levels.getLevel(0).planeGeometry.computeVertexHeights(shift000, heightDS00);
-        this.cellFieldProvider.interpolateDS(DataDescriptor.HEIGHT, 0, 1, 0);
-        this.levels.getLevel(1).planeGeometry.computeVertexHeights(shift100, heightDS10);
+        this.levels.getLevel(0).planeGeometry.computeVertexHeights();
+        this.cellFieldProvider.interpolateDS(DataDescriptor.HEIGHT, 0, 2, 0);
+        this.levels.getLevel(1).planeGeometry.computeVertexHeights();
         this.levels.setCurrentZoomLevel(1);
 
         this.scene.animationLoop(() => {

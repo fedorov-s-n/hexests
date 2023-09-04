@@ -61,7 +61,7 @@ export class SecondScene {
     installHexesPlanes() {
         this.levels.installLevels(2);
         this.levels.setCurrentZoomLevel(0);
-        this.levels.getLevel(0).loadTexture(this.cellFieldProvider.getDataStorage(DataDescriptor.COLOR, 0, 0));
+        this.levels.getLevel(0).planeTexture.loadFrom(this.levels.getLevel(0).finitePlane, (index) => this.cellFieldProvider.getDataStorage(DataDescriptor.COLOR, 0, 0).getValue(index) || '#ffffff');
 
         this.levels.getAllLevels().forEach(level => {
             this.scene.add(level.planeMesh);
@@ -74,7 +74,12 @@ export class SecondScene {
 
         function animate() {
             requestAnimationFrame(animate);
-            self.positionHelper.onAnimationStep();
+            if (self.positionHelper.changed) {
+                const level = self.levels.getCurrentLevel();
+                level.shift = self.positionHelper.shift; // active property
+                self.positionHelper.shift = level.shift;
+                self.positionHelper.changed = false;
+            }
             action();
             self.renderer.render(self.scene, self.camera);
         }
