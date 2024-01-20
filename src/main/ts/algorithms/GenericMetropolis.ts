@@ -1,5 +1,4 @@
 import {CellField} from "../fieldmodel/CellField";
-import {AbstractAlgorithm} from "./AbstractAlgorithm";
 import {Random} from "./Random";
 import {DataDescriptor} from "../data/DataDescriptor";
 import {Component} from "../di/Component";
@@ -7,22 +6,19 @@ import {CellFieldProvider} from "../fieldmodel/CellFieldProvider";
 import {DataStorage} from "../data/DataStorage";
 
 const NEIGHBOURS = new Array<number>(6);
+const DOMAIN_TYPE = new DataDescriptor<number>('metropolis:domaintype');
 
 @Component
-export class GenericMetropolis extends AbstractAlgorithm {
-    public static readonly DOMAIN_TYPE = new DataDescriptor<number>('metropolis:domaintype');
-
+export class GenericMetropolis {
     private readonly random: Random;
     private readonly cellFieldProvider: CellFieldProvider;
 
-    private dataStorage!: DataStorage<number, number>;
-
+    public dataStorage!: DataStorage<number, number>;
     public cellField!: CellField;
     public domainTypeCount!: number;
     public temperature: number = 1;
 
     constructor(random: Random, cellFieldProvider: CellFieldProvider) {
-        super();
         this.random = random;
         this.cellFieldProvider = cellFieldProvider;
     }
@@ -30,7 +26,7 @@ export class GenericMetropolis extends AbstractAlgorithm {
     init(cellField: CellField, domainTypeCount: number) {
         this.cellField = cellField;
         this.domainTypeCount = domainTypeCount;
-        this.dataStorage = this.cellFieldProvider.getDataStorage(GenericMetropolis.DOMAIN_TYPE, cellField.zoom, 0);
+        this.dataStorage = this.cellFieldProvider.getDataStorage(DOMAIN_TYPE, cellField.zoom, 0);
     }
 
     step(): void {
@@ -49,13 +45,44 @@ export class GenericMetropolis extends AbstractAlgorithm {
         }
     }
 
-    generateDefault() {
-        const stepCount = 150 * this.cellField.size;
-        this.temperature = 100;
-        this.steps(stepCount);
-        this.temperature = 1;
-        this.steps(stepCount);
-        this.temperature = 0;
-        this.steps(stepCount);
+    public steps(count: number) {
+        for (let i = 0; i < count; ++i) {
+            this.step();
+        }
     }
+
+    fillOutput(output: (index: number, value: number) => void) {
+        for (let i = 0; i < this.cellField.size; ++i) {
+            output(i, this.dataStorage.getOrDefault(i, 0));
+        }
+    }
+
+    generateDefault(stepCountMultiplier: number, temperatures: number[]) {
+        const stepCount = stepCountMultiplier * this.cellField.size;
+        temperatures.forEach(temperature => {
+            this.temperature = temperature;
+            this.steps(stepCount);
+        })
+    }
+
+    clear() {
+        this.cellFieldProvider.removeDataStorage(DOMAIN_TYPE, this.cellField.zoom, 0);
+    }
+
+    run(options: GenericMetropolisOptions) {
+        const cellField = this.cellFieldProvider.getField(options.zoomLevel || 0);
+        this.init(cellField, options.domainTypeCount || 3);
+        this.generateDefault(options.stepCountMultiplier || 150, options.temperatures || [100, 1, 0]);
+        if (options.output) this.fillOutput(options.output);
+        if (!options.skipClear) this.clear();
+    }
+}
+
+export interface GenericMetropolisOptions {
+    stepCountMultiplier?: number,
+    zoomLevel?: number,
+    domainTypeCount?: number,
+    temperatures?: number[],
+    skipClear?: boolean,
+    output?: (index: number, value: number) => void
 }

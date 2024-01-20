@@ -74,6 +74,7 @@ export class Texture1 extends CanvasTexture {
     updatePlane(finitePlane: FinitePlaneAbstraction) {
         if (this.repaintData) {
             this.repaintData.finitePlane = finitePlane;
+            this.repaint();
         }
     }
 

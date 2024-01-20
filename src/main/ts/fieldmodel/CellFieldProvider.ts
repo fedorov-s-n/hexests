@@ -29,8 +29,7 @@ export class CellFieldProvider {
             this.planeAbstractions.push(new FinitePlaneAbstraction(
                 this.fields[zoomLevel],
                 this.fields[zoomLevel + 1],
-                this.getDataStorage(DataDescriptor.HEIGHT, zoomLevel, 0),
-                this.getDataStorage(DataDescriptor.HEIGHT, zoomLevel + 1, 0),
+                this,
                 zoomLevel == 0 ? undefined : this.planeAbstractions[zoomLevel - 1]
             ));
         }
@@ -55,6 +54,9 @@ export class CellFieldProvider {
             const lowField = this.fields[zoom + 1];
             const upDS = this.getDataStorage(dataDescriptor, zoom, depth);
             const lowDS = this.getDataStorage(dataDescriptor, zoom + 1, depth);
+            for (let lowIndex = 0; lowIndex < lowField.size; ++lowIndex) {
+                lowDS.putValue(lowIndex, 0);
+            }
             for (let upIndex = 0; upIndex < upField.size; ++upIndex) {
                 const lowIndex = upField.mapIndexToLowerLevel(upIndex);
                 lowField.fillNeighbours(lowIndex, neighbours);
@@ -71,6 +73,16 @@ export class CellFieldProvider {
                 lowDS.putValue(lowIndex, value / 3);
             }
         }
+    }
+
+    fillDataStorage<T>(dataDescriptor: DataDescriptor<T>, zoom: number, depth: number, func: (index: number) => T): DataStorage<number, T> {
+        const dataStorage = this.getDataStorage(dataDescriptor, zoom, depth);
+        const cellField = this.getField(zoom);
+        const size = cellField.size;
+        for (let i = 0; i < size; ++i) {
+            dataStorage.putValue(i, func(i));
+        }
+        return dataStorage;
     }
 
     getDataStorage<T>(dataDescriptor: DataDescriptor<T>, zoom: number, depth: number): DataStorage<number, T> {

@@ -25,21 +25,18 @@ export class CommandCentre {
                 console.log(object);
                 return 'Logged ' + this.formatObject(object);
             }
+            if (regExpArray[1] === 'set') {
+                const args = this.parseArgs(regExpArray[3])
+                object[args[0]] = args[1];
+                return 'Set: ' + this.formatObject(object) + '.' + args[0] + ' = ' + args[1];
+            }
             const member = object[regExpArray[1]];
             if (!member) return 'No member for ' + chain[i];
 
             if (!regExpArray[2]) {
                 object = member;
             } else if (member instanceof Function) {
-                const numberRegex = /^([0-9]*)$/;
-                const argsMatch = regExpArray[3].split(',');
-                const args = [];
-                for (let j = 0; j < argsMatch.length; ++j) {
-                    const argMatch = argsMatch[j];
-                    if (!argMatch || !argMatch.length) break;
-                    args.push(numberRegex.test(argMatch) ? parseInt(argMatch) : argMatch);
-                }
-                object = (member as Function).apply(object, args);
+                object = (member as Function).apply(object, this.parseArgs(regExpArray[3]));
             } else {
                 return 'Cannot handle ' + chain[i];
             }
@@ -48,6 +45,17 @@ export class CommandCentre {
         return command + ' >> ' + this.formatObject(object);
     }
 
+    private parseArgs(input: string): any[] {
+        const numberRegex = /^([0-9]*)$/;
+        const argsMatch = input.split(',');
+        const args = [];
+        for (let j = 0; j < argsMatch.length; ++j) {
+            const argMatch = argsMatch[j];
+            if (!argMatch || !argMatch.length) break;
+            args.push(numberRegex.test(argMatch) ? parseInt(argMatch) : argMatch);
+        }
+        return args;
+    }
 
     private formatObject(object: any): string {
         return object != null && typeof object === 'object' ? object?.constructor?.name || '{}' : '' + object;

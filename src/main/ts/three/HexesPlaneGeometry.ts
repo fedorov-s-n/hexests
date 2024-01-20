@@ -1,5 +1,6 @@
 import {BufferGeometry, Float32BufferAttribute} from "three";
 import {FinitePlaneAbstraction} from "../fieldmodel/FinitePlaneAbstraction";
+import {DataDescriptor} from "../data/DataDescriptor";
 
 export class HexesPlaneGeometry extends BufferGeometry {
     readonly length: number;
@@ -8,8 +9,10 @@ export class HexesPlaneGeometry extends BufferGeometry {
 
     private readonly indicesByPointId: number[];
     private readonly finitePlane: FinitePlaneAbstraction;
+    private readonly heightDescriptor: DataDescriptor<number>;
 
-    constructor(length: number, width: number, height: number, finitePlane: FinitePlaneAbstraction) {
+    constructor(length: number, width: number, height: number,
+        finitePlane: FinitePlaneAbstraction, heightDescriptor: DataDescriptor<number>) {
         super();
 
         // future class members
@@ -41,11 +44,11 @@ export class HexesPlaneGeometry extends BufferGeometry {
         for (let cellIndex = 0; cellIndex < finitePlane.size; ++cellIndex) {
             centerIds[0] = cellIndex;
             finitePlane.fillCellXY(centerIds, xs, ys);
-            finitePlane.fillCellZP(centerIds, zs, ps);
+            finitePlane.fillCellZP(heightDescriptor, centerIds, zs, ps);
             const centerIndex = pushPoint(xs[0], ys[0], zs[0]);
             indicesByPointId[ps[0]] = centerIndex;
             finitePlane.fillPointsXY(cellIndex, xs, ys);
-            finitePlane.fillPointsZP(cellIndex, zs, ps);
+            finitePlane.fillPointsZP(heightDescriptor, cellIndex, zs, ps);
             for (let j = 0; j < 6; ++j) {
                 const pid = ps[j];
                 pointIndices[j] = indicesByPointId[pid]
@@ -54,7 +57,11 @@ export class HexesPlaneGeometry extends BufferGeometry {
             for (let j = 0; j < 6; ++j) {
                 const index1 = pointIndices[j];
                 const index2 = pointIndices[(j + 1) % 6];
-                indices.push(centerIndex, index1, index2);
+                if (finitePlane.zoom % 2 === 0) {
+                    indices.push(centerIndex, index2, index1);
+                } else {
+                    indices.push(centerIndex, index1, index2);
+                }
             }
         }
 
@@ -65,6 +72,7 @@ export class HexesPlaneGeometry extends BufferGeometry {
         this.height = height;
         this.indicesByPointId = indicesByPointId;
         this.finitePlane = finitePlane;
+        this.heightDescriptor = heightDescriptor;
         this.setIndex(indices);
         this.setAttribute('position', new Float32BufferAttribute(vertices, 3));
         this.setAttribute('normal', new Float32BufferAttribute(normals, 3));
@@ -80,9 +88,9 @@ export class HexesPlaneGeometry extends BufferGeometry {
 
         for (let cellIndex = 0; cellIndex < this.finitePlane.size; ++cellIndex) {
             ci[0] = cellIndex;
-            this.finitePlane.fillCellZP(ci, zs, ps);
+            this.finitePlane.fillCellZP(this.heightDescriptor, ci, zs, ps);
             vertices.setZ(this.indicesByPointId[ps[0]], zs[0] * this.height);
-            this.finitePlane.fillPointsZP(cellIndex, zs, ps);
+            this.finitePlane.fillPointsZP(this.heightDescriptor, cellIndex, zs, ps);
             for (let order = 0; order < 6; ++order) {
                 const pointId = ps[order];
                 const index = this.indicesByPointId[pointId];

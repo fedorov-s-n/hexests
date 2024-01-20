@@ -37,6 +37,12 @@ export class RectangularCellField implements CellField {
         return builder.withStorageFactory(new ArrayDataStorageFactory(this.size));
     }
 
+    forEach(consumer: (index: number) => void) {
+        for (let i = 0; i < this.size; ++i) {
+            consumer(i);
+        }
+    }
+
     getIndex(row: number, column: number): number {
         while (column < 0) column += this.columnCount;
         while (row < 0) row += this.rowCount;

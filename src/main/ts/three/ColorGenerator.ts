@@ -18,6 +18,8 @@ export class ColorGenerator {
             return '#ff00ff';
         } else if (index === 5) {
             return '#ffff00';
+        } else if (index === 6) {
+            return '#000000';
         } else {
             return '#ffffff';
         }

@@ -1,6 +1,8 @@
 import {RectangularCellField} from "./RectangularCellField";
 import {Point2d} from "./Point2d";
 import {DataStorage} from "../data/DataStorage";
+import {CellFieldProvider} from "./CellFieldProvider";
+import {DataDescriptor} from "../data/DataDescriptor";
 
 const SQRT3 = Math.sqrt(3);
 const COS_MODS = [0, +SQRT3 / 2, +SQRT3 / 2, 0, -SQRT3 / 2, -SQRT3 / 2];
@@ -12,9 +14,8 @@ const EVEN_COLUMN_ID_SHIFTS = [1, 1, 1, 1, 0, 0];
 export class FinitePlaneAbstraction {
     private readonly cellField: RectangularCellField;
     private readonly lowCellField: RectangularCellField;
-    private readonly heightDS: DataStorage<number, number>;
-    private readonly lowHeightDS: DataStorage<number, number>;
-    private readonly orientation: FinitePlaneOrientation;
+    private readonly cellFieldProvider: CellFieldProvider;
+    public readonly orientation: FinitePlaneOrientation;
 
     private readonly columnsSize: number;
     private readonly rowsSize: number;
@@ -24,20 +25,22 @@ export class FinitePlaneAbstraction {
     public readonly size: number;
     public readonly workArea: Point2d;
     public readonly offset: Point2d;
+    public depth: number;
+    private readonly dataStorages: StoragePair[];
     private readonly shiftData: ShiftData;
 
     constructor(
         cellField: RectangularCellField,
         lowCellField: RectangularCellField,
-        heightDS: DataStorage<number, number>,
-        lowHeightDS: DataStorage<number, number>,
+        cellFieldProvider: CellFieldProvider,
         parentAbstraction: FinitePlaneAbstraction | undefined,
     ) {
         this.cellField = cellField;
         this.lowCellField = lowCellField;
-        this.heightDS = heightDS;
-        this.lowHeightDS = lowHeightDS;
+        this.cellFieldProvider = cellFieldProvider;
 
+        this.dataStorages = [];
+        this.depth = 0;
         this.size = cellField.size;
         this.orientation = cellField.zoom % 2 === 0 ? EVEN_ORIENTATION : ODD_ORIENTATION;
 
@@ -131,14 +134,15 @@ export class FinitePlaneAbstraction {
         }
     }
 
-    fillPointsZP(cellIndex: number, zs: number[], pointIds: number[]) {
+    fillPointsZP(descriptor: DataDescriptor<number>, cellIndex: number, zs: number[], pointIds: number[]) {
         const shiftedCellIndex = this.getShiftedCellIndex(cellIndex);
         const lowCellIndex = this.cellField.mapIndexToLowerLevel(shiftedCellIndex);
-        const lowNeighbours = pointIds; // to safe memory allocation
+        const lowNeighbours = pointIds; // to save memory allocation
+        const lowHeightDS = this.getStoragePair(descriptor).low;
         this.lowCellField.fillNeighbours(lowCellIndex, lowNeighbours); // knows about traverse order
         for (let arrayIndex = 0; arrayIndex < 6; ++arrayIndex) {
             const index = lowNeighbours[arrayIndex];
-            zs[arrayIndex] = this.lowHeightDS.getOrDefault(index, 0);
+            zs[arrayIndex] = lowHeightDS.getOrDefault(index, 0);
         }
 
         const column = cellIndex % this.cellField.columnCount;
@@ -160,11 +164,12 @@ export class FinitePlaneAbstraction {
         }
     }
 
-    fillCellZP(cellIndices: number[], zs: number[], ps: number[]) {
+    fillCellZP(descriptor: DataDescriptor<number>, cellIndices: number[], zs: number[], ps: number[]) {
+        const heightDS = this.getStoragePair(descriptor).high;
         for (let arrayIndex = 0; arrayIndex < cellIndices.length; ++arrayIndex) {
             const index = cellIndices[arrayIndex];
             const shiftedIndex = this.getShiftedCellIndex(index);
-            zs[arrayIndex] = this.heightDS.getOrDefault(shiftedIndex, 0);
+            zs[arrayIndex] = heightDS.getOrDefault(shiftedIndex, 0);
             ps[arrayIndex] = index;
         }
     }
@@ -175,6 +180,20 @@ export class FinitePlaneAbstraction {
         const columnPos = (columnShift + SQRT3 * (column + colCellPosAdd)) / this.columnsSize;
         xs[arrayIndex] = this.orientation.getXPos(rowPos, columnPos);
         ys[arrayIndex] = this.orientation.getYPos(rowPos, columnPos);
+    }
+
+    get zoom(): number {
+        return this.cellField.zoom;
+    }
+
+    getStoragePair(descriptor: DataDescriptor<number>): StoragePair {
+        const existing = this.dataStorages.find((pair) => this.depth === pair.depth && descriptor === pair.descriptor);
+        if (existing) return existing;
+        const highDS = this.cellFieldProvider.getDataStorage(descriptor, this.zoom, this.depth);
+        const lowDS = this.cellFieldProvider.getDataStorage(descriptor, this.zoom + 1, this.depth);
+        const pair = new StoragePair(this.depth, descriptor, highDS, lowDS);
+        this.dataStorages.push(pair);
+        return pair;
     }
 }
 
@@ -235,6 +254,20 @@ class ShiftData {
 class MutablePoint {
     x: number = 0;
     y: number = 0;
+}
+
+class StoragePair {
+    readonly depth: number;
+    readonly descriptor: DataDescriptor<number>;
+    readonly high: DataStorage<number, number>;
+    readonly low: DataStorage<number, number>;
+
+    constructor(depth: number, descriptor: DataDescriptor<number>, high: DataStorage<number, number>, low: DataStorage<number, number>) {
+        this.depth = depth;
+        this.descriptor = descriptor;
+        this.high = high;
+        this.low = low;
+    }
 }
 
 const ODD_ORIENTATION = new OddPlaneOrientation();

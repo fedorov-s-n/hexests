@@ -7,4 +7,6 @@ export interface CellField {
     fillNeighbours(index: number, neighbours: number[]): void;
 
     search(...indices: number[]): GraphSearchBuilder<number>;
+
+    forEach(consumer: (index: number) => void): void;
 }

@@ -13,5 +13,18 @@ export class HTMLComponent {
         }
         this.attachPoint = undefined;
     }
+    
+    protected find(root: HTMLElement, className: string): HTMLElement {
+        const elements = root.getElementsByClassName(className);
+        if (elements.length != 1) {
+            throw new Error('Unexpected content of ' + root.outerHTML);
+        }
+        const element = elements[0];
+        if (element instanceof HTMLElement) {
+            return element;
+        } else {
+            throw new Error('Not a HTML element: ' + element.outerHTML);
+        }
+    }
 }
 

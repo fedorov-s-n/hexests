@@ -21,3 +21,13 @@ html, body, .ht-three-js-panel {
     line-height: 21px;
     font-size: 16px;
 }
+
+.ht-horizontal-list-component {
+    display: flex;
+    flex-direction: row;
+}
+
+.ht-vertical-list-component {
+    display: flex;
+    flex-direction: column;
+}

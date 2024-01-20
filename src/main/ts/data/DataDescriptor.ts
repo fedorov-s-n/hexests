@@ -1,5 +1,6 @@
 export class DataDescriptor<T> {
     static HEIGHT = new DataDescriptor<number>('height');
+    static WATER_LEVEL = new DataDescriptor<number>('water-level');
     static COLOR = new DataDescriptor<string>('color');
 
     readonly key: string;

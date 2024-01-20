@@ -8,6 +8,8 @@ export interface DataStorage<K, V> {
     putValue(key: K, value: V): void;
 
     getOrDefault(key: K, defaultValue: V): V
+
+    clear(): void;
 }
 
 export class MapDataStorageFactory<T> implements DataStorageFactory<T> {
@@ -45,6 +47,10 @@ export class MapSearchStorage<K, V> implements DataStorage<K, V> {
         const value = this.map.get(key);
         return value === undefined ? defaultValue : value;
     }
+
+    clear() {
+        this.map.clear();
+    }
 }
 
 export class ArraySearchStorage<V> implements DataStorage<number, V> {
@@ -65,5 +71,9 @@ export class ArraySearchStorage<V> implements DataStorage<number, V> {
     public getOrDefault(key: number, defaultValue: V): V {
         const value = this.array[key];
         return value === undefined ? defaultValue : value;
+    }
+
+    clear() {
+        this.array.length = 0;
     }
 }

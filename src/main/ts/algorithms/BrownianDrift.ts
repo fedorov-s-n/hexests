@@ -1,20 +1,19 @@
-import {AbstractAlgorithm} from "./AbstractAlgorithm";
 import {CellField} from "../fieldmodel/CellField";
 import {Random} from "./Random";
-import {DataDescriptor} from "../data/DataDescriptor";
 import {Component} from "../di/Component";
 import {CellFieldProvider} from "../fieldmodel/CellFieldProvider";
 
 const NEIGHBOURS = new Array<number>(6);
 
 @Component
-export class BrownianDrift extends AbstractAlgorithm {
+export class BrownianDrift {
     private readonly random: Random;
     private readonly cellFieldProvider: CellFieldProvider;
 
     public cellField!: CellField;
     public plateTagger!: (index: number) => number;
     public heightStep!: number;
+    public stepCount!: number;
 
     private cellIndexToDomain!: number[];
     private domainDirections!: number[];
@@ -23,7 +22,6 @@ export class BrownianDrift extends AbstractAlgorithm {
     private iterations!: number;
 
     constructor(random: Random, cellFieldProvider: CellFieldProvider) {
-        super();
         this.random = random;
         this.cellFieldProvider = cellFieldProvider;
     }
@@ -67,15 +65,34 @@ export class BrownianDrift extends AbstractAlgorithm {
         this.iterations++;
     }
 
-    fillHeights() {
-        const dataStorage = this.cellFieldProvider.getDataStorage(DataDescriptor.HEIGHT, this.cellField.zoom, 0);
+    fillOutput(output: (index: number, value: number) => void) {
         for (let i = 0; i < this.cellField.size; ++i) {
-            dataStorage.putValue(i, this.heightStep * (this.cellDensity[i] - this.iterations));
+            output(i, this.heightStep * (this.cellDensity[i] - this.iterations));
         }
     }
 
-    generateDefault() {
-        this.steps(700);
-        this.fillHeights();
+    clear() {
+        [this.cellIndexToDomain, this.domainDirections, this.cellRemapping, this.cellDensity].forEach(it => it.length = 0);
     }
+
+    steps(count: number) {
+        for (let i = 0; i < count; ++i) {
+            this.step();
+        }
+    }
+
+    run(options: BrownianDriftOptions) {
+        const cellField = this.cellFieldProvider.getField(options.zoomLevel || 0);
+        this.init(cellField, options.plateTagger);
+        this.steps(options.stepCount || 700);
+        this.fillOutput(options.output);
+        this.clear();
+    }
+}
+
+export interface BrownianDriftOptions {
+    stepCount?: number,
+    zoomLevel?: number,
+    plateTagger: (index: number) => number,
+    output: (index: number, value: number) => void
 }

@@ -3,6 +3,7 @@ const COMMANDS_CACHE_SIZE = 20;
 export class RecentCommandTracker {
     private index = -1;
     private readonly commandsCache: Array<string> = [
+        'FlowGeneration.next()',
         'LevelController.setCurrentZoomLevel(0)'
     ];
 
