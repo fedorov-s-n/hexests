@@ -80,7 +80,7 @@ export class SecondScene {
     }
 
     installHexesPlanes() {
-        this.levels.installLevels(2);
+        this.levels.installLevels(1);
         this.levels.setCurrentZoomLevel(0);
         this.levels.getLevel(0).landTexture.loadFrom(this.levels.getLevel(0).finitePlane, (index) => this.cellFieldProvider.getDataStorage(DataDescriptor.COLOR, 0, 0).getValue(index) || '#ffffff');
 

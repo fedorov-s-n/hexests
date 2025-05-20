@@ -9,10 +9,7 @@ import {Component} from "../di/Component";
 import {SettingsStub} from "./SettingsStub";
 import {PositionHelper} from "./PositionHelper";
 import {Point2d} from "../fieldmodel/Point2d";
-import {Water} from "three/examples/jsm/objects/Water2";
 import {DataDescriptor} from "../data/DataDescriptor";
-import {Textures} from "../img/Textures";
-import {ZWaterShader} from "./ZWaterShader";
 
 @Component
 export class LevelController {
@@ -65,18 +62,21 @@ export class LevelController {
             const flowMap = this.flowMapTexture;
 
             const textureLoader = new TextureLoader();
-            const waterMesh = new Water(waterGeometry, {
-                textureWidth: this.settingsStub.bigTextureSize,
-                textureHeight: this.settingsStub.bigTextureSize,
-                flowSpeed: 0.1,
-                reflectivity: 0.1,
-                clipBias: 1.0,
-                // scale: 1,
-                flowMap: flowMap,
-                normalMap0: textureLoader.load(Textures.water.normal1),
-                normalMap1: textureLoader.load(Textures.water.normal2),
-                shader: ZWaterShader
-            });
+
+            const waterMesh = new Mesh(waterGeometry, material);
+            // const waterMesh = new Water(waterGeometry, {
+            //     color: new Color(0, 0, 1),
+            //     textureWidth: this.settingsStub.bigTextureSize,
+            //     textureHeight: this.settingsStub.bigTextureSize,
+            //     flowSpeed: 0,
+            //     reflectivity: 0.1,
+            //     clipBias: 1.0,
+            //     // scale: 1,
+            //     flowMap: flowMap,
+            //     normalMap0: textureLoader.load(Textures.water.normal1),
+            //     normalMap1: textureLoader.load(Textures.water.normal2),
+            //     shader: ZWaterShader
+            // });
             waterMesh.visible = false;
 
             this.levels[zoom] = new Level(

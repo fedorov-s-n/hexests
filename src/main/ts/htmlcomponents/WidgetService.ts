@@ -25,6 +25,21 @@ export class WidgetService {
         }
     }
 
+    addFunctionButtons(object: any, callback?: () => void) {
+        const prototype = Object.getPrototypeOf(object);
+        Object.getOwnPropertyNames(prototype).forEach((name) => {
+            if (prototype[name] instanceof Function) {
+                const f: Function = prototype[name];
+                if (f.length == 0) {
+                    this.addButton(f.name + "()", () => {
+                        f.call(object);
+                        callback?.();
+                    });
+                }
+            }
+        });
+    }
+
     addButton(label: string, action: () => void) {
         this.footer.addComponent(new SingleElementComponent(this.document.createElement('button')).setup(button => {
             button.textContent = label;

@@ -11,7 +11,7 @@ import {AltitudeMeter} from "./algorithms/AltitudeMeter";
 import {Random} from "./algorithms/Random";
 import {FlowGeneration} from "./algorithms/FlowGeneration";
 import {WidgetService} from "./htmlcomponents/WidgetService";
-import {Math2} from "./algorithms/Math2";
+import {RunState} from "./algorithms/RunState";
 
 @Component
 export class HexesFieldStartPoint {
@@ -95,73 +95,75 @@ export class HexesFieldStartPoint {
         });
         this.cellFieldProvider.interpolateDS(DataDescriptor.HEIGHT, 0, 5, 0);
         const heightDS5 = this.cellFieldProvider.getDataStorage(DataDescriptor.HEIGHT, 5, 0);
+        // this.levels.getLevel(0).landTexture.loadFrom(
+        //     this.cellFieldProvider.getFinitePlane(5),
+        //     (index) => {
+        //         const value = heightDS5.getValue(index)!!;
+        //         let bucketIndex = heightLimits.findIndex((limit) => value <= limit);
+        //         if (bucketIndex < 0) bucketIndex = heightLimits.length;
+        //         if (bucketIndex < heightLimits.length) {
+        //             bucketIndex = bucketIndex + this.random.nextInt(3) - 1;
+        //             bucketIndex = Math.max(0, Math.min(bucketIndex, heightLimits.length));
+        //         }
+        //         return heightColors[bucketIndex];
+        //     }
+        // );
         this.levels.getLevel(0).landTexture.loadFrom(
-            this.cellFieldProvider.getFinitePlane(5),
+            this.cellFieldProvider.getFinitePlane(0),
             (index) => {
-                const value = heightDS5.getValue(index)!!;
-                let bucketIndex = heightLimits.findIndex((limit) => value <= limit);
-                if (bucketIndex < 0) bucketIndex = heightLimits.length;
-                if (bucketIndex < heightLimits.length) {
-                    bucketIndex = bucketIndex + this.random.nextInt(3) - 1;
-                    bucketIndex = Math.max(0, Math.min(bucketIndex, heightLimits.length));
-                }
-                return heightColors[bucketIndex];
+                return '#b4b4b4';
             }
         );
 
-        const twi = this.widgetService.addIndicator('Total water');
-
         // generate water levels
-        // const wlDS5 = this.cellFieldProvider.getDataStorage(DataDescriptor.WATER_LEVEL, 5, 0);
-        const heightDS2 = this.cellFieldProvider.getDataStorage(DataDescriptor.HEIGHT, 2, 0);
-        const colorDS2 = this.cellFieldProvider.getDataStorage(DataDescriptor.COLOR, 2, 0);
-        this.flowGeneration.init({
-            zoomLevel: 2,
-            stepCount: 1,
-            vapourCoefficient: 0.8,
-            initialRain: 0.1,
-            heightDescriptor: DataDescriptor.HEIGHT,
-            output: (index: number, xSpeed: number, ySpeed: number, volume: number) => {
-                let color: string;
-                // if (volume <= this.flowGeneration.dryFriction) {
-                //     color = '#808080';
-                // } else {
-                //     const mult = this.flowGeneration.colorMultiplier;
-                //     const red = Math.max(0, Math.min(128 + Math.floor(xSpeed / mult), 255));
-                //     const green = Math.max(0, Math.min(128 + Math.floor(ySpeed / mult), 255));
-                //     const blue = Math.max(0, Math.min(Math.floor(volume / mult), 255));
-                //     color = '#' + red.toString(16) + green.toString(16) + blue.toString(16);
-                // }
-                const blue = Math.max(0, Math.min(Math.floor(volume / this.flowGeneration.colorMultiplier), 255));
-                const intensity = (255 - blue).toString(16);
-                color = '#' + intensity + intensity + 'ff';
 
-                colorDS2.putValue(index, color);
+        const wheightBuckets = [
+            0.001, 0.002, 0.005, 0.01,
+            0.02, 0.05, 0.1, 0.2,
+            0.5, 0.8, 1.0
+        ];
+        const wheightColors = [
+            '#f1e4a7', '#d9f1f8', '#b0e9ff', '#6fdaff',
+            '#34b2fb', '#0e87d5', '#4113b6', '#7d13ba',
+            '#dc06d7', '#e10f81', '#f30b0b', '#f4520d'
+        ];
 
-                const totalWater = Math2.sum2(this.flowGeneration.v0);
-                twi(totalWater);
-            }
-        });
+        const runState = new RunState(false, 10);
+        const state = this.flowGeneration.run(0);
+        (runState as any).eps = state.drop;
+        const updateWaterLevel = () => {
+            this.cellFieldProvider.fillDataStorage(DataDescriptor.WATER_LEVEL, 0, 0, i =>
+                state.field[i] - state.height[i] < (runState as any).eps ? state.height[i] : state.field[i]
+            );
+            // this.levels.getCurrentLevel().waterGeometry.computeVertexHeights();
+            // this.levels.getLevel(1).waterGeometry.computeVertexHeights();
+            this.cellFieldProvider.interpolateDS(DataDescriptor.WATER_LEVEL, 0, 1, 0);
+            this.levels.getAllLevels().forEach(l => l.waterGeometry.computeVertexHeights());
+            this.levels.getLevel(0).landTexture.loadFrom(
+                this.cellFieldProvider.getFinitePlane(0),
+                (index) => {
+                    const value = state.field[index] - state.height[index];
+                    let bucketIndex = wheightBuckets.findIndex((limit) => value <= limit);
+                    if (bucketIndex < 0) bucketIndex = wheightBuckets.length;
+                    return wheightColors[bucketIndex];
+                }
+            );
+        };
         this.levels.setCurrentZoomLevel(0);
-        this.widgetService.addNumberFieldEditors(this.flowGeneration);
-        this.widgetService.addButton('Clean', () => this.flowGeneration.empty());
-        this.widgetService.addButton('Next step', () => this.flowGeneration.next(1));
-        this.widgetService.addButton('Next 1000 steps', () => this.flowGeneration.next(1000));
 
 
-        this.cellFieldProvider.fillDataStorage(DataDescriptor.WATER_LEVEL, 0, 0, i => -1);
-        // this.cellFieldProvider.fillDataStorage(DataDescriptor.WATER_LEVEL, 0, 0, i => heightDS.getOrDefault(i, 0) + 0.25);
-        this.cellFieldProvider.interpolateDS(DataDescriptor.WATER_LEVEL, 0, 2, 0);
-        this.levels.getAllLevels().forEach(l => l.waterGeometry.computeVertexHeights());
+        this.widgetService.addNumberFieldEditors(runState);
+        this.widgetService.addFunctionButtons(runState);
+        this.widgetService.addNumberFieldEditors(state);
+        this.widgetService.addFunctionButtons(state, updateWaterLevel);
 
-        // choose active level
-        this.levels.getCurrentLevel().waterMesh.visible = false;
-        // this.levels.getCurrentLevel().waterMesh.position.z = 1;
-        this.flowGeneration.empty();
-        this.flowGeneration.next(1000);
+        updateWaterLevel();
 
         this.scene.animationLoop(() => {
-            // this.flowGeneration.next();
+            if (runState.running) {
+                state.steps(runState.stepCount);
+                updateWaterLevel();
+            }
         });
     }
 }
