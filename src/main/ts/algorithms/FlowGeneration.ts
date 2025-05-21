@@ -37,6 +37,8 @@ class FGState implements GenerationState {
     private field2!: number[];
     height!: number[];
     drop!: number;
+    vapourLimit: number = 0.002;
+    vapourCoeff: number = 0.015;
 
     constructor(flow: FlowGeneration, heightDS: DataStorage<number, number>, cellField: CellField) {
         this.flow = flow;
@@ -95,10 +97,30 @@ class FGState implements GenerationState {
         this.field2[i2] += sign * diff;
     }
 
+    vapour(): number {
+        const vl = this.vapourLimit;
+        const vc = this.vapourCoeff;
+        let totalVA = 0;
+        for (let i = 0; i < this.cellField.size; ++i) {
+            const w = Math.max(0, this.field[i] - this.height[i]);
+            const vp = Math.min(w / vl, 1);
+            const va = Math.min(vp * vc, w);
+            this.field[i] -= va;
+            totalVA += va;
+        }
+        return totalVA;
+    }
+
+    collect(totalVA: number) {
+        this.drop = totalVA / this.cellField.size;
+    }
+
     step() {
         this.spill();
         this.diffuse();
         this.swap();
+        const va = this.vapour();
+        this.collect(va);
     }
 
     steps(count: number) {
@@ -117,7 +139,7 @@ class FGState implements GenerationState {
             this.field2[i] = h;
             this.height[i] = h;
         }
-        this.drop = (maxH - minH) * 0.001;
+        this.drop = (maxH - minH) * 0.125;
     }
 
     dispose() {

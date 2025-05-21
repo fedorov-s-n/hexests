@@ -130,13 +130,8 @@ export class HexesFieldStartPoint {
 
         const runState = new RunState(false, 10);
         const state = this.flowGeneration.run(0);
-        (runState as any).eps = state.drop;
         const updateWaterLevel = () => {
-            this.cellFieldProvider.fillDataStorage(DataDescriptor.WATER_LEVEL, 0, 0, i =>
-                state.field[i] - state.height[i] < (runState as any).eps ? state.height[i] : state.field[i]
-            );
-            // this.levels.getCurrentLevel().waterGeometry.computeVertexHeights();
-            // this.levels.getLevel(1).waterGeometry.computeVertexHeights();
+            this.cellFieldProvider.fillDataStorage(DataDescriptor.WATER_LEVEL, 0, 0, i => state.field[i]);
             this.cellFieldProvider.interpolateDS(DataDescriptor.WATER_LEVEL, 0, 1, 0);
             this.levels.getAllLevels().forEach(l => l.waterGeometry.computeVertexHeights());
             this.levels.getLevel(0).landTexture.loadFrom(
