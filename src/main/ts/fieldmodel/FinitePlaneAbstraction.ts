@@ -136,7 +136,7 @@ export class FinitePlaneAbstraction {
 
     fillPointsZP(descriptor: DataDescriptor<number>, cellIndex: number, zs: number[], pointIds: number[]) {
         const shiftedCellIndex = this.getShiftedCellIndex(cellIndex);
-        const lowCellIndex = this.cellField.mapIndexToLowerLevel(shiftedCellIndex);
+        const lowCellIndex = this.cellField.mapIndexToUpperLevel(shiftedCellIndex);
         const lowNeighbours = pointIds; // to save memory allocation
         const lowHeightDS = this.getStoragePair(descriptor).low;
         this.lowCellField.fillNeighbours(lowCellIndex, lowNeighbours); // knows about traverse order
