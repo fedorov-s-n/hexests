@@ -12,7 +12,7 @@ export class HexesPlaneGeometry extends BufferGeometry {
     private readonly heightDescriptor: DataDescriptor<number>;
 
     constructor(length: number, width: number, height: number,
-        finitePlane: FinitePlaneAbstraction, heightDescriptor: DataDescriptor<number>) {
+                finitePlane: FinitePlaneAbstraction, heightDescriptor: DataDescriptor<number>) {
         super();
 
         // future class members
@@ -23,13 +23,12 @@ export class HexesPlaneGeometry extends BufferGeometry {
         const indicesByPointId: Array<number> = [];
 
         // temporary variables
-        let counter: number = 0;
+        let counter: number = -1;
         const xs = new Array<number>(6);
         const ys = new Array<number>(6);
         const zs = new Array<number>(6);
         const ps = new Array<number>(6);
         const pointIndices = new Array<number>(6);
-        const centerIds = [0];
 
         function pushPoint(x: number, y: number, z: number): number {
             vertices.push(
@@ -38,30 +37,29 @@ export class HexesPlaneGeometry extends BufferGeometry {
                 (z) * height);
             normals.push(0, 0, 1);
             uvs.push(x, y);
-            return counter++;
+            return ++counter;
         }
 
         for (let cellIndex = 0; cellIndex < finitePlane.size; ++cellIndex) {
-            centerIds[0] = cellIndex;
-            finitePlane.fillCellXY(centerIds, xs, ys);
-            finitePlane.fillCellZP(heightDescriptor, centerIds, zs, ps);
-            const centerIndex = pushPoint(xs[0], ys[0], zs[0]);
-            indicesByPointId[ps[0]] = centerIndex;
             finitePlane.fillPointsXY(cellIndex, xs, ys);
             finitePlane.fillPointsZP(heightDescriptor, cellIndex, zs, ps);
             for (let j = 0; j < 6; ++j) {
                 const pid = ps[j];
-                pointIndices[j] = indicesByPointId[pid]
-                    = indicesByPointId[pid] || pushPoint(xs[j], ys[j], zs[j]);
-            }
-            for (let j = 0; j < 6; ++j) {
-                const index1 = pointIndices[j];
-                const index2 = pointIndices[(j + 1) % 6];
-                if (finitePlane.zoom % 2 === 0) {
-                    indices.push(centerIndex, index2, index1);
-                } else {
-                    indices.push(centerIndex, index1, index2);
+                if (!Number.isFinite(indicesByPointId[pid])) {
+                    indicesByPointId[pid] = pushPoint(xs[j], ys[j], zs[j]);
                 }
+                pointIndices[j] = indicesByPointId[pid];
+            }
+
+            const d = finitePlane.zoom % 2 === 0 ? -1 : +1; // direction, for normals
+            for (let j = 0; j < 3; ++j) {
+                const i0 = 6 + 2 * j;
+                for (let k = 0; k < 3; ++k) {
+                    indices.push(pointIndices[(i0 + d * k) % 6]);
+                }
+            }
+            for (let j = 0; j < 3; ++j) {
+                indices.push(pointIndices[(6 + 2 * d * j) % 6]);
             }
         }
 
@@ -82,14 +80,10 @@ export class HexesPlaneGeometry extends BufferGeometry {
 
     computeVertexHeights() {
         const vertices = this.getAttribute('position') as Float32BufferAttribute;
-        const ci = [0];
         const zs = new Array<number>(6);
         const ps = new Array<number>(6);
 
         for (let cellIndex = 0; cellIndex < this.finitePlane.size; ++cellIndex) {
-            ci[0] = cellIndex;
-            this.finitePlane.fillCellZP(this.heightDescriptor, ci, zs, ps);
-            vertices.setZ(this.indicesByPointId[ps[0]], zs[0] * this.height);
             this.finitePlane.fillPointsZP(this.heightDescriptor, cellIndex, zs, ps);
             for (let order = 0; order < 6; ++order) {
                 const pointId = ps[order];
