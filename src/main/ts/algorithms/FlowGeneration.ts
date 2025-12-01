@@ -3,6 +3,7 @@ import {CellFieldProvider} from "../fieldmodel/CellFieldProvider";
 import {LevelController} from "../three/LevelController";
 import {GenerationState} from "./GenerationState";
 import {DataDescriptor} from "../data/DataDescriptor";
+import {DataStorage} from "../data/DataStorage";
 import {CellField} from "../fieldmodel/CellField";
 
 @Component
@@ -16,9 +17,11 @@ export class FlowGeneration {
     }
 
     run(zoomLevel: number): FGState {
-        const state = new FGState(this.cellFieldProvider, this.levels);
+        const cellField = this.levels.getLevel(zoomLevel).cellField;
+        const height = this.cellFieldProvider.getDataStorage(DataDescriptor.HEIGHT, zoomLevel, 0);
+
+        const state = new FGState(this, height, cellField);
         state.init();
-        state.clean();
 
         return state;
     }
@@ -27,32 +30,33 @@ export class FlowGeneration {
 class FGState implements GenerationState {
     private static readonly DC = 1 / 12;
 
-    private readonly levels: LevelController;
-    private readonly cellFieldProvider: CellFieldProvider;
-
-    private cellField!: CellField;
+    private readonly flow: FlowGeneration;
+    private readonly heightDS: DataStorage<number, number>;
+    private readonly cellField: CellField;
     field!: number[];
     private field2!: number[];
     height!: number[];
-
     drop!: number;
-    initialAmount: number = 0.125;
     vapourLimit: number = 0.002;
     vapourCoeff: number = 0.015;
 
-    constructor(cellFieldProvider: CellFieldProvider, levels: LevelController) {
-        this.cellFieldProvider = cellFieldProvider;
-        this.levels = levels;
+    constructor(flow: FlowGeneration, heightDS: DataStorage<number, number>, cellField: CellField) {
+        this.flow = flow;
+        this.heightDS = heightDS;
+        this.cellField = cellField;
     }
 
     init() {
-        this.cellField = this.levels.getCurrentLevel().cellField;
-        const zoom = this.levels.getCurrentZoomLevel();
-        const depth = this.levels.getCurrentDepthLevel();
-        this.height = this.cellFieldProvider.getData(DataDescriptor.HEIGHT, zoom, depth);
-        this.field = this.cellFieldProvider.getData(DataDescriptor.WATER_LEVEL, zoom, depth);
-        this.field2 = new Array<number>(this.cellField.size).fill(0);
-        this.resetConstants();
+        const size = this.cellField.size;
+        const field1 = new Array<number>(size);
+        const field2 = new Array<number>(size);
+        const height = new Array<number>(size);
+
+        this.field = field1;
+        this.field2 = field2;
+        this.height = height;
+
+        this.clean();
     }
 
     swap() {
@@ -111,19 +115,6 @@ class FGState implements GenerationState {
         this.drop = totalVA / this.cellField.size;
     }
 
-    interpolate(diff: number) {
-        const zoom = this.levels.getCurrentZoomLevel();
-        const depth = this.levels.getCurrentDepthLevel();
-
-        this.cellFieldProvider.setData(DataDescriptor.WATER_LEVEL, zoom, depth, this.field);
-        this.cellFieldProvider.interpolateData(DataDescriptor.WATER_LEVEL, zoom, zoom + diff, depth);
-    }
-
-    readyForDisplay() {
-        this.interpolate(+1);
-        this.levels.getCurrentLevel().waterGeometry.computeVertexHeights();
-    }
-
     step() {
         this.spill();
         this.diffuse();
@@ -141,40 +132,19 @@ class FGState implements GenerationState {
     clean() {
         let maxH = 0, minH = 0;
         for (let i = 0; i < this.cellField.size; ++i) {
-            const h = this.height[i];
+            const h = this.heightDS.getOrDefault(i, 0);
             if (h > maxH) maxH = h;
             if (h < minH) minH = h;
             this.field[i] = h;
             this.field2[i] = h;
+            this.height[i] = h;
         }
-        this.drop = (maxH - minH) * this.initialAmount;
+        this.drop = (maxH - minH) * 0.125;
     }
 
     dispose() {
-        this.field = [];
-        this.field2 = [];
-        this.height = [];
-    }
-
-    levelUp() {
-        this.interpolate(+1);
-        this.levels.levelUp();
-        this.init();
-        this.drop /= 3;
-    }
-
-    levelDown() {
-        if (this.levels.getCurrentZoomLevel() === 0) return;
-        this.interpolate(-1);
-        this.levels.levelDown();
-        this.init();
-        this.drop *= 3;
-    }
-
-    resetConstants() {
-        const squareModifier = Math.pow(3, this.levels.getCurrentZoomLevel());
-        this.vapourCoeff = 0.015 / squareModifier;
-        this.vapourLimit = 0.002 / squareModifier;
-        this.initialAmount = 0.125 / squareModifier;
+        this.field.length = 0;
+        this.field2.length = 0;
+        this.height.length = 0;
     }
 }

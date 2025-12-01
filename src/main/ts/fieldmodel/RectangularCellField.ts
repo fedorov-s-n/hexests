@@ -62,7 +62,7 @@ export class RectangularCellField implements CellField {
         return new RectangularCellField(rowCount, columnCount, this.zoom + 1);
     }
 
-    mapIndexToUpperLevel(index: number): number {
+    mapIndexToLowerLevel(index: number): number {
         const columnCount = this.columnCount;
         const column = index % columnCount;
         const row = (index - column) / columnCount;

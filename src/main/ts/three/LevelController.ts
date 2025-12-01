@@ -128,16 +128,6 @@ export class LevelController {
     getAllLevels(): Level[] {
         return this.levels
     }
-
-    levelUp() {
-        this.setCurrentZoomLevel(this.zoom + 1);
-    }
-
-    levelDown() {
-        if (this.zoom > 0) {
-            this.setCurrentZoomLevel(this.zoom - 1);
-        }
-    }
 }
 
 export class Level {

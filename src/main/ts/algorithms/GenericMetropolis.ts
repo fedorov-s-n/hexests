@@ -66,7 +66,7 @@ export class GenericMetropolis {
     }
 
     clear() {
-        this.cellFieldProvider.removeData(DOMAIN_TYPE, this.cellField.zoom, 0);
+        this.cellFieldProvider.removeDataStorage(DOMAIN_TYPE, this.cellField.zoom, 0);
     }
 
     run(options: GenericMetropolisOptions) {

@@ -74,7 +74,7 @@ export class HexesFieldStartPoint {
             domainTypeCount: 3,
             output: (index: number, value: number) => heightDS.putValue(index, value)
         });
-        this.cellFieldProvider.interpolateData(DataDescriptor.HEIGHT, 0, 2, 0);
+        this.cellFieldProvider.interpolateDS(DataDescriptor.HEIGHT, 0, 2, 0);
         this.levels.getAllLevels().forEach(l => l.landGeometry.computeVertexHeights());
 
         // simplest terrain
@@ -93,7 +93,7 @@ export class HexesFieldStartPoint {
             input: (index: number) => heightDS.getValue(index)!!,
             buckets: heightBuckets
         });
-        this.cellFieldProvider.interpolateData(DataDescriptor.HEIGHT, 0, 5, 0);
+        this.cellFieldProvider.interpolateDS(DataDescriptor.HEIGHT, 0, 5, 0);
         const heightDS5 = this.cellFieldProvider.getDataStorage(DataDescriptor.HEIGHT, 5, 0);
         // this.levels.getLevel(0).landTexture.loadFrom(
         //     this.cellFieldProvider.getFinitePlane(5),
@@ -131,7 +131,9 @@ export class HexesFieldStartPoint {
         const runState = new RunState(false, 10);
         const state = this.flowGeneration.run(0);
         const updateWaterLevel = () => {
-            state.readyForDisplay();
+            this.cellFieldProvider.fillDataStorage(DataDescriptor.WATER_LEVEL, 0, 0, i => state.field[i]);
+            this.cellFieldProvider.interpolateDS(DataDescriptor.WATER_LEVEL, 0, 1, 0);
+            this.levels.getAllLevels().forEach(l => l.waterGeometry.computeVertexHeights());
             this.levels.getLevel(0).landTexture.loadFrom(
                 this.cellFieldProvider.getFinitePlane(0),
                 (index) => {
