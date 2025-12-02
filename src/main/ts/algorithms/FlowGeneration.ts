@@ -1,24 +1,19 @@
 import {Component} from "../di/Component";
-import {CellFieldProvider} from "../fieldmodel/CellFieldProvider";
-import {LevelController} from "../three/LevelController";
 import {GenerationState} from "./GenerationState";
-import {DataDescriptor} from "../data/DataDescriptor";
-import {DataStorage} from "../data/DataStorage";
 import {CellField} from "../fieldmodel/CellField";
+import {LevelManager} from "../levels2/LevelManager";
 
 @Component
 export class FlowGeneration {
-    private readonly cellFieldProvider: CellFieldProvider;
-    private readonly levels: LevelController;
+    private readonly levelManager: LevelManager;
 
-    constructor(cellFieldProvider: CellFieldProvider, levels: LevelController) {
-        this.cellFieldProvider = cellFieldProvider;
-        this.levels = levels;
+    constructor(levelManager: LevelManager) {
+        this.levelManager = levelManager;
     }
 
     run(zoomLevel: number): FGState {
-        const cellField = this.levels.getLevel(zoomLevel).cellField;
-        const height = this.cellFieldProvider.getDataStorage(DataDescriptor.HEIGHT, zoomLevel, 0);
+        const cellField = this.levelManager.cellFields.get(zoomLevel);
+        const height = this.levelManager.levels.get(zoomLevel).data.height;
 
         const state = new FGState(this, height, cellField);
         state.init();
@@ -31,7 +26,7 @@ class FGState implements GenerationState {
     private static readonly DC = 1 / 12;
 
     private readonly flow: FlowGeneration;
-    private readonly heightDS: DataStorage<number, number>;
+    private readonly heightDS: number[];
     private readonly cellField: CellField;
     field!: number[];
     private field2!: number[];
@@ -40,7 +35,7 @@ class FGState implements GenerationState {
     vapourLimit: number = 0.002;
     vapourCoeff: number = 0.015;
 
-    constructor(flow: FlowGeneration, heightDS: DataStorage<number, number>, cellField: CellField) {
+    constructor(flow: FlowGeneration, heightDS: number[], cellField: CellField) {
         this.flow = flow;
         this.heightDS = heightDS;
         this.cellField = cellField;
@@ -132,7 +127,7 @@ class FGState implements GenerationState {
     clean() {
         let maxH = 0, minH = 0;
         for (let i = 0; i < this.cellField.size; ++i) {
-            const h = this.heightDS.getOrDefault(i, 0);
+            const h = this.heightDS[i];
             if (h > maxH) maxH = h;
             if (h < minH) minH = h;
             this.field[i] = h;

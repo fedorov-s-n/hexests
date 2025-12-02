@@ -1,47 +1,55 @@
 import {CellField} from "../fieldmodel/CellField";
 import {Random} from "./Random";
-import {DataDescriptor} from "../data/DataDescriptor";
 import {Component} from "../di/Component";
-import {CellFieldProvider} from "../fieldmodel/CellFieldProvider";
-import {DataStorage} from "../data/DataStorage";
+import {LevelManager} from "../levels2/LevelManager";
+import {DataManager} from "../data2/DataManager";
+import {DataKey} from "../data2/DataKey";
 
 const NEIGHBOURS = new Array<number>(6);
-const DOMAIN_TYPE = new DataDescriptor<number>('metropolis:domaintype');
+const DOMAIN_TYPE = 'metropolis:domaintype';
 
 @Component
 export class GenericMetropolis {
     private readonly random: Random;
-    private readonly cellFieldProvider: CellFieldProvider;
+    private readonly levelManager: LevelManager;
+    private readonly dataManager: DataManager;
 
-    public dataStorage!: DataStorage<number, number>;
+    public dataKey!: DataKey<number>;
     public cellField!: CellField;
     public domainTypeCount!: number;
     public temperature: number = 1;
 
-    constructor(random: Random, cellFieldProvider: CellFieldProvider) {
+    constructor(random: Random, levelManager: LevelManager, dataManager: DataManager) {
         this.random = random;
-        this.cellFieldProvider = cellFieldProvider;
+        this.levelManager = levelManager;
+        this.dataManager = dataManager;
+    }
+
+    get domainType(): number[] {
+        return this.dataManager.get(this.dataKey)!!;
     }
 
     init(cellField: CellField, domainTypeCount: number) {
         this.cellField = cellField;
         this.domainTypeCount = domainTypeCount;
-        this.dataStorage = this.cellFieldProvider.getDataStorage(DOMAIN_TYPE, cellField.zoom, 0);
+        this.dataKey = this.levelManager.levels.get(cellField.zoom).data.createKey(DOMAIN_TYPE, 0);
+
+        this.dataManager.set(this.dataKey, new Array<number>(cellField.size).fill(0))
     }
 
     step(): void {
         const index = this.random.nextInt(this.cellField.size);
 
-        const val1 = this.dataStorage.getOrDefault(index, 0);
+        const val1 = this.domainType[index];
         const val2 = (val1 + this.random.nextInt(this.domainTypeCount)) % this.domainTypeCount;
 
         this.cellField.fillNeighbours(index, NEIGHBOURS);
-        const e1 = 6 - NEIGHBOURS.filter(i => this.dataStorage.getValue(i) === val1).length;
-        const e2 = 6 - NEIGHBOURS.filter(i => this.dataStorage.getValue(i) === val2).length;
+        const e1 = 6 - NEIGHBOURS.filter(i => this.domainType[i] === val1).length;
+        const e2 = 6 - NEIGHBOURS.filter(i => this.domainType[i] === val2).length;
 
         const changeChance = Math.exp(-(e2 - e1) / this.temperature);
         if (this.random.nextFloat() < changeChance) {
-            this.dataStorage.putValue(index, val2);
+            this.domainType[index] = val2;
         }
     }
 
@@ -53,7 +61,7 @@ export class GenericMetropolis {
 
     fillOutput(output: (index: number, value: number) => void) {
         for (let i = 0; i < this.cellField.size; ++i) {
-            output(i, this.dataStorage.getOrDefault(i, 0));
+            output(i, this.domainType[i]);
         }
     }
 
@@ -66,11 +74,11 @@ export class GenericMetropolis {
     }
 
     clear() {
-        this.cellFieldProvider.removeDataStorage(DOMAIN_TYPE, this.cellField.zoom, 0);
+        this.dataManager.remove(this.dataKey);
     }
 
     run(options: GenericMetropolisOptions) {
-        const cellField = this.cellFieldProvider.getField(options.zoomLevel || 0);
+        const cellField = this.levelManager.cellFields.get(options.zoomLevel || 0);
         this.init(cellField, options.domainTypeCount || 3);
         this.generateDefault(options.stepCountMultiplier || 150, options.temperatures || [100, 1, 0]);
         if (options.output) this.fillOutput(options.output);

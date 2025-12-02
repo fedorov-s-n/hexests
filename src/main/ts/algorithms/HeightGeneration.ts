@@ -23,7 +23,7 @@ export class HeightGeneration {
         this.brownianDrift.run({
             stepCount: options.driftStepCount,
             zoomLevel: options.zoomLevel,
-            plateTagger: (index: number) => this.genericMetropolis.dataStorage.getValue(index)!!,
+            plateTagger: (index: number) => this.genericMetropolis.domainType[index],
             output: options.output
         });
         this.genericMetropolis.clear();

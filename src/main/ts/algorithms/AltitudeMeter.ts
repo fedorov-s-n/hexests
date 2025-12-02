@@ -1,16 +1,16 @@
 import {Component} from "../di/Component";
-import {CellFieldProvider} from "../fieldmodel/CellFieldProvider";
+import {LevelManager} from "../levels2/LevelManager";
 
 @Component
 export class AltitudeMeter {
-    private readonly cellFieldProvider: CellFieldProvider;
+    private readonly levelManager: LevelManager;
 
-    constructor(cellFieldProvider: CellFieldProvider) {
-        this.cellFieldProvider = cellFieldProvider;
+    constructor(levelManager: LevelManager) {
+        this.levelManager = levelManager;
     }
 
     run(options: AltitudeMeterOptions): number[] {
-        const cellField = this.cellFieldProvider.getField(options.zoomLevel || 0);
+        const cellField = this.levelManager.cellFields.get(options.zoomLevel || 0);
         const heights = new Array<number>(cellField.size);
         cellField.forEach(i => heights[i] = options.input(i));
         heights.sort((a, b) => a - b);

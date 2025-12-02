@@ -1,6 +1,7 @@
 import {CellField} from "./CellField";
 import {GraphSearchBuilder} from "../algorithms/GraphSearchBuilder";
-import {ArrayDataStorageFactory} from "../data/DataStorage";
+import {Lazy} from "../levels2/Lazy";
+import {ArrayDataStorageFactory} from "../algorithms/DataStorageFactory";
 
 export class RectangularCellField implements CellField {
     readonly rowCount: number;
@@ -8,10 +9,15 @@ export class RectangularCellField implements CellField {
     readonly zoom: number;
     readonly size: number;
 
-    constructor(rowCount: number, columnCount: number, zoomLevel: number) {
+    private readonly _higher: RectangularCellField | undefined;
+    private readonly _lower: Lazy<RectangularCellField>;
+
+    constructor(rowCount: number, columnCount: number, zoomLevel: number, higher?: RectangularCellField) {
         this.rowCount = rowCount;
         this.columnCount = columnCount;
         this.zoom = zoomLevel;
+        this._higher = higher;
+        this._lower = new Lazy(() => this.generateLowerField());
         this.size = rowCount * columnCount;
     }
 
@@ -73,5 +79,13 @@ export class RectangularCellField implements CellField {
         const newColumnCount = 1.5 * this.rowCount;
 
         return newRow * newColumnCount + newColumn;
+    }
+
+    get lower(): RectangularCellField {
+        return this._lower.value;
+    }
+
+    get higher(): RectangularCellField | undefined {
+        return this._higher;
     }
 }

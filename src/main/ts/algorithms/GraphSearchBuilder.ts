@@ -1,4 +1,4 @@
-import {DataStorage, DataStorageFactory, MapDataStorageFactory} from "../data/DataStorage";
+import {DataStorage, DataStorageFactory, MapDataStorageFactory} from "./DataStorageFactory";
 
 export class GraphSearchBuilder<T> {
     private readonly startVertices: T[];
@@ -224,3 +224,4 @@ enum Color {
     GRAY,
     BLACK
 }
+

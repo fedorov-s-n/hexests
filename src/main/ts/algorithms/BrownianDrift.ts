@@ -1,14 +1,14 @@
 import {CellField} from "../fieldmodel/CellField";
 import {Random} from "./Random";
 import {Component} from "../di/Component";
-import {CellFieldProvider} from "../fieldmodel/CellFieldProvider";
+import {LevelManager} from "../levels2/LevelManager";
 
 const NEIGHBOURS = new Array<number>(6);
 
 @Component
 export class BrownianDrift {
     private readonly random: Random;
-    private readonly cellFieldProvider: CellFieldProvider;
+    private readonly levelManager: LevelManager;
 
     public cellField!: CellField;
     public plateTagger!: (index: number) => number;
@@ -21,9 +21,9 @@ export class BrownianDrift {
     private cellDensity!: number[];
     private iterations!: number;
 
-    constructor(random: Random, cellFieldProvider: CellFieldProvider) {
+    constructor(random: Random, levelManager: LevelManager) {
         this.random = random;
-        this.cellFieldProvider = cellFieldProvider;
+        this.levelManager = levelManager;
     }
 
     init(cellField: CellField, plateTagger: (index: number) => number) {
@@ -82,7 +82,7 @@ export class BrownianDrift {
     }
 
     run(options: BrownianDriftOptions) {
-        const cellField = this.cellFieldProvider.getField(options.zoomLevel || 0);
+        const cellField = this.levelManager.cellFields.get(options.zoomLevel || 0);
         this.init(cellField, options.plateTagger);
         this.steps(options.stepCount || 700);
         this.fillOutput(options.output);

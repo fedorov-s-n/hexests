@@ -1,19 +1,13 @@
 import {RectangularCellField} from "./RectangularCellField";
 import {Point2d} from "./Point2d";
-import {CellFieldProvider} from "./CellFieldProvider";
-import {DataDescriptor} from "../data/DataDescriptor";
+import {Lazy} from "../levels2/Lazy";
 
 const SQRT3 = Math.sqrt(3);
 const COS_MODS = [0, +SQRT3 / 2, +SQRT3 / 2, 0, -SQRT3 / 2, -SQRT3 / 2];
 const SIN_MODS = [+1, +0.5, -0.5, -1, -0.5, +0.5];
-const ROW_ID_SHIFTS = [3, 2, 1, 0, 1, 2];
-const ODD_COLUMN_ID_SHIFTS = [0, 1, 1, 0, 0, 0];
-const EVEN_COLUMN_ID_SHIFTS = [1, 1, 1, 1, 0, 0];
 
 export class FinitePlaneAbstraction {
     private readonly cellField: RectangularCellField;
-    private readonly lowCellField: RectangularCellField;
-    private readonly cellFieldProvider: CellFieldProvider;
     public readonly orientation: FinitePlaneOrientation;
 
     private readonly columnsSize: number;
@@ -27,15 +21,11 @@ export class FinitePlaneAbstraction {
     public depth: number;
     private readonly shiftData: ShiftData;
 
-    constructor(
-        cellField: RectangularCellField,
-        lowCellField: RectangularCellField,
-        cellFieldProvider: CellFieldProvider,
-        parentAbstraction: FinitePlaneAbstraction | undefined,
-    ) {
+    private readonly _lower: Lazy<FinitePlaneAbstraction>;
+    private readonly _higher: FinitePlaneAbstraction | undefined;
+
+    constructor(cellField: RectangularCellField, higher?: FinitePlaneAbstraction) {
         this.cellField = cellField;
-        this.lowCellField = lowCellField;
-        this.cellFieldProvider = cellFieldProvider;
 
         this.depth = 0;
         this.size = cellField.size;
@@ -56,11 +46,14 @@ export class FinitePlaneAbstraction {
         // todo: recalculate
         const columnShift = -0.5 / (cellField.columnCount + 0.5);
         this.offset = new Point2d(
-            this.orientation.getXPos(0, columnShift) + (parentAbstraction?.offset?.x || 0),
-            this.orientation.getYPos(0, columnShift) + (parentAbstraction?.offset?.y || 0)
+            this.orientation.getXPos(0, columnShift) + (higher?.offset?.x || 0),
+            this.orientation.getYPos(0, columnShift) + (higher?.offset?.y || 0)
         );
 
         this.shiftData = new ShiftData();
+
+        this._lower = new Lazy(() => new FinitePlaneAbstraction(cellField.lower, this));
+        this._higher = higher;
     }
 
     get totalShift(): Point2d {
@@ -135,28 +128,26 @@ export class FinitePlaneAbstraction {
         }
     }
 
-    fillPointsZP(descriptor: DataDescriptor<number>, cellIndex: number, zs: number[], pointIds: number[]) {
+    fillShiftedCellPointIndexes(cellIndex: number, neighbours: number[]) {
         const shiftedCellIndex = this.getShiftedCellIndex(cellIndex);
         const lowCellIndex = this.cellField.mapIndexToLowerLevel(shiftedCellIndex);
-        const lowNeighbours = pointIds; // to save memory allocation
-        const lowHeightDS = this.cellFieldProvider.getDataStorage(descriptor, this.zoom + 1, this.depth);
-        this.lowCellField.fillNeighbours(lowCellIndex, lowNeighbours); // knows about traverse order
-        for (let arrayIndex = 0; arrayIndex < 6; ++arrayIndex) {
-            const index = lowNeighbours[arrayIndex];
-            zs[arrayIndex] = lowHeightDS.getOrDefault(index, 0);
-        }
-
-        const column = cellIndex % this.cellField.columnCount;
-        const row = (cellIndex - column) / this.cellField.columnCount;
-        const columnIdShifts = row % 2 === 0 ? EVEN_COLUMN_ID_SHIFTS : ODD_COLUMN_ID_SHIFTS;
-        const rowSize = this.cellField.columnCount + 1;
-        for (let order = 0; order < 6; ++order) {
-            pointIds[order] = (2 * row + ROW_ID_SHIFTS[order]) * rowSize + column + columnIdShifts[order];
-        }
+        this.cellField.lower.fillNeighbours(lowCellIndex, neighbours); // knows about traverse order
     }
 
     get zoom(): number {
         return this.cellField.zoom;
+    }
+
+    get lower(): FinitePlaneAbstraction {
+        return this._lower.value;
+    }
+
+    get higher(): FinitePlaneAbstraction | undefined {
+        return this._higher;
+    }
+
+    get columnCount(): number {
+        return this.cellField.columnCount;
     }
 }
 

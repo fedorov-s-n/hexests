@@ -9,4 +9,8 @@ export interface CellField {
     search(...indices: number[]): GraphSearchBuilder<number>;
 
     forEach(consumer: (index: number) => void): void;
+
+    get lower(): CellField;
+
+    get higher(): CellField | undefined;
 }

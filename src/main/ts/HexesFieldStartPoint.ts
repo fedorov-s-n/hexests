@@ -1,17 +1,18 @@
 import {Component} from "./di/Component";
 import {SecondScene} from "./three/SecondScene";
 import {OrbitControls} from "three/examples/jsm/controls/OrbitControls";
-import {DataDescriptor} from "./data/DataDescriptor";
 import {GenericMetropolis} from "./algorithms/GenericMetropolis";
 import {ColorGenerator} from "./three/ColorGenerator";
-import {CellFieldProvider} from "./fieldmodel/CellFieldProvider";
-import {LevelController} from "./three/LevelController";
+import {CellDataHelper} from "./levels2/CellDataHelper";
+import {LayerManager} from "./three/LayerManager";
 import {HeightGeneration} from "./algorithms/HeightGeneration";
 import {AltitudeMeter} from "./algorithms/AltitudeMeter";
 import {Random} from "./algorithms/Random";
 import {FlowGeneration} from "./algorithms/FlowGeneration";
 import {WidgetService} from "./htmlcomponents/WidgetService";
 import {RunState} from "./algorithms/RunState";
+import {LevelManager} from "./levels2/LevelManager";
+import {CellData} from "./levels2/CellData";
 
 @Component
 export class HexesFieldStartPoint {
@@ -20,21 +21,26 @@ export class HexesFieldStartPoint {
     private readonly heightGeneration: HeightGeneration;
     private readonly altitudeMeter: AltitudeMeter;
     private readonly flowGeneration: FlowGeneration;
-    private readonly cellFieldProvider: CellFieldProvider;
-    private readonly levels: LevelController;
+    private readonly cellDataHelper: CellDataHelper;
+    private readonly layerManager: LayerManager;
     private readonly random: Random;
     private readonly widgetService: WidgetService;
+    private readonly levelManager: LevelManager;
 
-    constructor(scene: SecondScene, genericMetropolis: GenericMetropolis, heightGeneration: HeightGeneration, altitudeMeter: AltitudeMeter, flowGeneration: FlowGeneration, cellFieldProvider: CellFieldProvider, levels: LevelController, random: Random, widgetService: WidgetService) {
+    constructor(scene: SecondScene, genericMetropolis: GenericMetropolis, heightGeneration: HeightGeneration,
+                altitudeMeter: AltitudeMeter, flowGeneration: FlowGeneration,
+                cellDataHelper: CellDataHelper, layerManager: LayerManager, random: Random,
+                widgetService: WidgetService, levelManager: LevelManager) {
         this.scene = scene;
         this.genericMetropolis = genericMetropolis;
         this.heightGeneration = heightGeneration;
         this.altitudeMeter = altitudeMeter;
         this.flowGeneration = flowGeneration;
-        this.cellFieldProvider = cellFieldProvider;
-        this.levels = levels;
+        this.cellDataHelper = cellDataHelper;
+        this.layerManager = layerManager;
         this.random = random;
         this.widgetService = widgetService;
+        this.levelManager = levelManager;
     }
 
     gogogo(container: HTMLElement) {
@@ -43,39 +49,39 @@ export class HexesFieldStartPoint {
         this.scene.installSky();
         this.scene.installSpotLight(0, 0, 50);
 
-        this.scene.installHexesPlanes();
-        new OrbitControls(this.scene.camera, this.scene.renderer.domElement);
-
-        this.scene.camera.position.set(0, 0, 10);
-        this.scene.camera.lookAt(this.scene.scene.position);
-
         // const ambientLight = new AmbientLight(0xffffff, 1);
         // ambientLight.position.set(0, 0, 50);
         // this.scene.scene.add(ambientLight);
 
         // generate colors
         const cg = new ColorGenerator(-1);
-        const colorDS = this.cellFieldProvider.getDataStorage(DataDescriptor.COLOR, 0, 0);
+        const colors = this.levelManager.levels.initial.data.color;
         this.genericMetropolis.run({
             zoomLevel: 0,
             domainTypeCount: 8,
-            output: (i, value) => colorDS.putValue(i, cg.toColor(value))
+            output: (i, value) => colors[i] = cg.toColor(value)
         });
 
-        // apply textures
-        const fp0 = this.levels.getLevel(0).finitePlane;
-        this.levels.getLevel(0).landTexture.loadFrom(fp0, (index) => colorDS.getOrDefault(index, '#ffffff'));
-        this.levels.getLevel(0).waterFlowMap.loadFrom(fp0, (index) => colorDS.getOrDefault(index, '#ffffff'));
-
         // generate heights
-        const heightDS = this.cellFieldProvider.getDataStorage(DataDescriptor.HEIGHT, 0, 0);
+        const heights = this.levelManager.levels.initial.data.height.fill(0);
         this.heightGeneration.run({
             zoomLevel: 0,
             domainTypeCount: 3,
-            output: (index: number, value: number) => heightDS.putValue(index, value)
+            output: (index: number, value: number) => heights[index] = value
         });
-        this.cellFieldProvider.interpolateDS(DataDescriptor.HEIGHT, 0, 2, 0);
-        this.levels.getAllLevels().forEach(l => l.landGeometry.computeVertexHeights());
+        this.cellDataHelper.interpolateDS(CellData.HEIGHT, 0, 2, 0);
+        this.layerManager.layers.array.forEach(l => l.landGeometry.computeVertexHeights());
+
+        this.scene.installHexesPlanes();
+        new OrbitControls(this.scene.camera, this.scene.renderer.domElement);
+
+        this.scene.camera.position.set(0, 0, 10);
+        this.scene.camera.lookAt(this.scene.scene.position);
+
+        // apply textures
+        const fp0 = this.layerManager.layers.initial.level.finitePlane;
+        this.layerManager.layers.initial.landTexture.loadFrom(fp0, (index) => colors[index]);
+        this.layerManager.layers.initial.waterFlowMap.loadFrom(fp0, (index) => colors[index]);
 
         // simplest terrain
         const heightBuckets = [
@@ -90,15 +96,15 @@ export class HexesFieldStartPoint {
         ];
         const heightLimits = this.altitudeMeter.run({
             zoomLevel: 0,
-            input: (index: number) => heightDS.getValue(index)!!,
+            input: (index: number) => heights[index],
             buckets: heightBuckets
         });
-        this.cellFieldProvider.interpolateDS(DataDescriptor.HEIGHT, 0, 5, 0);
-        const heightDS5 = this.cellFieldProvider.getDataStorage(DataDescriptor.HEIGHT, 5, 0);
+        //this.cellDataHelper.interpolateDS(CellData.HEIGHT, 0, 5, 0);
+        //const heightDS5 = this.levelManager.levels.get(5).data.height;
         // this.levels.getLevel(0).landTexture.loadFrom(
         //     this.cellFieldProvider.getFinitePlane(5),
         //     (index) => {
-        //         const value = heightDS5.getValue(index)!!;
+        //         const value = heightDS5[index];
         //         let bucketIndex = heightLimits.findIndex((limit) => value <= limit);
         //         if (bucketIndex < 0) bucketIndex = heightLimits.length;
         //         if (bucketIndex < heightLimits.length) {
@@ -108,8 +114,8 @@ export class HexesFieldStartPoint {
         //         return heightColors[bucketIndex];
         //     }
         // );
-        this.levels.getLevel(0).landTexture.loadFrom(
-            this.cellFieldProvider.getFinitePlane(0),
+        this.layerManager.layers.initial.landTexture.loadFrom(
+            this.levelManager.finitePlainAbstractions.get(0),
             (index) => {
                 return '#b4b4b4';
             }
@@ -131,11 +137,11 @@ export class HexesFieldStartPoint {
         const runState = new RunState(false, 10);
         const state = this.flowGeneration.run(0);
         const updateWaterLevel = () => {
-            this.cellFieldProvider.fillDataStorage(DataDescriptor.WATER_LEVEL, 0, 0, i => state.field[i]);
-            this.cellFieldProvider.interpolateDS(DataDescriptor.WATER_LEVEL, 0, 1, 0);
-            this.levels.getAllLevels().forEach(l => l.waterGeometry.computeVertexHeights());
-            this.levels.getLevel(0).landTexture.loadFrom(
-                this.cellFieldProvider.getFinitePlane(0),
+            this.cellDataHelper.fillDataStorage(CellData.WATER_LEVEL, 0, 0, i => state.field[i]);
+            this.cellDataHelper.interpolateDS(CellData.WATER_LEVEL, 0, 1, 0);
+            this.layerManager.layers.array.forEach(l => l.waterGeometry.computeVertexHeights());
+            this.layerManager.layers.initial.landTexture.loadFrom(
+                this.levelManager.finitePlainAbstractions.get(0),
                 (index) => {
                     const value = state.field[index] - state.height[index];
                     let bucketIndex = wheightBuckets.findIndex((limit) => value <= limit);
@@ -144,7 +150,6 @@ export class HexesFieldStartPoint {
                 }
             );
         };
-        this.levels.setCurrentZoomLevel(0);
 
 
         this.widgetService.addNumberFieldEditors(runState);

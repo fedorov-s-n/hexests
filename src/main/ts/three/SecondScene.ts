@@ -11,28 +11,28 @@ import {
 } from "three";
 import WebGL from "three/examples/jsm/capabilities/WebGL";
 import {Object3D} from "three/src/core/Object3D";
-import {CellFieldProvider} from "../fieldmodel/CellFieldProvider";
 import {Component} from "../di/Component";
 import {PositionHelper} from "./PositionHelper";
-import {LevelController} from "./LevelController";
-import {DataDescriptor} from "../data/DataDescriptor";
+import {LayerManager} from "./LayerManager";
 import {BackSide} from "three/src/constants";
+import {LevelManager} from "../levels2/LevelManager";
 
 @Component
 export class SecondScene {
-    private readonly cellFieldProvider: CellFieldProvider;
     private readonly positionHelper: PositionHelper;
-    private readonly levels: LevelController;
+    private readonly layerManager: LayerManager;
+    private readonly levelManager: LevelManager;
 
     scene!: Scene;
     camera!: PerspectiveCamera;
     renderer!: Renderer;
     container!: HTMLElement;
 
-    constructor(cellFieldProvider: CellFieldProvider, positionHelper: PositionHelper, levels: LevelController) {
-        this.cellFieldProvider = cellFieldProvider;
+    constructor(positionHelper: PositionHelper,
+                layerManager: LayerManager, levelManager: LevelManager) {
         this.positionHelper = positionHelper;
-        this.levels = levels;
+        this.layerManager = layerManager;
+        this.levelManager = levelManager;
     }
 
     installScene(container: HTMLElement) {
@@ -80,11 +80,9 @@ export class SecondScene {
     }
 
     installHexesPlanes() {
-        this.levels.installLevels(1);
-        this.levels.setCurrentZoomLevel(0);
-        this.levels.getLevel(0).landTexture.loadFrom(this.levels.getLevel(0).finitePlane, (index) => this.cellFieldProvider.getDataStorage(DataDescriptor.COLOR, 0, 0).getValue(index) || '#ffffff');
+        this.layerManager.layers.initial.landTexture.loadFrom(this.layerManager.layers.initial.level.finitePlane, (index) => this.levelManager.levels.initial.data.color[index]);
 
-        this.levels.getAllLevels().forEach(level => {
+        this.layerManager.layers.array.forEach(level => {
             this.scene.add(level.landMesh);
             this.scene.add(level.waterMesh);
             level.objects.forEach(object => this.scene.add(object));
@@ -97,9 +95,9 @@ export class SecondScene {
         function animate() {
             requestAnimationFrame(animate);
             if (self.positionHelper.changed) {
-                const level = self.levels.getCurrentLevel();
-                level.shift = self.positionHelper.shift; // active property
-                self.positionHelper.shift = level.finitePlane.totalShift;
+                const layer = self.layerManager.visible;
+                layer.setShift(self.positionHelper.shift);
+                self.positionHelper.shift = layer.level.finitePlane.totalShift;
                 self.positionHelper.changed = false;
             }
             action();
