@@ -3,7 +3,6 @@ import {SecondScene} from "./three/SecondScene";
 import {OrbitControls} from "three/examples/jsm/controls/OrbitControls";
 import {GenericMetropolis} from "./algorithms/GenericMetropolis";
 import {ColorGenerator} from "./three/ColorGenerator";
-import {CellDataHelper} from "./levels2/CellDataHelper";
 import {LayerManager} from "./three/LayerManager";
 import {HeightGeneration} from "./algorithms/HeightGeneration";
 import {AltitudeMeter} from "./algorithms/AltitudeMeter";
@@ -12,7 +11,6 @@ import {FlowGeneration} from "./algorithms/FlowGeneration";
 import {WidgetService} from "./htmlcomponents/WidgetService";
 import {RunState} from "./algorithms/RunState";
 import {LevelManager} from "./levels2/LevelManager";
-import {CellData} from "./levels2/CellData";
 
 @Component
 export class HexesFieldStartPoint {
@@ -21,7 +19,6 @@ export class HexesFieldStartPoint {
     private readonly heightGeneration: HeightGeneration;
     private readonly altitudeMeter: AltitudeMeter;
     private readonly flowGeneration: FlowGeneration;
-    private readonly cellDataHelper: CellDataHelper;
     private readonly layerManager: LayerManager;
     private readonly random: Random;
     private readonly widgetService: WidgetService;
@@ -29,14 +26,12 @@ export class HexesFieldStartPoint {
 
     constructor(scene: SecondScene, genericMetropolis: GenericMetropolis, heightGeneration: HeightGeneration,
                 altitudeMeter: AltitudeMeter, flowGeneration: FlowGeneration,
-                cellDataHelper: CellDataHelper, layerManager: LayerManager, random: Random,
-                widgetService: WidgetService, levelManager: LevelManager) {
+                layerManager: LayerManager, random: Random, widgetService: WidgetService, levelManager: LevelManager) {
         this.scene = scene;
         this.genericMetropolis = genericMetropolis;
         this.heightGeneration = heightGeneration;
         this.altitudeMeter = altitudeMeter;
         this.flowGeneration = flowGeneration;
-        this.cellDataHelper = cellDataHelper;
         this.layerManager = layerManager;
         this.random = random;
         this.widgetService = widgetService;
@@ -55,7 +50,7 @@ export class HexesFieldStartPoint {
 
         // generate colors
         const cg = new ColorGenerator(-1);
-        const colors = this.levelManager.levels.initial.data.color;
+        const colors = this.levelManager.levels.initial.data.color.array;
         this.genericMetropolis.run({
             zoomLevel: 0,
             domainTypeCount: 8,
@@ -63,13 +58,13 @@ export class HexesFieldStartPoint {
         });
 
         // generate heights
-        const heights = this.levelManager.levels.initial.data.height.fill(0);
+        const heights = this.levelManager.levels.initial.data.height.array.fill(0);
         this.heightGeneration.run({
             zoomLevel: 0,
             domainTypeCount: 3,
             output: (index: number, value: number) => heights[index] = value
         });
-        this.cellDataHelper.interpolateDS(CellData.HEIGHT, 0, 2, 0);
+        this.levelManager.data.range(0, 2).forEach(data => data.height.interpolate());
         this.layerManager.layers.array.forEach(l => l.landGeometry.computeVertexHeights());
 
         this.scene.installHexesPlanes();
@@ -137,8 +132,8 @@ export class HexesFieldStartPoint {
         const runState = new RunState(false, 10);
         const state = this.flowGeneration.run(0);
         const updateWaterLevel = () => {
-            this.cellDataHelper.fillDataStorage(CellData.WATER_LEVEL, 0, 0, i => state.field[i]);
-            this.cellDataHelper.interpolateDS(CellData.WATER_LEVEL, 0, 1, 0);
+            this.levelManager.data.initial.waterLevel.array.forEach((_, i, a) => a[i] = state.field[i]);
+            this.levelManager.data.initial.waterLevel.interpolate();
             this.layerManager.layers.array.forEach(l => l.waterGeometry.computeVertexHeights());
             this.layerManager.layers.initial.landTexture.loadFrom(
                 this.levelManager.finitePlainAbstractions.get(0),

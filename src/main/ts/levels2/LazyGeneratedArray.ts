@@ -15,4 +15,14 @@ export class LazyGeneratedArray<T> {
         }
         return this.array[index];
     }
+
+    range(start: number, finish: number, step: number = finish >= start ? 1 : -1): T[] {
+        const size = Math.floor((finish - start) / step);
+        if (size < 0) throw new Error(`Illegal arguments(start=${start},finish=${finish},step=${step})`);
+        const result = new Array<T>(size)
+        for (let index = start, i = 0; i < size; index += step, i++) {
+            result[i] = this.get(index);
+        }
+        return result;
+    }
 }

@@ -80,7 +80,7 @@ export class SecondScene {
     }
 
     installHexesPlanes() {
-        this.layerManager.layers.initial.landTexture.loadFrom(this.layerManager.layers.initial.level.finitePlane, (index) => this.levelManager.levels.initial.data.color[index]);
+        this.layerManager.layers.initial.landTexture.loadFrom(this.layerManager.layers.initial.level.finitePlane, (index) => this.levelManager.levels.initial.data.color.array[index]);
 
         this.layerManager.layers.array.forEach(level => {
             this.scene.add(level.landMesh);

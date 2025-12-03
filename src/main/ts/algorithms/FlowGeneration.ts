@@ -13,7 +13,7 @@ export class FlowGeneration {
 
     run(zoomLevel: number): FGState {
         const cellField = this.levelManager.cellFields.get(zoomLevel);
-        const height = this.levelManager.levels.get(zoomLevel).data.height;
+        const height = this.levelManager.levels.get(zoomLevel).data.height.array;
 
         const state = new FGState(this, height, cellField);
         state.init();

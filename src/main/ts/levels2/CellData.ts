@@ -1,6 +1,7 @@
 import {CellDataKey} from "./CellDataKey";
 import {DataSource} from "../data2/DataSource";
 import {CellField} from "../fieldmodel/CellField";
+import {CellDataAccessor} from "./CellDataAccessor";
 
 export class CellData {
     static readonly HEIGHT = 'height';
@@ -12,46 +13,24 @@ export class CellData {
 
     readonly dataSource: DataSource;
     readonly cellField: CellField;
-    readonly heightKey: CellDataKey<number>;
-    readonly waterLevelKey: CellDataKey<number>;
-    readonly colorKey: CellDataKey<string>;
+
+    readonly height: CellDataAccessor<number>;
+    readonly waterLevel: CellDataAccessor<number>;
+    readonly color: CellDataAccessor<string>;
 
     constructor(dataSource: DataSource, cellField: CellField, zoom: number, depth: number) {
         this.dataSource = dataSource;
         this.cellField = cellField;
         this.zoom = zoom;
         this.depth = depth;
-        this.heightKey = this.createKey(CellData.HEIGHT, 0);
-        this.waterLevelKey = this.createKey(CellData.WATER_LEVEL, 0);
-        this.colorKey = this.createKey(CellData.COLOR, '#ffffff');
+        this.height = this.accessor(CellData.HEIGHT, 0);
+        this.waterLevel = this.accessor(CellData.WATER_LEVEL, 0);
+        this.color = this.accessor(CellData.COLOR, '#ffffff');
     }
 
-    createKey<T>(name: string, defaultValue?: T): CellDataKey<T> {
-        return new CellDataKey(name, this.zoom, this.depth, defaultValue);
-    }
-
-    get height(): number[] {
-        return this.dataSource.getOrCreate<number>(this.heightKey, this.cellField.size, this.heightKey.defaultValue);
-    }
-
-    set height(array: number[]) {
-        this.dataSource.set(this.heightKey, array);
-    }
-
-    get waterLevel(): number[] {
-        return this.dataSource.getOrCreate<number>(this.waterLevelKey, this.cellField.size, this.waterLevelKey.defaultValue);
-    }
-
-    set waterLevel(array: number[]) {
-        this.dataSource.set(this.waterLevelKey, array);
-    }
-
-    get color(): string[] {
-        return this.dataSource.getOrCreate<string>(this.colorKey, this.cellField.size, this.colorKey.defaultValue);
-    }
-
-    set color(array: string[]) {
-        this.dataSource.set(this.colorKey, array);
+    accessor<T>(name: string, defaultValue?: T): CellDataAccessor<T> {
+        const key = new CellDataKey<T>(name, this.zoom, this.depth);
+        return new CellDataAccessor<T>(this.dataSource, this.cellField, key, defaultValue);
     }
 
     // to be deleted due to high dependency on depth

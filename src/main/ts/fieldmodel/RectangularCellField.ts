@@ -3,6 +3,8 @@ import {GraphSearchBuilder} from "../algorithms/GraphSearchBuilder";
 import {Lazy} from "../levels2/Lazy";
 import {ArrayDataStorageFactory} from "../algorithms/DataStorageFactory";
 
+const NEIGHBOURS = new Array<number>(6);
+
 export class RectangularCellField implements CellField {
     readonly rowCount: number;
     readonly columnCount: number;
@@ -87,5 +89,22 @@ export class RectangularCellField implements CellField {
 
     get higher(): RectangularCellField | undefined {
         return this._higher;
+    }
+
+    interpolate(highData: number[], lowData: number[]) {
+        lowData.fill(0);
+        for (let upIndex = 0; upIndex < this.size; ++upIndex) {
+            const lowIndex = this.mapIndexToLowerLevel(upIndex);
+            this.lower.fillNeighbours(lowIndex, NEIGHBOURS);
+            const input = highData[upIndex];
+            lowData[lowIndex] = 3 * input;
+            for (let ni = 0; ni < 6; ++ni) {
+                const index = NEIGHBOURS[ni];
+                lowData[index] += input;
+            }
+        }
+        for (let lowIndex = 0; lowIndex < this.lower.size; ++lowIndex) {
+            lowData[lowIndex] /= 3;
+        }
     }
 }

@@ -43,7 +43,7 @@ export class LayerManager {
         const side = this.settingsStub.planeSideSize;
         const finitePlane = this.levelManager.finitePlainAbstractions.get(zoom);
 
-        const geometry = new HexesPlaneGeometry(side, side, side, finitePlane, this.levelManager.data.get(zoom + 1).height);
+        const geometry = new HexesPlaneGeometry(side, side, side, finitePlane, this.levelManager.data.get(zoom + 1).height.array);
         const texture = this.texture1common;
         const material = new MeshLambertMaterial({
             map: texture
@@ -54,7 +54,7 @@ export class LayerManager {
         plane.receiveShadow = true;
         plane.visible = false;
 
-        const waterGeometry = new HexesPlaneGeometry(side, side, side, finitePlane, this.levelManager.data.get(zoom + 1).waterLevel);
+        const waterGeometry = new HexesPlaneGeometry(side, side, side, finitePlane, this.levelManager.data.get(zoom + 1).waterLevel.array);
         const flowMap = this.flowMapTexture;
 
         const textureLoader = new TextureLoader();

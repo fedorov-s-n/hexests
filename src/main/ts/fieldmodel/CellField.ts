@@ -13,4 +13,6 @@ export interface CellField {
     get lower(): CellField;
 
     get higher(): CellField | undefined;
+
+    interpolate(highData: number[], lowData: number[]): void;
 }
