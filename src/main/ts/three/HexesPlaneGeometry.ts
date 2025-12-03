@@ -1,5 +1,5 @@
 import {BufferGeometry, Float32BufferAttribute} from "three";
-import {FinitePlaneAbstraction} from "../fieldmodel/FinitePlaneAbstraction";
+import {FinitePlaneAbstraction} from "../finiteplane/FinitePlaneAbstraction";
 
 const ROW_ID_SHIFTS = [3, 2, 1, 0, 1, 2];
 const ODD_COLUMN_ID_SHIFTS = [0, 1, 1, 0, 0, 0];

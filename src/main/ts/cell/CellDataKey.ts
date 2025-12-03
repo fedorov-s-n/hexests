@@ -1,4 +1,4 @@
-import {DataKey} from "../data2/DataKey";
+import {DataKey} from "../data/DataKey";
 
 export class CellDataKey<T> implements DataKey<T> {
     readonly name: string;

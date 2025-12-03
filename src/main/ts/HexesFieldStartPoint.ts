@@ -2,15 +2,15 @@ import {Component} from "./di/Component";
 import {SecondScene} from "./three/SecondScene";
 import {OrbitControls} from "three/examples/jsm/controls/OrbitControls";
 import {GenericMetropolis} from "./algorithms/GenericMetropolis";
-import {ColorGenerator} from "./three/ColorGenerator";
+import {ColorGenerator} from "./util/ColorGenerator";
 import {LayerManager} from "./three/LayerManager";
 import {HeightGeneration} from "./algorithms/HeightGeneration";
 import {AltitudeMeter} from "./algorithms/AltitudeMeter";
-import {Random} from "./algorithms/Random";
+import {Random} from "./util/Random";
 import {FlowGeneration} from "./algorithms/FlowGeneration";
 import {WidgetService} from "./htmlcomponents/WidgetService";
 import {RunState} from "./algorithms/RunState";
-import {LevelManager} from "./levels2/LevelManager";
+import {LevelManager} from "./level/LevelManager";
 
 @Component
 export class HexesFieldStartPoint {

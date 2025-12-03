@@ -1,6 +1,6 @@
-import {RectangularCellField} from "./RectangularCellField";
+import {RectangularCellField} from "../cell/RectangularCellField";
 import {Point2d} from "./Point2d";
-import {Lazy} from "../levels2/Lazy";
+import {Lazy} from "../util/Lazy";
 
 const SQRT3 = Math.sqrt(3);
 const COS_MODS = [0, +SQRT3 / 2, +SQRT3 / 2, 0, -SQRT3 / 2, -SQRT3 / 2];

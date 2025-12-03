@@ -1,7 +1,7 @@
 import {Component} from "../di/Component";
 import {Camera, Quaternion, Vector3} from "three";
-import {SettingsStub} from "./SettingsStub";
-import {Point2d} from "../fieldmodel/Point2d";
+import {SettingsStub} from "../util/SettingsStub";
+import {Point2d} from "../finiteplane/Point2d";
 
 @Component
 export class PositionHelper {

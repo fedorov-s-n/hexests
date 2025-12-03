@@ -1,4 +1,4 @@
-export class CircularQueue<T> {
+export class CircularBuffer<T> {
     private readonly array = Array<T>()
     private readonly limit: number;
 

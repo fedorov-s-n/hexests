@@ -1,12 +1,12 @@
-import {Level2} from "../levels2/Level2";
+import {Level} from "../level/Level";
 import {HexesPlaneGeometry} from "./HexesPlaneGeometry";
 import {Mesh} from "three";
 import {Texture1} from "./Texture1";
 import {Object3D} from "three/src/core/Object3D";
-import {Point2d} from "../fieldmodel/Point2d";
+import {Point2d} from "../finiteplane/Point2d";
 
 export class Layer {
-    level: Level2;
+    level: Level;
     landGeometry: HexesPlaneGeometry;
     landMesh: Mesh;
     landTexture: Texture1;
@@ -15,7 +15,7 @@ export class Layer {
     waterFlowMap: Texture1;
     objects: Object3D[];
 
-    constructor(level: Level2, landGeometry: HexesPlaneGeometry, landMesh: Mesh, landTexture: Texture1, waterGeometry: HexesPlaneGeometry, waterMesh: Mesh, waterFlowMap: Texture1, objects: Object3D[]) {
+    constructor(level: Level, landGeometry: HexesPlaneGeometry, landMesh: Mesh, landTexture: Texture1, waterGeometry: HexesPlaneGeometry, waterMesh: Mesh, waterFlowMap: Texture1, objects: Object3D[]) {
         this.level = level;
         this.landGeometry = landGeometry;
         this.landMesh = landMesh;

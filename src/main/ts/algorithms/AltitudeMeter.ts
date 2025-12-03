@@ -1,5 +1,5 @@
 import {Component} from "../di/Component";
-import {LevelManager} from "../levels2/LevelManager";
+import {LevelManager} from "../level/LevelManager";
 
 @Component
 export class AltitudeMeter {

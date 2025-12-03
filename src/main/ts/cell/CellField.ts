@@ -1,4 +1,4 @@
-import {GraphSearchBuilder} from "../algorithms/GraphSearchBuilder";
+import {GraphSearchBuilder} from "../util/GraphSearchBuilder";
 
 export interface CellField {
     size: number;

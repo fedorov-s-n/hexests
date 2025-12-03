@@ -1,7 +1,7 @@
 import {Component} from "../di/Component";
 import {GenerationState} from "./GenerationState";
-import {CellField} from "../fieldmodel/CellField";
-import {LevelManager} from "../levels2/LevelManager";
+import {CellField} from "../cell/CellField";
+import {LevelManager} from "../level/LevelManager";
 
 @Component
 export class FlowGeneration {

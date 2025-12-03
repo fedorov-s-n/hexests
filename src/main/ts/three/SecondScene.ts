@@ -15,7 +15,7 @@ import {Component} from "../di/Component";
 import {PositionHelper} from "./PositionHelper";
 import {LayerManager} from "./LayerManager";
 import {BackSide} from "three/src/constants";
-import {LevelManager} from "../levels2/LevelManager";
+import {LevelManager} from "../level/LevelManager";
 
 @Component
 export class SecondScene {

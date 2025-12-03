@@ -1,8 +1,8 @@
-import {FinitePlaneAbstraction} from "../fieldmodel/FinitePlaneAbstraction";
-import {CellField} from "../fieldmodel/CellField";
-import {CellData} from "./CellData";
+import {FinitePlaneAbstraction} from "../finiteplane/FinitePlaneAbstraction";
+import {CellField} from "../cell/CellField";
+import {CellData} from "../cell/CellData";
 
-export class Level2 {
+export class Level {
     readonly finitePlane: FinitePlaneAbstraction;
     readonly cellField: CellField;
     readonly data: CellData;
@@ -26,11 +26,11 @@ export class Level2 {
     }
 
     // to be deleted due to high dependency on depth
-    get lower(): Level2 {
-        return new Level2(this.finitePlane.lower, this.cellField.lower, this.data.lower);
+    get lower(): Level {
+        return new Level(this.finitePlane.lower, this.cellField.lower, this.data.lower);
     }
-    
-    equals(other: Level2): boolean {
+
+    equals(other: Level): boolean {
         return this.zoom === other.zoom && this.depth == other.depth;
     }
 }

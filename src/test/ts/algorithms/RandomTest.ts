@@ -1,6 +1,6 @@
 import {DIContainer} from "../../../main/ts/di/DIContainer";
 import {describe, expect, test} from '@jest/globals';
-import {Random} from "../../../main/ts/algorithms/Random";
+import {Random} from "../../../main/ts/util/Random";
 
 describe('Random works', () => {
     test('nextFloat', () => {

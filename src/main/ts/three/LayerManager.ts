@@ -2,10 +2,10 @@ import {HexesPlaneGeometry} from "./HexesPlaneGeometry";
 import {Mesh, MeshLambertMaterial, TextureLoader} from "three";
 import {Texture1} from "./Texture1";
 import {Component} from "../di/Component";
-import {SettingsStub} from "./SettingsStub";
+import {SettingsStub} from "../util/SettingsStub";
 import {PositionHelper} from "./PositionHelper";
-import {LevelManager} from "../levels2/LevelManager";
-import {LazyGeneratedArray} from "../levels2/LazyGeneratedArray";
+import {LevelManager} from "../level/LevelManager";
+import {LazyGeneratedArray} from "../util/LazyGeneratedArray";
 import {Layer} from "./Layer";
 
 @Component

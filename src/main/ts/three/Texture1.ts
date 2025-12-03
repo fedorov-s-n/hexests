@@ -1,5 +1,5 @@
 import {CanvasTexture, RepeatWrapping, UVMapping} from "three";
-import {FinitePlaneAbstraction} from "../fieldmodel/FinitePlaneAbstraction";
+import {FinitePlaneAbstraction} from "../finiteplane/FinitePlaneAbstraction";
 
 export class Texture1 extends CanvasTexture {
     private readonly canvas: HTMLCanvasElement;

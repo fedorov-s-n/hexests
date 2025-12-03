@@ -1,5 +1,5 @@
 import {describe, expect, test} from '@jest/globals';
-import {Math2} from "../../../main/ts/algorithms/Math2";
+import {Math2} from "../../../main/ts/util/Math2";
 
 describe('Array operations', () => {
     test('sum', () => {

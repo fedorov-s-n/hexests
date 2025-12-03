@@ -1,7 +1,7 @@
 import {CellField} from "./CellField";
-import {GraphSearchBuilder} from "../algorithms/GraphSearchBuilder";
-import {Lazy} from "../levels2/Lazy";
-import {ArrayDataStorageFactory} from "../algorithms/DataStorageFactory";
+import {GraphSearchBuilder} from "../util/GraphSearchBuilder";
+import {Lazy} from "../util/Lazy";
+import {ArrayDataStorageFactory} from "../util/DataStorageFactory";
 
 const NEIGHBOURS = new Array<number>(6);
 

@@ -1,8 +1,8 @@
-import {CellField} from "../fieldmodel/CellField";
-import {Random} from "./Random";
+import {CellField} from "../cell/CellField";
+import {Random} from "../util/Random";
 import {Component} from "../di/Component";
-import {LevelManager} from "../levels2/LevelManager";
-import {CellDataAccessor} from "../levels2/CellDataAccessor";
+import {LevelManager} from "../level/LevelManager";
+import {CellDataAccessor} from "../cell/CellDataAccessor";
 
 const NEIGHBOURS = new Array<number>(6);
 const DOMAIN_TYPE = 'metropolis:domaintype';

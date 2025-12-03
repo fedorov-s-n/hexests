@@ -1,5 +1,5 @@
-import {DataSource} from "../data2/DataSource";
-import {CellField} from "../fieldmodel/CellField";
+import {DataSource} from "../data/DataSource";
+import {CellField} from "./CellField";
 import {CellDataKey} from "./CellDataKey";
 
 export class CellDataAccessor<T> {

@@ -1,6 +1,6 @@
 import {DIContainer} from "./di/DIContainer";
 import {HexesFieldStartPoint} from "./HexesFieldStartPoint";
-import {Random} from "./algorithms/Random";
+import {Random} from "./util/Random";
 import {CircusComponent} from "./htmlcomponents/CircusComponent";
 import {SingleElementComponent} from "./htmlcomponents/SingleElementComponent";
 import {CommandCentre} from "./command/CommandCentre";
