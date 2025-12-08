@@ -1,6 +1,7 @@
 import {GraphSearchBuilder} from "../util/GraphSearchBuilder";
+import {CellSource} from "./CellSource";
 
-export interface CellField {
+export interface CellField extends CellSource {
     size: number;
     zoom: number;
 

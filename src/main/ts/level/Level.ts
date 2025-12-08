@@ -3,12 +3,12 @@ import {CellField} from "../cell/CellField";
 import {CellData} from "../cell/CellData";
 
 export class Level {
-    readonly finitePlane: FinitePlaneAbstraction;
+    readonly finitePlaneAbstraction: FinitePlaneAbstraction;
     readonly cellField: CellField;
     readonly data: CellData;
 
-    constructor(finitePlane: FinitePlaneAbstraction, cellField: CellField, cellData: CellData) {
-        this.finitePlane = finitePlane;
+    constructor(finitePlaneAbstraction: FinitePlaneAbstraction, cellField: CellField, cellData: CellData) {
+        this.finitePlaneAbstraction = finitePlaneAbstraction;
         this.cellField = cellField;
         this.data = cellData;
     }
@@ -22,12 +22,12 @@ export class Level {
     }
 
     get depth(): number {
-        return this.finitePlane.depth;
+        return this.finitePlaneAbstraction.depth;
     }
 
     // to be deleted due to high dependency on depth
     get lower(): Level {
-        return new Level(this.finitePlane.lower, this.cellField.lower, this.data.lower);
+        return new Level(this.finitePlaneAbstraction.lower, this.cellField.lower, this.data.lower);
     }
 
     equals(other: Level): boolean {

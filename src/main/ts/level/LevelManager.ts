@@ -7,6 +7,7 @@ import {CellData} from "../cell/CellData";
 import {DataManager} from "../data/DataManager";
 import {CellField} from "../cell/CellField";
 import {CircularBuffer} from "../util/CircularBuffer";
+import {SettingsStub} from "../util/SettingsStub";
 
 @Component
 export class LevelManager {
@@ -16,17 +17,16 @@ export class LevelManager {
     readonly levels: LazyGeneratedArray<Level>;
     readonly levelHistory: CircularBuffer<Level>;
 
-    constructor(dataManager: DataManager) {
+    constructor(dataManager: DataManager, settingsStub: SettingsStub) {
         this.cellFields = new LazyGeneratedArray(
-            new RectangularCellField(60, 60, 0) as CellField,
+            new RectangularCellField(settingsStub.initialRowCount, settingsStub.initialColumnCount, 0) as CellField,
             cellField => cellField.lower);
+        this.data = new LazyGeneratedArray(
+            new CellData(dataManager, this.cellFields.initial, 0, 0),
+            data => data.lower);
         this.finitePlainAbstractions = new LazyGeneratedArray(
             new FinitePlaneAbstraction(this.cellFields.initial as RectangularCellField),
             fpa => fpa.lower);
-        this.data = new LazyGeneratedArray(
-            new CellData(dataManager, this.cellFields.initial, 0, 0),
-            data => data.lower
-        )
         this.levels = new LazyGeneratedArray(
             new Level(this.finitePlainAbstractions.initial, this.cellFields.initial, this.data.initial),
             level => level.lower);
@@ -42,15 +42,5 @@ export class LevelManager {
         if (!this.visible.equals(level)) {
             this.levelHistory.put(level);
         }
-    }
-}
-
-export class LevelState {
-    readonly zoom: number;
-    readonly depth: number;
-
-    constructor(zoom: number, depth: number) {
-        this.zoom = zoom;
-        this.depth = depth;
     }
 }

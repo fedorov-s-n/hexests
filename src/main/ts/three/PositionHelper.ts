@@ -1,16 +1,16 @@
 import {Component} from "../di/Component";
 import {Camera, Quaternion, Vector3} from "three";
 import {SettingsStub} from "../util/SettingsStub";
-import {Point2d} from "../finiteplane/Point2d";
+import {Layer} from "./Layer";
 
 @Component
 export class PositionHelper {
     private readonly settingsStub: SettingsStub;
 
-    public changed: boolean = true; // to trigger shifting code right on the start
     private readonly accumulator: Vector3 = new Vector3();
     private readonly temp: Vector3 = new Vector3();
-    private offsetStep: number = 0.2;
+    private _changed: boolean = true; // to trigger shifting code right on the start
+    private cameraMoveStep: number = 0.2;
 
     constructor(settingsStub: SettingsStub) {
         this.settingsStub = settingsStub;
@@ -21,13 +21,13 @@ export class PositionHelper {
             // http://www.foreui.com/articles/Key_Code_Table.htm
             const keyCode = event.code;
             if (keyCode === 'KeyW') {
-                this.makeStep(0, this.offsetStep, camera.quaternion);
+                this.makeStep(0, this.cameraMoveStep, camera.quaternion);
             } else if (keyCode === 'KeyS') {
-                this.makeStep(0, -this.offsetStep, camera.quaternion);
+                this.makeStep(0, -this.cameraMoveStep, camera.quaternion);
             } else if (keyCode === 'KeyA') {
-                this.makeStep(-this.offsetStep, 0, camera.quaternion);
+                this.makeStep(-this.cameraMoveStep, 0, camera.quaternion);
             } else if (keyCode === 'KeyD') {
-                this.makeStep(this.offsetStep, 0, camera.quaternion);
+                this.makeStep(this.cameraMoveStep, 0, camera.quaternion);
             }
         });
     }
@@ -37,17 +37,32 @@ export class PositionHelper {
         this.temp.applyQuaternion(rotation);
         this.accumulator.x += this.temp.x;
         this.accumulator.y += this.temp.y;
-        this.changed = true;
+        this._changed = true;
     }
 
-    get shift(): Point2d {
-        this.temp.x = this.accumulator.x / this.settingsStub.shiftMultiplier
-        this.temp.y = this.accumulator.y / this.settingsStub.shiftMultiplier;
-        return this.temp as Point2d;
+    flushAccumulated(layer: Layer) {
+        const finitePlaneAbstraction = layer.level.finitePlaneAbstraction;
+        const dx = this.accumulator.x / this.settingsStub.shiftMultiplier;
+        const dy = this.accumulator.y / this.settingsStub.shiftMultiplier;
+
+        finitePlaneAbstraction.applyShift(dx, dy, this.settingsStub);
+
+        this.accumulator.x = finitePlaneAbstraction.helperShift.x * this.settingsStub.shiftMultiplier;
+        this.accumulator.y = finitePlaneAbstraction.helperShift.y * this.settingsStub.shiftMultiplier;
+
+        layer.landGeometry.computeVertexHeights();
+        layer.waterGeometry.computeVertexHeights();
+        layer.landMesh.position.x = finitePlaneAbstraction.meshShift.x;
+        layer.landMesh.position.y = finitePlaneAbstraction.meshShift.y;
+        layer.waterMesh.position.x = finitePlaneAbstraction.meshShift.x;
+        layer.waterMesh.position.y = finitePlaneAbstraction.meshShift.y;
+        layer.landTexture.updatePlane(finitePlaneAbstraction);
+        layer.waterFlowMap.updatePlane(finitePlaneAbstraction);
+
+        this._changed = false;
     }
 
-    set shift(value: Point2d) {
-        this.accumulator.x = value.x * this.settingsStub.shiftMultiplier;
-        this.accumulator.y = value.y * this.settingsStub.shiftMultiplier;
+    get changed(): boolean {
+        return this._changed;
     }
 }

@@ -34,4 +34,8 @@ export class CellDataAccessor<T> {
     remove() {
         this.dataSource.remove(this.key);
     }
+
+    get lower(): CellDataAccessor<T> {
+        return new CellDataAccessor<T>(this.dataSource, this.cellField.lower, this.key.lower, this.defaultValue);
+    }
 }

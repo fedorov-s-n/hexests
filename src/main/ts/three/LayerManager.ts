@@ -1,4 +1,4 @@
-import {HexesPlaneGeometry} from "./HexesPlaneGeometry";
+import {FinitePlaneGeometry} from "../finiteplane/FinitePlaneGeometry";
 import {Mesh, MeshLambertMaterial, TextureLoader} from "three";
 import {Texture1} from "./Texture1";
 import {Component} from "../di/Component";
@@ -7,6 +7,7 @@ import {PositionHelper} from "./PositionHelper";
 import {LevelManager} from "../level/LevelManager";
 import {LazyGeneratedArray} from "../util/LazyGeneratedArray";
 import {Layer} from "./Layer";
+import {FinitePlaneModel} from "../finiteplane/FinitePlaneModel";
 
 @Component
 export class LayerManager {
@@ -28,11 +29,11 @@ export class LayerManager {
         const canvasElement = document.createElement('canvas');
         canvasElement.width = this.settingsStub.bigTextureSize;
         canvasElement.height = this.settingsStub.bigTextureSize;
-        this.texture1common = new Texture1(canvasElement); // so far that's good
+        this.texture1common = new Texture1(canvasElement, positionHelper); // so far that's good
         const waterCanvasElement = document.createElement('canvas');
         waterCanvasElement.width = this.settingsStub.bigTextureSize;
         waterCanvasElement.height = this.settingsStub.bigTextureSize;
-        this.flowMapTexture = new Texture1(waterCanvasElement);
+        this.flowMapTexture = new Texture1(waterCanvasElement, positionHelper);
 
         this.layers = new LazyGeneratedArray(this.installLayer(0), l => this.installLayer(l.level.zoom));
         this._visible = this.layers.initial;
@@ -40,10 +41,10 @@ export class LayerManager {
     }
 
     private installLayer(zoom: number): Layer {
-        const side = this.settingsStub.planeSideSize;
-        const finitePlane = this.levelManager.finitePlainAbstractions.get(zoom);
+        const finitePlaneAbstraction = this.levelManager.finitePlainAbstractions.get(zoom);
 
-        const geometry = new HexesPlaneGeometry(side, side, side, finitePlane, this.levelManager.data.get(zoom + 1).height.array);
+        const geometry = new FinitePlaneGeometry(new FinitePlaneModel(this.settingsStub, finitePlaneAbstraction,
+            this.levelManager.data.get(zoom).height, this.levelManager.cellFields.get(zoom)));
         const texture = this.texture1common;
         const material = new MeshLambertMaterial({
             map: texture
@@ -54,7 +55,8 @@ export class LayerManager {
         plane.receiveShadow = true;
         plane.visible = false;
 
-        const waterGeometry = new HexesPlaneGeometry(side, side, side, finitePlane, this.levelManager.data.get(zoom + 1).waterLevel.array);
+        const waterGeometry = new FinitePlaneGeometry(new FinitePlaneModel(this.settingsStub, finitePlaneAbstraction,
+            this.levelManager.data.get(zoom).waterLevel, this.levelManager.cellFields.get(zoom)));
         const flowMap = this.flowMapTexture;
 
         const textureLoader = new TextureLoader();
@@ -91,10 +93,9 @@ export class LayerManager {
         for (let zoom = 0; zoom < this.layers.array.length; ++zoom) {
             this.layers.get(zoom).visible = zoom === visible.level.zoom;
         }
-        visible.setShift(this.positionHelper.shift);
-        this.positionHelper.shift = visible.level.finitePlane.totalShift;
-
         this._visible = visible;
+
+        this.positionHelper.flushAccumulated(visible);
     }
 
     notify() {

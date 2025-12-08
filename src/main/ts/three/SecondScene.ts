@@ -80,7 +80,8 @@ export class SecondScene {
     }
 
     installHexesPlanes() {
-        this.layerManager.layers.initial.landTexture.loadFrom(this.layerManager.layers.initial.level.finitePlane, (index) => this.levelManager.levels.initial.data.color.array[index]);
+        const level = this.levelManager.levels.initial;
+        this.layerManager.layers.initial.landTexture.loadFrom(level.finitePlaneAbstraction, (index) => level.data.color.array[index]);
 
         this.layerManager.layers.array.forEach(level => {
             this.scene.add(level.landMesh);
@@ -95,10 +96,7 @@ export class SecondScene {
         function animate() {
             requestAnimationFrame(animate);
             if (self.positionHelper.changed) {
-                const layer = self.layerManager.visible;
-                layer.setShift(self.positionHelper.shift);
-                self.positionHelper.shift = layer.level.finitePlane.totalShift;
-                self.positionHelper.changed = false;
+                self.positionHelper.flushAccumulated(self.layerManager.visible);
             }
             action();
             self.renderer.render(self.scene, self.camera);

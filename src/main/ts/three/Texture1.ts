@@ -1,15 +1,18 @@
 import {CanvasTexture, RepeatWrapping, UVMapping} from "three";
 import {FinitePlaneAbstraction} from "../finiteplane/FinitePlaneAbstraction";
+import {PositionHelper} from "./PositionHelper";
 
 export class Texture1 extends CanvasTexture {
     private readonly canvas: HTMLCanvasElement;
     private readonly context: CanvasRenderingContext2D;
+    private readonly positionHelper: PositionHelper;
     private repaintData!: RepaintData;
 
-    constructor(canvas: HTMLCanvasElement) {
+    constructor(canvas: HTMLCanvasElement, positionHelper: PositionHelper) {
         super(canvas);
         this.canvas = canvas;
         this.context = canvas.getContext('2d')!!;
+        this.positionHelper = positionHelper;
 
         this.mapping = UVMapping;
         this.wrapS = RepeatWrapping;
@@ -24,7 +27,7 @@ export class Texture1 extends CanvasTexture {
         this.needsUpdate = true;
     }
 
-    loadFrom(finitePlane: FinitePlaneAbstraction, fillStyleProcedure: (index: number) => string | CanvasGradient | CanvasPattern) {
+    loadFrom(finitePlaneAbstraction: FinitePlaneAbstraction, fillStyleProcedure: (index: number) => string | CanvasGradient | CanvasPattern) {
         this.clear();
 
         const xs = new Array<number>(6);
@@ -36,11 +39,13 @@ export class Texture1 extends CanvasTexture {
         const xifs = [false, true, false];
         const yifs = [false, true, false];
 
-        for (let cellIndex = 0; cellIndex < finitePlane.size; ++cellIndex) {
-            finitePlane.fillPointsXY(cellIndex, xs, ys);
+        const workArea = finitePlaneAbstraction.textureWorkArea;
+
+        for (let cellIndex = 0; cellIndex < finitePlaneAbstraction.size; ++cellIndex) {
+            finitePlaneAbstraction.fillPointsXYZP(cellIndex, undefined, xs, ys);
             for (let j = 0; j < 6; ++j) {
-                xs[j] = (xs[j] - finitePlane.offset.x) / finitePlane.workArea.x * this.canvas.width;
-                ys[j] = (1 - (ys[j] - finitePlane.offset.y) / finitePlane.workArea.y) * this.canvas.height;
+                xs[j] = (xs[j] - finitePlaneAbstraction.orientationOffset.x) / workArea.x * this.canvas.width;
+                ys[j] = (1 - (ys[j] - finitePlaneAbstraction.orientationOffset.y) / workArea.y) * this.canvas.height;
             }
             xifs[0] = Math.max(...xs) > this.canvas.width;
             xifs[2] = Math.min(...xs) < 0;
@@ -65,15 +70,15 @@ export class Texture1 extends CanvasTexture {
             }
         }
 
-        this.repeat.set(1 / finitePlane.workArea.x, 1 / finitePlane.workArea.y);
+        this.repeat.set(1 / workArea.x, 1 / workArea.y);
         const canvasAsPattern = this.context.createPattern(this.canvas, "repeat")!!;
-        this.repaintData = new RepaintData(finitePlane, canvasAsPattern);
+        this.repaintData = new RepaintData(finitePlaneAbstraction, canvasAsPattern);
         this.repaint();
     }
 
-    updatePlane(finitePlane: FinitePlaneAbstraction) {
+    updatePlane(finitePlaneAbstraction: FinitePlaneAbstraction) {
         if (this.repaintData) {
-            this.repaintData.finitePlane = finitePlane;
+            this.repaintData.finitePlaneAbstraction = finitePlaneAbstraction;
             this.repaint();
         }
     }
@@ -85,9 +90,10 @@ export class Texture1 extends CanvasTexture {
 
     repaint() {
         if (!this.repaintData) return;
-        const finitePlane = this.repaintData.finitePlane;
-        const dx: number = this.canvas.width * (finitePlane.shift.x - finitePlane.offset.x) / finitePlane.workArea.x;
-        const dy: number = this.canvas.height * (finitePlane.shift.y + finitePlane.offset.y) / finitePlane.workArea.y;
+        const finitePlaneAbstraction = this.repaintData.finitePlaneAbstraction;
+        const workArea = finitePlaneAbstraction.textureWorkArea;
+        const dx: number = this.canvas.width * (finitePlaneAbstraction.textureShift.x - finitePlaneAbstraction.orientationOffset.x) / workArea.x;
+        const dy: number = this.canvas.height * (finitePlaneAbstraction.textureShift.y + finitePlaneAbstraction.orientationOffset.y) / workArea.y;
 
         this.clear();
         this.context.fillStyle = this.repaintData.pattern;
@@ -98,11 +104,11 @@ export class Texture1 extends CanvasTexture {
 }
 
 class RepaintData {
-    finitePlane: FinitePlaneAbstraction;
+    finitePlaneAbstraction: FinitePlaneAbstraction;
     pattern: CanvasPattern;
 
-    constructor(finitePlane: FinitePlaneAbstraction, pattern: CanvasPattern) {
-        this.finitePlane = finitePlane;
+    constructor(finitePlaneAbstraction: FinitePlaneAbstraction, pattern: CanvasPattern) {
+        this.finitePlaneAbstraction = finitePlaneAbstraction;
         this.pattern = pattern;
     }
 }

@@ -74,7 +74,7 @@ export class HexesFieldStartPoint {
         this.scene.camera.lookAt(this.scene.scene.position);
 
         // apply textures
-        const fp0 = this.layerManager.layers.initial.level.finitePlane;
+        const fp0 = this.layerManager.layers.initial.level.finitePlaneAbstraction;
         this.layerManager.layers.initial.landTexture.loadFrom(fp0, (index) => colors[index]);
         this.layerManager.layers.initial.waterFlowMap.loadFrom(fp0, (index) => colors[index]);
 

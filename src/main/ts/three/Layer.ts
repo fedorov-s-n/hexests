@@ -1,21 +1,20 @@
 import {Level} from "../level/Level";
-import {HexesPlaneGeometry} from "./HexesPlaneGeometry";
+import {FinitePlaneGeometry} from "../finiteplane/FinitePlaneGeometry";
 import {Mesh} from "three";
 import {Texture1} from "./Texture1";
 import {Object3D} from "three/src/core/Object3D";
-import {Point2d} from "../finiteplane/Point2d";
 
 export class Layer {
     level: Level;
-    landGeometry: HexesPlaneGeometry;
+    landGeometry: FinitePlaneGeometry;
     landMesh: Mesh;
     landTexture: Texture1;
-    waterGeometry: HexesPlaneGeometry;
+    waterGeometry: FinitePlaneGeometry;
     waterMesh: Mesh;
     waterFlowMap: Texture1;
     objects: Object3D[];
 
-    constructor(level: Level, landGeometry: HexesPlaneGeometry, landMesh: Mesh, landTexture: Texture1, waterGeometry: HexesPlaneGeometry, waterMesh: Mesh, waterFlowMap: Texture1, objects: Object3D[]) {
+    constructor(level: Level, landGeometry: FinitePlaneGeometry, landMesh: Mesh, landTexture: Texture1, waterGeometry: FinitePlaneGeometry, waterMesh: Mesh, waterFlowMap: Texture1, objects: Object3D[]) {
         this.level = level;
         this.landGeometry = landGeometry;
         this.landMesh = landMesh;
@@ -24,15 +23,6 @@ export class Layer {
         this.waterMesh = waterMesh;
         this.waterFlowMap = waterFlowMap;
         this.objects = objects;
-    }
-
-    setShift(value: Point2d) {
-        this.level.finitePlane.shift = value;
-        this.landGeometry.computeVertexHeights();
-        this.landMesh.position.x = -(this.level.finitePlane.totalShift.x - this.level.finitePlane.shift.x) * this.landGeometry.length;
-        this.landMesh.position.y = -(this.level.finitePlane.totalShift.y - this.level.finitePlane.shift.y) * this.landGeometry.width;
-        this.landTexture.updatePlane(this.level.finitePlane);
-        this.waterFlowMap.updatePlane(this.level.finitePlane);
     }
 
     get visible(): boolean {

@@ -1,25 +1,41 @@
 import {RectangularCellField} from "../cell/RectangularCellField";
-import {Point2d} from "./Point2d";
+import {Point2d} from "../util/Point2d";
 import {Lazy} from "../util/Lazy";
+import {FinitePlaneOrientation, getOrientation} from "./Orientation";
+import {CellDataAccessor} from "../cell/CellDataAccessor";
+import {SettingsStub} from "../util/SettingsStub";
 
 const SQRT3 = Math.sqrt(3);
 const COS_MODS = [0, +SQRT3 / 2, +SQRT3 / 2, 0, -SQRT3 / 2, -SQRT3 / 2];
 const SIN_MODS = [+1, +0.5, -0.5, -1, -0.5, +0.5];
 
+const ROW_ID_SHIFTS = [3, 2, 1, 0, 1, 2];
+const ODD_COLUMN_ID_SHIFTS = [0, 1, 1, 0, 0, 0];
+const EVEN_COLUMN_ID_SHIFTS = [1, 1, 1, 1, 0, 0];
+
+const NEIGHBOURS = new Array<number>(6);
+
 export class FinitePlaneAbstraction {
+    readonly size: number;
+    readonly orientationOffset: Point2d;
+    readonly depth: number;
+
+    private _rowShift: number = 0;
+    private _columnShift: number = 0;
+    private _rowShiftMod2: number = 0;
+
+    readonly textureWorkArea: Point2d;
+    private readonly _textureShift = new MutablePoint();
+    private readonly _meshShift = new MutablePoint();
+    private readonly _helperShift = new MutablePoint();
+
     private readonly cellField: RectangularCellField;
-    public readonly orientation: FinitePlaneOrientation;
+    private readonly orientation: FinitePlaneOrientation;
 
     private readonly columnsSize: number;
     private readonly rowsSize: number;
     private readonly rowMult: number;
     private readonly columnMult: number;
-
-    public readonly size: number;
-    public readonly workArea: Point2d;
-    public readonly offset: Point2d;
-    public depth: number;
-    private readonly shiftData: ShiftData;
 
     private readonly _lower: Lazy<FinitePlaneAbstraction>;
     private readonly _higher: FinitePlaneAbstraction | undefined;
@@ -29,7 +45,7 @@ export class FinitePlaneAbstraction {
 
         this.depth = 0;
         this.size = cellField.size;
-        this.orientation = cellField.zoom % 2 === 0 ? EVEN_ORIENTATION : ODD_ORIENTATION;
+        this.orientation = getOrientation(cellField.zoom);
 
         this.rowsSize = 1.5 * cellField.rowCount + 0.5;
         this.columnsSize = SQRT3 * (cellField.columnCount + 0.5);
@@ -38,35 +54,23 @@ export class FinitePlaneAbstraction {
 
         const rowArea = cellField.rowCount * this.rowMult;
         const columnArea = cellField.columnCount * this.columnMult;
-        this.workArea = new Point2d(
+        this.textureWorkArea = new Point2d(
             this.orientation.getXPos(rowArea, columnArea),
             this.orientation.getYPos(rowArea, columnArea)
         );
 
         // todo: recalculate
         const columnShift = -0.5 / (cellField.columnCount + 0.5);
-        this.offset = new Point2d(
-            this.orientation.getXPos(0, columnShift) + (higher?.offset?.x || 0),
-            this.orientation.getYPos(0, columnShift) + (higher?.offset?.y || 0)
+        this.orientationOffset = new Point2d(
+            this.orientation.getXPos(0, columnShift) + (higher?.orientationOffset?.x || 0),
+            this.orientation.getYPos(0, columnShift) + (higher?.orientationOffset?.y || 0)
         );
-
-        this.shiftData = new ShiftData();
 
         this._lower = new Lazy(() => new FinitePlaneAbstraction(cellField.lower, this));
         this._higher = higher;
     }
 
-    get totalShift(): Point2d {
-        return this.shiftData.xyTotalShift as Point2d;
-    }
-
-    get shift(): Point2d {
-        return this.shiftData.xyShift as Point2d;
-    }
-
-    set shift(value: Point2d) {
-        const dx = value.x;
-        const dy = value.y;
+    applyShift(dx: number, dy: number, settingsStub: SettingsStub) {
         const rowCount = this.cellField.rowCount;
         const columnCount = this.cellField.columnCount;
 
@@ -75,8 +79,8 @@ export class FinitePlaneAbstraction {
 
         const rowShiftMod2 = Math.abs(rowShift) % 2;
         const columnCorrection = rowShiftMod2 * 0.5 * this.columnMult;
-        let dRow = (rowShift) * this.rowMult;
-        let dColumn = (columnShift) * this.columnMult - columnCorrection;
+        let dRow = rowShift * this.rowMult;
+        let dColumn = (columnShift) * this.columnMult + columnCorrection;
 
         let actualX = this.orientation.getXPos(dRow, dColumn);
         let actualY = this.orientation.getYPos(dRow, dColumn);
@@ -91,47 +95,68 @@ export class FinitePlaneAbstraction {
 
         dRow = (rowShift) * this.rowMult;
         dColumn = (columnShift) * this.columnMult;
-        dColumn -= columnCorrection;
+        dColumn += columnCorrection;
 
         actualX = this.orientation.getXPos(dRow, dColumn);
         actualY = this.orientation.getYPos(dRow, dColumn);
 
-        this.shiftData.xyShift.x = actualX;
-        this.shiftData.xyShift.y = actualY;
-        this.shiftData.xyTotalShift.x = actualX + remainedX;
-        this.shiftData.xyTotalShift.y = actualY + remainedY;
-        this.shiftData.rowShiftMod2 = rowShiftMod2;
-        this.shiftData.rowShift = rowShift;
-        this.shiftData.columnShift = columnShift;
+        this._helperShift.x = actualX + remainedX;
+        this._helperShift.y = actualY + remainedY;
+        this._meshShift.x = -remainedX * settingsStub.planeSideSize;
+        this._meshShift.y = -remainedY * settingsStub.planeSideSize;
+        this._textureShift.x = actualX;
+        this._textureShift.y = actualY;
+        this._rowShift = rowShift;
+        this._rowShiftMod2 = rowShiftMod2;
+        this._columnShift = columnShift;
     }
 
     private getShiftedCellIndex(index: number) {
         const column = index % this.cellField.columnCount;
         const row = (index - column) / this.cellField.columnCount;
-        const colMod = -(row % 2) * this.shiftData.rowShiftMod2;
+        const colMod = (row % 2) * this._rowShiftMod2;
         return this.cellField.getIndex(
-            row + this.shiftData.rowShift,
-            column + this.shiftData.columnShift + colMod
+            row - this._rowShift,
+            column - this._columnShift - colMod
         );
     }
 
-    fillPointsXY(cellIndex: number, xs: number[], ys: number[]) {
-        const column = cellIndex % this.cellField.columnCount;
-        const row = (cellIndex - column) / this.cellField.columnCount;
-
-        for (let order = 0; order < 6; ++order) {
+    fillPointsXYZP(cellIndex: number, accessor?: CellDataAccessor<number>, xs?: number[], ys?: number[], zs?: number[], ps?: number[]) {
+        if (xs && ys) {
+            const column = cellIndex % this.cellField.columnCount;
+            const row = (cellIndex - column) / this.cellField.columnCount;
             const colCellPosAdd = row % 2 === 0 ? 1 : 0.5;
-            const rowPos = (SIN_MODS[order] + 1.5 * row + 1) / this.rowsSize;
-            const columnPos = (COS_MODS[order] + SQRT3 * (column + colCellPosAdd)) / this.columnsSize;
-            xs[order] = this.orientation.getXPos(rowPos, columnPos);
-            ys[order] = this.orientation.getYPos(rowPos, columnPos);
+            for (let order = 0; order < 6; ++order) {
+                const rowPos = (SIN_MODS[order] + 1.5 * row + 1) / this.rowsSize;
+                const columnPos = (COS_MODS[order] + SQRT3 * (column + colCellPosAdd)) / this.columnsSize;
+                xs[order] = this.orientation.getXPos(rowPos, columnPos);
+                ys[order] = this.orientation.getYPos(rowPos, columnPos);
+            }
+        }
+
+        if (zs && accessor) {
+            const lowCellIndex = this.cellField.mapIndexToLowerLevel(cellIndex);
+            this.cellField.lower.fillNeighbours(lowCellIndex, NEIGHBOURS);
+            for (let arrayIndex = 0; arrayIndex < 6; ++arrayIndex) {
+                const index = NEIGHBOURS[arrayIndex];
+                zs[arrayIndex] = accessor.array[index];
+            }
+        }
+
+        if (ps) {
+            const shiftedIndex = this.getShiftedCellIndex(cellIndex);
+            const column = shiftedIndex % this.cellField.columnCount;
+            const row = (shiftedIndex - column) / this.cellField.columnCount;
+            const columnIdShifts = row % 2 === 0 ? EVEN_COLUMN_ID_SHIFTS : ODD_COLUMN_ID_SHIFTS;
+            const rowSize = this.cellField.columnCount + 1;
+            for (let order = 0; order < 6; ++order) {
+                ps[order] = (2 * row + ROW_ID_SHIFTS[order]) * rowSize + column + columnIdShifts[order];
+            }
         }
     }
 
-    fillShiftedCellPointIndexes(cellIndex: number, neighbours: number[]) {
-        const shiftedCellIndex = this.getShiftedCellIndex(cellIndex);
-        const lowCellIndex = this.cellField.mapIndexToLowerLevel(shiftedCellIndex);
-        this.cellField.lower.fillNeighbours(lowCellIndex, neighbours); // knows about traverse order
+    get pointIdCount(): number {
+        return (2 * this.cellField.rowCount + 4) * (this.cellField.columnCount + 1);
     }
 
     get zoom(): number {
@@ -146,69 +171,20 @@ export class FinitePlaneAbstraction {
         return this._higher;
     }
 
-    get columnCount(): number {
-        return this.cellField.columnCount;
-    }
-}
-
-interface FinitePlaneOrientation {
-    getXPos(rowPos: number, columnPos: number): number;
-
-    getYPos(rowPos: number, columnPos: number): number;
-
-    getRowPos(xPos: number, yPos: number): number;
-
-    getColumnPos(xPos: number, yPos: number): number;
-}
-
-class OddPlaneOrientation implements FinitePlaneOrientation {
-    getXPos(rowPos: number, columnPos: number): number {
-        return rowPos;
+    get textureShift(): Point2d {
+        return this._textureShift as Point2d;
     }
 
-    getYPos(rowPos: number, columnPos: number): number {
-        return columnPos;
+    get meshShift(): Point2d {
+        return this._meshShift as Point2d;
     }
 
-    getRowPos(xPos: number, yPos: number): number {
-        return xPos;
+    get helperShift(): Point2d {
+        return this._helperShift as Point2d;
     }
-
-    getColumnPos(xPos: number, yPos: number): number {
-        return yPos;
-    }
-}
-
-class EvenPlaneOrientation implements FinitePlaneOrientation {
-    getXPos(rowPos: number, columnPos: number): number {
-        return columnPos;
-    }
-
-    getYPos(rowPos: number, columnPos: number): number {
-        return rowPos;
-    }
-
-    getRowPos(xPos: number, yPos: number): number {
-        return yPos;
-    }
-
-    getColumnPos(xPos: number, yPos: number): number {
-        return xPos;
-    }
-}
-
-class ShiftData {
-    rowShiftMod2: number = 0;
-    rowShift: number = 0;
-    columnShift: number = 0;
-    readonly xyShift = new MutablePoint();
-    readonly xyTotalShift = new MutablePoint();
 }
 
 class MutablePoint {
     x: number = 0;
     y: number = 0;
 }
-
-const ODD_ORIENTATION = new OddPlaneOrientation();
-const EVEN_ORIENTATION = new EvenPlaneOrientation();
