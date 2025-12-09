@@ -71,6 +71,7 @@ export class PositionHelper {
         layer.waterGeometry.refreshPositions();
         layer.landTexture.updatePlane(finitePlaneAbstraction);
         layer.waterFlowMap.updatePlane(finitePlaneAbstraction);
+        layer.selector.mesh.visible = false;
 
         this._shiftChanged = false;
     }
@@ -80,20 +81,29 @@ export class PositionHelper {
     }
 
     flushAccumulatedSelection(layer: Layer) {
-        const intersections = this.raycaster.intersectObjects([layer.landMesh, layer.waterMesh]);
+        const intersections = this.raycaster
+            .intersectObjects([layer.landMesh, layer.waterMesh])
+            .filter(i => i.object instanceof FinitePlaneMesh && !i.object.selector && i.face?.a && i.face?.b && i.face?.c);
         let selectedCellId: number | undefined = undefined;
         if (intersections.length) {
             const intersection = intersections.reduce((i1, i2) => i1.point.z >= i2.point.z ? i1 : i2);
             const face = intersection.face;
-            if (intersection.object instanceof FinitePlaneMesh && face?.a && face?.b && face?.c) {
+            if (intersection.object instanceof FinitePlaneMesh) {
                 const mesh = intersection.object as FinitePlaneMesh;
-                this.faceAngles[0] = face.a;
-                this.faceAngles[1] = face.b;
-                this.faceAngles[2] = face.c;
+                this.faceAngles[0] = face!.a;
+                this.faceAngles[1] = face!.b;
+                this.faceAngles[2] = face!.c;
                 mesh.inferPointIds(this.faceAngles, this.pointIds);
 
                 selectedCellId = layer.level.finitePlaneAbstraction.pickCellByPointIds(this.pointIds);
             }
+        }
+        if (selectedCellId !== undefined) {
+            layer.selector.mesh.visible = true;
+            layer.selector.cellRadius.cellIndex = selectedCellId;
+            layer.selector.mesh.finitePlaneGeometry.refreshPositions();
+        } else {
+            layer.selector.mesh.visible = false;
         }
 
 

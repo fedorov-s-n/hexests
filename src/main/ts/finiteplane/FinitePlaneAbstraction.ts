@@ -3,6 +3,7 @@ import {Point2d} from "../util/Point2d";
 import {Lazy} from "../util/Lazy";
 import {FinitePlaneOrientation, getOrientation} from "./Orientation";
 import {CellDataAccessor} from "../cell/CellDataAccessor";
+import {CellShiftSupplier} from "../cell/CellShiftSupplier";
 
 const SQRT3 = Math.sqrt(3);
 const COS_MODS = [0, +SQRT3 / 2, +SQRT3 / 2, 0, -SQRT3 / 2, -SQRT3 / 2];
@@ -13,7 +14,7 @@ const ODD_COLUMN_ID_SHIFTS = [0, 1, 1, 0, 0, 0];
 const EVEN_COLUMN_ID_SHIFTS = [1, 1, 1, 1, 0, 0];
 
 
-export class FinitePlaneAbstraction {
+export class FinitePlaneAbstraction implements CellShiftSupplier {
     static NEIGHBOURS = new Array<number>(6);
 
     readonly size: number;
@@ -111,39 +112,46 @@ export class FinitePlaneAbstraction {
         this._columnShift = columnShift;
     }
 
-    private getShiftedCellIndex(index: number, coeff: number) {
+    getShiftedCellIndex(index: number) {
+        return this.getShiftedCellIndex0(index, -1);
+    }
+
+    private getShiftedCellIndex0(index: number, coeff: number) {
         const column = index % this.cellField.columnCount;
         const row = (index - column) / this.cellField.columnCount;
         const colMod = (row % 2) * this._rowShiftMod2;
         return this.cellField.getIndex(
             row + coeff * this._rowShift,
-            column + coeff * (this._columnShift + colMod)
+            column + coeff * this._columnShift - colMod
         );
     }
 
-    fillPointsXYZP(cellIndex: number, accessor?: CellDataAccessor<number>, shift: number = 1, xs?: number[], ys?: number[], zs?: number[], ps?: number[]) {
-        const shiftedIndex = this.getShiftedCellIndex(cellIndex, -1 * shift);
-        const column = shiftedIndex % this.cellField.columnCount;
-        const row = (shiftedIndex - column) / this.cellField.columnCount;
+    fillPointsXY(cellIndex: number, xs: number[], ys: number[]) {
+        const column = cellIndex % this.cellField.columnCount;
+        const row = (cellIndex - column) / this.cellField.columnCount;
 
-        if (xs && ys) {
-            const colCellPosAdd = row % 2 === 0 ? 1 : 0.5;
-            for (let order = 0; order < 6; ++order) {
-                const rowPos = (SIN_MODS[order] + 1.5 * row + 1) / this.rowsSize;
-                const columnPos = (COS_MODS[order] + SQRT3 * (column + colCellPosAdd)) / this.columnsSize;
-                xs[order] = this.orientation.getXPos(rowPos, columnPos) + shift * this._pointShift.x;
-                ys[order] = this.orientation.getYPos(rowPos, columnPos) + shift * this._pointShift.y;
-            }
+        const colCellPosAdd = row % 2 === 0 ? 1 : 0.5;
+        for (let order = 0; order < 6; ++order) {
+            const rowPos = (SIN_MODS[order] + 1.5 * row + 1) / this.rowsSize;
+            const columnPos = (COS_MODS[order] + SQRT3 * (column + colCellPosAdd)) / this.columnsSize;
+            xs[order] = this.orientation.getXPos(rowPos, columnPos);
+            ys[order] = this.orientation.getYPos(rowPos, columnPos);
         }
+    }
 
-        if (zs && accessor) {
-            const lowCellIndex = this.cellField.mapIndexToLowerLevel(cellIndex);
-            this.cellField.lower.fillNeighbours(lowCellIndex, FinitePlaneAbstraction.NEIGHBOURS);
-            for (let arrayIndex = 0; arrayIndex < 6; ++arrayIndex) {
-                const index = FinitePlaneAbstraction.NEIGHBOURS[arrayIndex];
-                zs[arrayIndex] = accessor.array[index];
-            }
+    fillPointsZ(cellIndex: number, zs: number[], accessor: CellDataAccessor<number>) {
+        const lowCellIndex = this.cellField.mapIndexToLowerLevel(cellIndex);
+        this.cellField.lower.fillNeighbours(lowCellIndex, FinitePlaneAbstraction.NEIGHBOURS);
+        const lowerAccessor = accessor.lower;
+        for (let arrayIndex = 0; arrayIndex < 6; ++arrayIndex) {
+            const index = FinitePlaneAbstraction.NEIGHBOURS[arrayIndex];
+            zs[arrayIndex] = lowerAccessor.array[index];
         }
+    }
+
+    fillPointsP(cellIndex: number, ps?: number[]) {
+        const column = cellIndex % this.cellField.columnCount;
+        const row = (cellIndex - column) / this.cellField.columnCount;
 
         if (ps) {
             const columnIdShifts = row % 2 === 0 ? EVEN_COLUMN_ID_SHIFTS : ODD_COLUMN_ID_SHIFTS;
@@ -160,11 +168,11 @@ export class FinitePlaneAbstraction {
 
         for (let i = 0; i < pointIds.length; ++i) {
             const pointId = pointIds[i];
-            const cp = pointId % rowSize;//column + columnIdShifts[order];
+            const cp = pointId % rowSize;
             const cs = Math.max(0, cp - 1);
             const cf = Math.min(cp, this.cellField.columnCount - 1);
 
-            const r2f = (pointId - cp) / rowSize;// 2 * row + ROW_ID_SHIFTS[order]
+            const r2f = (pointId - cp) / rowSize;
             const r2s = Math.max(0, r2f - 3);
             const rs = (r2s - (r2s % 2)) / 2;
             const rf = Math.min((r2f - (r2f % 2)) / 2, this.cellField.rowCount - 1);
@@ -178,7 +186,7 @@ export class FinitePlaneAbstraction {
         }
 
         const shiftedIndex = hits.findIndex(v => v === pointIds.length);
-        return shiftedIndex >= 0 ? this.getShiftedCellIndex(shiftedIndex, 1) : undefined;
+        return shiftedIndex >= 0 ? this.getShiftedCellIndex0(shiftedIndex, 1) : undefined;
     }
 
     get pointIdCount(): number {
@@ -203,6 +211,10 @@ export class FinitePlaneAbstraction {
 
     get helperShift(): Point2d {
         return this._helperShift as Point2d;
+    }
+
+    get pointShift(): Point2d {
+        return this._pointShift as Point2d;
     }
 }
 

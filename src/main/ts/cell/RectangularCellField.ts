@@ -2,6 +2,8 @@ import {CellField} from "./CellField";
 import {GraphSearchBuilder} from "../util/GraphSearchBuilder";
 import {Lazy} from "../util/Lazy";
 import {ArrayDataStorageFactory} from "../util/DataStorageFactory";
+import {CellRadius} from "./CellRadius";
+import {RectangularCellRadius} from "./RectangularCellRadius";
 
 export class RectangularCellField implements CellField {
     static NEIGHBOURS = new Array<number>(6);
@@ -105,5 +107,9 @@ export class RectangularCellField implements CellField {
         for (let lowIndex = 0; lowIndex < this.lower.size; ++lowIndex) {
             lowData[lowIndex] /= 3;
         }
+    }
+
+    radius(index?: number, radius?: number): CellRadius {
+        return new RectangularCellRadius(this, index, radius);
     }
 }

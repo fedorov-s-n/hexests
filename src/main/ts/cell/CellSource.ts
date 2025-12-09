@@ -1,5 +1,5 @@
 export interface CellSource {
-    size: number;
+    get size(): number;
 
     forEach(consumer: (index: number) => void): void;
 }

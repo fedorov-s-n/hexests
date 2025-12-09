@@ -2,14 +2,19 @@ import {Material, Mesh} from "three";
 import {FinitePlaneGeometry} from "./FinitePlaneGeometry";
 
 export class FinitePlaneMesh extends Mesh {
+    selector: boolean = false;
+
     constructor(geometry: FinitePlaneGeometry, material: Material | Material[]) {
         super(geometry, material);
     }
 
     inferPointIds(input: number[], output: number[]) {
-        const geometry = this.geometry as FinitePlaneGeometry;
         input.forEach((faceNumber, index) => {
-            output[index] = geometry.getPointId(faceNumber);
+            output[index] = this.finitePlaneGeometry.getPointId(faceNumber);
         });
+    }
+
+    get finitePlaneGeometry(): FinitePlaneGeometry {
+        return this.geometry as FinitePlaneGeometry;
     }
 }

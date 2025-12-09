@@ -39,7 +39,7 @@ export class Texture1 extends CanvasTexture {
         const workArea = finitePlaneAbstraction.textureWorkArea;
 
         for (let cellIndex = 0; cellIndex < finitePlaneAbstraction.size; ++cellIndex) {
-            finitePlaneAbstraction.fillPointsXYZP(cellIndex, undefined, 0, xs, ys);
+            finitePlaneAbstraction.fillPointsXY(cellIndex, xs, ys);
             for (let j = 0; j < 6; ++j) {
                 xs[j] = (xs[j] - finitePlaneAbstraction.orientationOffset.x) / workArea.x * this.canvas.width;
                 ys[j] = (1 - (ys[j] - finitePlaneAbstraction.orientationOffset.y) / workArea.y) * this.canvas.height;

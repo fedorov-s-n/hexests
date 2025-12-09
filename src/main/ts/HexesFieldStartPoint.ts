@@ -32,6 +32,8 @@ export class HexesFieldStartPoint {
         this.heightGeneration.generateDefault();
         this.layerManager.layers.array.forEach(l => l.landGeometry.refreshPositions());
 
+        this.layerManager.layers.initial.selector.updateHeights();
+        
         // generate water levels
         const waterColorFunction = ColorGenerator.getWaterColorsIndexFunction();
         const runState = new RunState(false, 10);
@@ -58,6 +60,7 @@ export class HexesFieldStartPoint {
             if (runState.running) {
                 state.steps(runState.stepCount);
                 updateWaterLevel();
+                this.layerManager.layers.initial.selector.updateHeights();
             }
         });
     }

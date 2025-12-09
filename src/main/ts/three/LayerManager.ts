@@ -9,6 +9,9 @@ import {LazyGeneratedArray} from "../util/LazyGeneratedArray";
 import {Layer} from "./Layer";
 import {FinitePlaneModel} from "../finiteplane/FinitePlaneModel";
 import {FinitePlaneMesh} from "../finiteplane/FinitePlaneMesh";
+import {CellRadius} from "../cell/CellRadius";
+import {Selector} from "./Selector";
+import {CellData} from "../cell/CellData";
 
 @Component
 export class LayerManager {
@@ -39,6 +42,20 @@ export class LayerManager {
         this.layers = new LazyGeneratedArray(this.installLayer(0), l => this.installLayer(l.level.zoom));
         this._visible = this.layers.initial;
         this._visible.visible = true;
+    }
+
+    private installSelector(zoom: number): { radius: CellRadius, mesh: FinitePlaneMesh, data: CellData } {
+        const finitePlaneAbstraction = this.levelManager.finitePlainAbstractions.get(zoom);
+        const cellField = this.levelManager.cellFields.get(zoom);
+        const radius = cellField.radius();
+        const data = this.levelManager.data.get(zoom);
+
+        const geometry = new FinitePlaneGeometry(new FinitePlaneModel(this.settingsStub, finitePlaneAbstraction,
+            data.accessor<number>(Selector.ACCESSOR_KEY), radius, radius));
+        const material = new MeshLambertMaterial({color: '#ff0000'});
+        const mesh = new FinitePlaneMesh(geometry, material);
+        mesh.selector = true;
+        return {mesh, radius, data};
     }
 
     private installLayer(zoom: number): Layer {
@@ -78,11 +95,16 @@ export class LayerManager {
         // });
         waterMesh.visible = false;
 
+        const selectorData = this.installSelector(zoom);
+        const selector = new Selector(selectorData.radius, selectorData.mesh, selectorData.data);
+        selector.updateHeights();
+
         return new Layer(
             this.levelManager.levels.get(zoom),
             geometry, plane, texture,
             waterGeometry, waterMesh, flowMap,
-            []
+            selector,
+            [selectorData.mesh]
         );
     }
 
@@ -101,5 +123,6 @@ export class LayerManager {
 
     notify() {
         this.visible = this.layers.get(this.levelManager.visible.zoom);
+        this.visible.selector.mesh.visible = false;
     }
 }

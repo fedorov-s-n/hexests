@@ -1,9 +1,11 @@
 import {GraphSearchBuilder} from "../util/GraphSearchBuilder";
 import {CellSource} from "./CellSource";
+import {CellRadius} from "./CellRadius";
 
 export interface CellField extends CellSource {
-    size: number;
-    zoom: number;
+    get size(): number;
+
+    get zoom(): number;
 
     fillNeighbours(index: number, neighbours: number[]): void;
 
@@ -16,4 +18,6 @@ export interface CellField extends CellSource {
     get higher(): CellField | undefined;
 
     interpolate(highData: number[], lowData: number[]): void;
+
+    radius(index?: number, radius?: number): CellRadius;
 }
