@@ -3,10 +3,10 @@ import {Random} from "../util/Random";
 import {Component} from "../di/Component";
 import {LevelManager} from "../level/LevelManager";
 
-const NEIGHBOURS = new Array<number>(6);
 
 @Component
 export class BrownianDrift {
+    static NEIGHBOURS = new Array<number>(6);
     private readonly random: Random;
     private readonly levelManager: LevelManager;
 
@@ -57,8 +57,8 @@ export class BrownianDrift {
             const domain = this.cellIndexToDomain[i];
             const direction = this.domainDirections[domain];
             const oldPositionIndex = this.cellRemapping[i];
-            this.cellField.fillNeighbours(oldPositionIndex, NEIGHBOURS);
-            const newPositionIndex = NEIGHBOURS[direction];
+            this.cellField.fillNeighbours(oldPositionIndex, BrownianDrift.NEIGHBOURS);
+            const newPositionIndex = BrownianDrift.NEIGHBOURS[direction];
             this.cellRemapping[i] = newPositionIndex;
             this.cellDensity[newPositionIndex]++;
         }

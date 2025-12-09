@@ -1,8 +1,8 @@
 import {FinitePlaneAbstraction} from "./FinitePlaneAbstraction";
 import {SettingsStub} from "../util/SettingsStub";
 import {CellDataAccessor} from "../cell/CellDataAccessor";
-import {Point2d} from "../util/Point2d";
 import {CellSource} from "../cell/CellSource";
+import {Point2d} from "../util/Point2d";
 
 export class FinitePlaneModel {
     private readonly settingsStub: SettingsStub;
@@ -17,8 +17,17 @@ export class FinitePlaneModel {
         this.cellSource = cellSource;
     }
 
-    fillPointsXYZP(cellIndex: number, xs?: number[], ys?: number[], zs?: number[], ps?: number[]) {
-        this.finitePlaneAbstraction.fillPointsXYZP(cellIndex, this.dataAccessor.lower, xs, ys, zs, ps);
+    fillPointsUVP(cellIndex: number, xs: number[], ys: number[], ps: number[]) {
+        this.finitePlaneAbstraction.fillPointsXYZP(cellIndex, undefined, 0, xs, ys, undefined, ps);
+    }
+
+    fillPointsXYZP(cellIndex: number, xs: number[], ys: number[], zs: number[], ps: number[]) {
+        this.finitePlaneAbstraction.fillPointsXYZP(cellIndex, this.dataAccessor.lower, 1, xs, ys, zs, ps);
+        for (let i = 0; i < 6; ++i) {
+            xs[i] = (xs[i] + this.finitePlaneAbstraction.orientationOffset.x - 0.5) * this.length;
+            ys[i] = (ys[i] + this.finitePlaneAbstraction.orientationOffset.y - 0.5) * this.width;
+            zs[i] *= this.height;
+        }
     }
 
     forEach(consumer: (index: number) => void): void {

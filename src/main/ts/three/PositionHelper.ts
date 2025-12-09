@@ -62,17 +62,13 @@ export class PositionHelper {
         const dx = this.accumulator.x / this.settingsStub.shiftMultiplier;
         const dy = this.accumulator.y / this.settingsStub.shiftMultiplier;
 
-        finitePlaneAbstraction.applyShift(dx, dy, this.settingsStub);
+        finitePlaneAbstraction.applyShift(dx, dy);
 
         this.accumulator.x = finitePlaneAbstraction.helperShift.x * this.settingsStub.shiftMultiplier;
         this.accumulator.y = finitePlaneAbstraction.helperShift.y * this.settingsStub.shiftMultiplier;
 
-        layer.landGeometry.computeVertexHeights();
-        layer.waterGeometry.computeVertexHeights();
-        layer.landMesh.position.x = finitePlaneAbstraction.meshShift.x;
-        layer.landMesh.position.y = finitePlaneAbstraction.meshShift.y;
-        layer.waterMesh.position.x = finitePlaneAbstraction.meshShift.x;
-        layer.waterMesh.position.y = finitePlaneAbstraction.meshShift.y;
+        layer.landGeometry.refreshPositions();
+        layer.waterGeometry.refreshPositions();
         layer.landTexture.updatePlane(finitePlaneAbstraction);
         layer.waterFlowMap.updatePlane(finitePlaneAbstraction);
 

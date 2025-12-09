@@ -5,11 +5,12 @@ import {LevelManager} from "../level/LevelManager";
 import {CellDataAccessor} from "../cell/CellDataAccessor";
 import {ColorGenerator} from "../util/ColorGenerator";
 
-const NEIGHBOURS = new Array<number>(6);
 const DOMAIN_TYPE = 'metropolis:domaintype';
 
 @Component
 export class GenericMetropolis {
+    static NEIGHBOURS = new Array<number>(6);
+
     private readonly random: Random;
     private readonly levelManager: LevelManager;
 
@@ -36,9 +37,9 @@ export class GenericMetropolis {
         const val1 = this.data.array[index];
         const val2 = (val1 + this.random.nextInt(this.domainTypeCount)) % this.domainTypeCount;
 
-        this.cellField.fillNeighbours(index, NEIGHBOURS);
-        const e1 = 6 - NEIGHBOURS.filter(i => this.data.array[i] === val1).length;
-        const e2 = 6 - NEIGHBOURS.filter(i => this.data.array[i] === val2).length;
+        this.cellField.fillNeighbours(index, GenericMetropolis.NEIGHBOURS);
+        const e1 = 6 - GenericMetropolis.NEIGHBOURS.filter(i => this.data.array[i] === val1).length;
+        const e2 = 6 - GenericMetropolis.NEIGHBOURS.filter(i => this.data.array[i] === val2).length;
 
         const changeChance = Math.exp(-(e2 - e1) / this.temperature);
         if (this.random.nextFloat() < changeChance) {

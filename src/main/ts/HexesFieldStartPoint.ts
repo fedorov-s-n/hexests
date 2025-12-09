@@ -30,7 +30,7 @@ export class HexesFieldStartPoint {
     gogogo(container: HTMLElement) {
         this.scene.installDefaults(container);
         this.heightGeneration.generateDefault();
-        this.layerManager.layers.array.forEach(l => l.landGeometry.computeVertexHeights());
+        this.layerManager.layers.array.forEach(l => l.landGeometry.refreshPositions());
 
         // generate water levels
         const waterColorFunction = ColorGenerator.getWaterColorsIndexFunction();
@@ -39,7 +39,7 @@ export class HexesFieldStartPoint {
         const updateWaterLevel = () => {
             this.levelManager.data.initial.waterLevel.array.forEach((_, i, a) => a[i] = state.field[i]);
             this.levelManager.data.initial.waterLevel.interpolate();
-            this.layerManager.layers.array.forEach(l => l.waterGeometry.computeVertexHeights());
+            this.layerManager.layers.array.forEach(l => l.waterGeometry.refreshPositions());
             this.layerManager.layers.initial.landTexture.loadFrom(
                 this.levelManager.finitePlainAbstractions.get(0),
                 (index) => waterColorFunction(state.field[index] - state.height[index])

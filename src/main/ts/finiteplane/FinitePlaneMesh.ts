@@ -9,7 +9,7 @@ export class FinitePlaneMesh extends Mesh {
     inferPointIds(input: number[], output: number[]) {
         const geometry = this.geometry as FinitePlaneGeometry;
         input.forEach((faceNumber, index) => {
-            output[index] = geometry.indicesByPointId.findIndex(v => v === faceNumber);
+            output[index] = geometry.getPointId(faceNumber);
         });
     }
 }

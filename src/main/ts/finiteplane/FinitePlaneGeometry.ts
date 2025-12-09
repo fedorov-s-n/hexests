@@ -1,49 +1,49 @@
 import {BufferGeometry, Float32BufferAttribute} from "three";
 import {FinitePlaneModel} from "./FinitePlaneModel";
 
-const XS = new Array<number>(6);
-const YS = new Array<number>(6);
-const ZS = new Array<number>(6);
-const PS = new Array<number>(6);
-
 export class FinitePlaneGeometry extends BufferGeometry {
-    readonly indicesByPointId: number[];
+    static XS = new Array<number>(6);
+    static YS = new Array<number>(6);
+    static ZS = new Array<number>(6);
+    static PS = new Array<number>(6);
+
+    private readonly pointIdsByIndices: number[];
+    private readonly indicesByPointId: number[];
     private readonly finitePlaneModel: FinitePlaneModel;
 
     constructor(finitePlaneModel: FinitePlaneModel) {
         super();
         this.type = 'FinitePlaneGeometry';
         this.finitePlaneModel = finitePlaneModel;
-        this.indicesByPointId = new Array<number>(finitePlaneModel.pointIdCount);
 
         // future class members
         const indices: number[] = [];
         const vertices: number[] = [];
         const normals: number[] = [];
         const uvs: number[] = [];
+        const points: number[] = [];
+        const indexMap: number[] = [];
 
         // temporary variables
         let counter: number = -1;
         const pointIndices = new Array<number>(6);
 
-        function pushPoint(x: number, y: number, z: number): number {
-            vertices.push(
-                (x + finitePlaneModel.orientationOffset.x - 0.5) * finitePlaneModel.length,
-                (y + finitePlaneModel.orientationOffset.y - 0.5) * finitePlaneModel.width,
-                (z) * finitePlaneModel.height);
-            normals.push(0, 0, 1);
-            uvs.push(x, y);
-            return ++counter;
-        }
+        const US = FinitePlaneGeometry.XS;
+        const VS = FinitePlaneGeometry.YS;
+        const PS = FinitePlaneGeometry.PS;
 
         finitePlaneModel.forEach(cellIndex => {
-            finitePlaneModel.fillPointsXYZP(cellIndex, XS, YS, ZS, PS);
+            finitePlaneModel.fillPointsUVP(cellIndex, US, VS, PS);
             for (let j = 0; j < 6; ++j) {
                 const pid = PS[j];
-                if (!Number.isFinite(this.indicesByPointId[pid])) {
-                    this.indicesByPointId[pid] = pushPoint(XS[j], YS[j], ZS[j]);
+                if (!Number.isFinite(indexMap[pid])) {
+                    vertices.push(0, 0, 0);
+                    normals.push(0, 0, 1);
+                    uvs.push(US[j], VS[j]);
+                    points.push(pid);
+                    indexMap[pid] = ++counter;
                 }
-                pointIndices[j] = this.indicesByPointId[pid];
+                pointIndices[j] = indexMap[pid];
             }
 
             const d = finitePlaneModel.orientationNormalsCoefficient;
@@ -63,18 +63,29 @@ export class FinitePlaneGeometry extends BufferGeometry {
         this.setAttribute('position', new Float32BufferAttribute(vertices, 3));
         this.setAttribute('normal', new Float32BufferAttribute(normals, 3));
         this.setAttribute('uv', new Float32BufferAttribute(uvs, 2));
+        this.indicesByPointId = indexMap;
+        this.pointIdsByIndices = points;
+
         this.computeVertexNormals();
     }
 
-    computeVertexHeights() {
+    getPointId(index: number): number {
+        return this.pointIdsByIndices[index];
+    }
+
+    refreshPositions() {
         const vertices = this.getAttribute('position') as Float32BufferAttribute;
+        const XS = FinitePlaneGeometry.XS;
+        const YS = FinitePlaneGeometry.YS;
+        const ZS = FinitePlaneGeometry.ZS;
+        const PS = FinitePlaneGeometry.PS;
 
         this.finitePlaneModel.forEach(cellIndex => {
-            this.finitePlaneModel.fillPointsXYZP(cellIndex, undefined, undefined, ZS, PS);
+            this.finitePlaneModel.fillPointsXYZP(cellIndex, XS, YS, ZS, PS);
             for (let order = 0; order < 6; ++order) {
                 const pointId = PS[order];
                 const index = this.indicesByPointId[pointId];
-                vertices.setZ(index, ZS[order] * this.finitePlaneModel.height);
+                vertices.setXYZ(index, XS[order], YS[order], ZS[order]);
             }
         });
         this.computeVertexNormals();

@@ -3,9 +3,8 @@ import {GraphSearchBuilder} from "../util/GraphSearchBuilder";
 import {Lazy} from "../util/Lazy";
 import {ArrayDataStorageFactory} from "../util/DataStorageFactory";
 
-const NEIGHBOURS = new Array<number>(6);
-
 export class RectangularCellField implements CellField {
+    static NEIGHBOURS = new Array<number>(6);
     readonly rowCount: number;
     readonly columnCount: number;
     readonly zoom: number;
@@ -95,11 +94,11 @@ export class RectangularCellField implements CellField {
         lowData.fill(0);
         for (let upIndex = 0; upIndex < this.size; ++upIndex) {
             const lowIndex = this.mapIndexToLowerLevel(upIndex);
-            this.lower.fillNeighbours(lowIndex, NEIGHBOURS);
+            this.lower.fillNeighbours(lowIndex, RectangularCellField.NEIGHBOURS);
             const input = highData[upIndex];
             lowData[lowIndex] = 3 * input;
             for (let ni = 0; ni < 6; ++ni) {
-                const index = NEIGHBOURS[ni];
+                const index = RectangularCellField.NEIGHBOURS[ni];
                 lowData[index] += input;
             }
         }
