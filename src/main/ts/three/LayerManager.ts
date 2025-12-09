@@ -1,5 +1,5 @@
 import {FinitePlaneGeometry} from "../finiteplane/FinitePlaneGeometry";
-import {Mesh, MeshLambertMaterial, TextureLoader} from "three";
+import {MeshLambertMaterial, TextureLoader} from "three";
 import {Texture1} from "./Texture1";
 import {Component} from "../di/Component";
 import {SettingsStub} from "../util/SettingsStub";
@@ -8,6 +8,7 @@ import {LevelManager} from "../level/LevelManager";
 import {LazyGeneratedArray} from "../util/LazyGeneratedArray";
 import {Layer} from "./Layer";
 import {FinitePlaneModel} from "../finiteplane/FinitePlaneModel";
+import {FinitePlaneMesh} from "../finiteplane/FinitePlaneMesh";
 
 @Component
 export class LayerManager {
@@ -29,11 +30,11 @@ export class LayerManager {
         const canvasElement = document.createElement('canvas');
         canvasElement.width = this.settingsStub.bigTextureSize;
         canvasElement.height = this.settingsStub.bigTextureSize;
-        this.texture1common = new Texture1(canvasElement, positionHelper); // so far that's good
+        this.texture1common = new Texture1(canvasElement); // so far that's good
         const waterCanvasElement = document.createElement('canvas');
         waterCanvasElement.width = this.settingsStub.bigTextureSize;
         waterCanvasElement.height = this.settingsStub.bigTextureSize;
-        this.flowMapTexture = new Texture1(waterCanvasElement, positionHelper);
+        this.flowMapTexture = new Texture1(waterCanvasElement);
 
         this.layers = new LazyGeneratedArray(this.installLayer(0), l => this.installLayer(l.level.zoom));
         this._visible = this.layers.initial;
@@ -49,7 +50,7 @@ export class LayerManager {
         const material = new MeshLambertMaterial({
             map: texture
         });
-        const plane = new Mesh(geometry, material);
+        const plane = new FinitePlaneMesh(geometry, material);
 
         plane.castShadow = true;
         plane.receiveShadow = true;
@@ -61,7 +62,7 @@ export class LayerManager {
 
         const textureLoader = new TextureLoader();
 
-        const waterMesh = new Mesh(waterGeometry, material);
+        const waterMesh = new FinitePlaneMesh(waterGeometry, material);
         // const waterMesh = new Water(waterGeometry, {
         //     color: new Color(0, 0, 1),
         //     textureWidth: this.settingsStub.bigTextureSize,
@@ -95,7 +96,7 @@ export class LayerManager {
         }
         this._visible = visible;
 
-        this.positionHelper.flushAccumulated(visible);
+        this.positionHelper.flushAccumulatedShift(visible);
     }
 
     notify() {

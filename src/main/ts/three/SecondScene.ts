@@ -4,6 +4,7 @@ import {
     Mesh,
     MeshBasicMaterial,
     PerspectiveCamera,
+    Raycaster,
     Renderer,
     Scene,
     SpotLight,
@@ -15,25 +16,22 @@ import {Component} from "../di/Component";
 import {PositionHelper} from "./PositionHelper";
 import {LayerManager} from "./LayerManager";
 import {BackSide} from "three/src/constants";
-import {LevelManager} from "../level/LevelManager";
 import {OrbitControls} from "three/examples/jsm/controls/OrbitControls";
 
 @Component
 export class SecondScene {
     private readonly positionHelper: PositionHelper;
     private readonly layerManager: LayerManager;
-    private readonly levelManager: LevelManager;
 
     scene!: Scene;
     camera!: PerspectiveCamera;
+    raycaster!: Raycaster;
     renderer!: Renderer;
     container!: HTMLElement;
 
-    constructor(positionHelper: PositionHelper,
-                layerManager: LayerManager, levelManager: LevelManager) {
+    constructor(positionHelper: PositionHelper, layerManager: LayerManager) {
         this.positionHelper = positionHelper;
         this.layerManager = layerManager;
-        this.levelManager = levelManager;
     }
 
     installDefaults(container: HTMLElement) {
@@ -48,6 +46,7 @@ export class SecondScene {
     installScene(container: HTMLElement) {
         this.scene = new Scene();
         this.camera = new PerspectiveCamera(75, 1, 0.1, 1000);
+        this.raycaster = new Raycaster();
         this.renderer = new WebGLRenderer({
             antialias: true
         });
@@ -55,7 +54,7 @@ export class SecondScene {
         this.onWindowResize();
         container.appendChild(this.renderer.domElement);
         const eventElement = this.renderer.domElement.parentElement!;
-        this.positionHelper.subscribe(eventElement, this.camera);
+        this.positionHelper.subscribe(eventElement, this.camera, this.raycaster);
         eventElement.addEventListener('resize', () => this.onWindowResize());
     }
 
@@ -90,9 +89,6 @@ export class SecondScene {
     }
 
     installHexesPlanes() {
-        const level = this.levelManager.levels.initial;
-        this.layerManager.layers.initial.landTexture.loadFrom(level.finitePlaneAbstraction, (index) => level.data.color.array[index]);
-
         this.layerManager.layers.array.forEach(level => {
             this.scene.add(level.landMesh);
             this.scene.add(level.waterMesh);
@@ -112,8 +108,11 @@ export class SecondScene {
 
         function animate() {
             requestAnimationFrame(animate);
-            if (self.positionHelper.changed) {
-                self.positionHelper.flushAccumulated(self.layerManager.visible);
+            if (self.positionHelper.shiftChanged) {
+                self.positionHelper.flushAccumulatedShift(self.layerManager.visible);
+            }
+            if (self.positionHelper.selectionChanged) {
+                self.positionHelper.flushAccumulatedSelection(self.layerManager.visible);
             }
             action();
             self.renderer.render(self.scene, self.camera);

@@ -111,13 +111,13 @@ export class FinitePlaneAbstraction {
         this._columnShift = columnShift;
     }
 
-    private getShiftedCellIndex(index: number) {
+    private getShiftedCellIndex(index: number, coeff: number) {
         const column = index % this.cellField.columnCount;
         const row = (index - column) / this.cellField.columnCount;
         const colMod = (row % 2) * this._rowShiftMod2;
         return this.cellField.getIndex(
-            row - this._rowShift,
-            column - this._columnShift - colMod
+            row + coeff * this._rowShift,
+            column + coeff * (this._columnShift + colMod)
         );
     }
 
@@ -144,7 +144,7 @@ export class FinitePlaneAbstraction {
         }
 
         if (ps) {
-            const shiftedIndex = this.getShiftedCellIndex(cellIndex);
+            const shiftedIndex = this.getShiftedCellIndex(cellIndex, -1);
             const column = shiftedIndex % this.cellField.columnCount;
             const row = (shiftedIndex - column) / this.cellField.columnCount;
             const columnIdShifts = row % 2 === 0 ? EVEN_COLUMN_ID_SHIFTS : ODD_COLUMN_ID_SHIFTS;
@@ -153,6 +153,33 @@ export class FinitePlaneAbstraction {
                 ps[order] = (2 * row + ROW_ID_SHIFTS[order]) * rowSize + column + columnIdShifts[order];
             }
         }
+    }
+
+    pickCellByPointIds(pointIds: number[]): number | undefined {
+        const rowSize = this.cellField.columnCount + 1;
+        const hits: number[] = [];
+
+        for (let i = 0; i < pointIds.length; ++i) {
+            const pointId = pointIds[i];
+            const cp = pointId % rowSize;//column + columnIdShifts[order];
+            const cs = Math.max(0, cp - 1);
+            const cf = Math.min(cp, this.cellField.columnCount - 1);
+
+            const r2f = (pointId - cp) / rowSize;// 2 * row + ROW_ID_SHIFTS[order]
+            const r2s = Math.max(0, r2f - 3);
+            const rs = (r2s - (r2s % 2)) / 2;
+            const rf = Math.min((r2f - (r2f % 2)) / 2, this.cellField.rowCount - 1);
+
+            for (let column = cs; column <= cf; ++column) {
+                for (let row = rs; row <= rf; ++row) {
+                    const shiftedIndex = row * this.cellField.columnCount + column;
+                    hits[shiftedIndex] = (hits[shiftedIndex] || 0) + 1;
+                }
+            }
+        }
+
+        const shiftedIndex = hits.findIndex(v => v === pointIds.length);
+        return shiftedIndex >= 0 ? this.getShiftedCellIndex(shiftedIndex, 1) : undefined;
     }
 
     get pointIdCount(): number {

@@ -7,7 +7,7 @@ const ZS = new Array<number>(6);
 const PS = new Array<number>(6);
 
 export class FinitePlaneGeometry extends BufferGeometry {
-    private readonly indicesByPointId: number[];
+    readonly indicesByPointId: number[];
     private readonly finitePlaneModel: FinitePlaneModel;
 
     constructor(finitePlaneModel: FinitePlaneModel) {

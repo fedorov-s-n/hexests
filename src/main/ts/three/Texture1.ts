@@ -1,18 +1,15 @@
 import {CanvasTexture, RepeatWrapping, UVMapping} from "three";
 import {FinitePlaneAbstraction} from "../finiteplane/FinitePlaneAbstraction";
-import {PositionHelper} from "./PositionHelper";
 
 export class Texture1 extends CanvasTexture {
     private readonly canvas: HTMLCanvasElement;
     private readonly context: CanvasRenderingContext2D;
-    private readonly positionHelper: PositionHelper;
     private repaintData!: RepaintData;
 
-    constructor(canvas: HTMLCanvasElement, positionHelper: PositionHelper) {
+    constructor(canvas: HTMLCanvasElement) {
         super(canvas);
         this.canvas = canvas;
         this.context = canvas.getContext('2d')!!;
-        this.positionHelper = positionHelper;
 
         this.mapping = UVMapping;
         this.wrapS = RepeatWrapping;
