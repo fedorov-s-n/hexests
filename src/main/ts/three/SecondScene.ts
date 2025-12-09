@@ -16,6 +16,7 @@ import {PositionHelper} from "./PositionHelper";
 import {LayerManager} from "./LayerManager";
 import {BackSide} from "three/src/constants";
 import {LevelManager} from "../level/LevelManager";
+import {OrbitControls} from "three/examples/jsm/controls/OrbitControls";
 
 @Component
 export class SecondScene {
@@ -33,6 +34,15 @@ export class SecondScene {
         this.positionHelper = positionHelper;
         this.layerManager = layerManager;
         this.levelManager = levelManager;
+    }
+
+    installDefaults(container: HTMLElement) {
+        this.installScene(container);
+        this.installHelper();
+        this.installSky();
+        this.installSpotLight(0, 0, 50);
+        this.installHexesPlanes();
+        this.installControls();
     }
 
     installScene(container: HTMLElement) {
@@ -88,6 +98,13 @@ export class SecondScene {
             this.scene.add(level.waterMesh);
             level.objects.forEach(object => this.scene.add(object));
         });
+    }
+
+    installControls() {
+        new OrbitControls(this.camera, this.renderer.domElement);
+
+        this.camera.position.set(0, 0, 10);
+        this.camera.lookAt(this.scene.position);
     }
 
     animationLoop(action: () => void) {

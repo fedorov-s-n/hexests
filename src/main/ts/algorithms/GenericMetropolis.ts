@@ -3,6 +3,7 @@ import {Random} from "../util/Random";
 import {Component} from "../di/Component";
 import {LevelManager} from "../level/LevelManager";
 import {CellDataAccessor} from "../cell/CellDataAccessor";
+import {ColorGenerator} from "../util/ColorGenerator";
 
 const NEIGHBOURS = new Array<number>(6);
 const DOMAIN_TYPE = 'metropolis:domaintype';
@@ -75,6 +76,16 @@ export class GenericMetropolis {
         this.generateDefault(options.stepCountMultiplier || 150, options.temperatures || [100, 1, 0]);
         if (options.output) this.fillOutput(options.output);
         if (!options.skipClear) this.clear();
+    }
+
+    generateSimpleColors() {
+        const cg = new ColorGenerator(-1);
+        const colors = this.levelManager.levels.initial.data.color.array;
+        this.run({
+            zoomLevel: 0,
+            domainTypeCount: 8,
+            output: (i, value) => colors[i] = cg.toColor(value)
+        });
     }
 }
 
