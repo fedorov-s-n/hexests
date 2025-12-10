@@ -23,10 +23,11 @@ export class RectangularCellRadius implements CellRadius {
         const finishRow = centerRow + this.radius;
 
         for (let row = startRow; row <= finishRow; ++row) {
-            const rowSize = 2 * this.radius - Math.abs(row - centerRow);
-            const rem = rowSize % 2;
-            const startColumn = centerColumn + rem * (centerRow % 2 == 0 ? 0 : -1);
-            const finishColumn = startColumn + rowSize;
+            const rowSizeMinus1 = 2 * this.radius - Math.abs(row - centerRow);
+            const rem = rowSizeMinus1 % 2;
+            const selectionRowShift = (rowSizeMinus1 - rem) / 2;
+            const startColumn = centerColumn + rem * (centerRow % 2 == 0 ? 0 : -1) - selectionRowShift;
+            const finishColumn = startColumn + rowSizeMinus1;
 
             for (let column = startColumn; column <= finishColumn; ++column) {
                 const index = this.cellField.getIndex(row, column);
@@ -47,6 +48,6 @@ export class RectangularCellRadius implements CellRadius {
         const column = index % this.cellField.columnCount;
         const row = (index - centerColumn) / this.cellField.columnCount;
 
-        return this.cellField.getIndex(row - centerRow + 0 * this.initialCenterRow, column - centerColumn + 0 * this.initialCenterColumn);
+        return this.cellField.getIndex(row - centerRow + this.initialCenterRow, column - centerColumn + this.initialCenterColumn);
     }
 }

@@ -9,10 +9,10 @@ export class FinitePlaneModel {
     private readonly finitePlaneAbstraction: FinitePlaneAbstraction;
     private readonly dataAccessor: CellDataAccessor<number>;
     private readonly cellSource: CellSource;
-    private readonly pointShiftSupplier: CellShiftSupplier;
+    private readonly pointShiftSupplier: CellShiftSupplier | undefined;
 
     constructor(settingsStub: SettingsStub, finitePlaneAbstraction: FinitePlaneAbstraction,
-                dataAccessor: CellDataAccessor<number>, cellSource: CellSource, pointShiftSupplier: CellShiftSupplier = finitePlaneAbstraction) {
+                dataAccessor: CellDataAccessor<number>, cellSource: CellSource, pointShiftSupplier?: CellShiftSupplier) {
         this.settingsStub = settingsStub;
         this.finitePlaneAbstraction = finitePlaneAbstraction;
         this.dataAccessor = dataAccessor;
@@ -22,14 +22,15 @@ export class FinitePlaneModel {
 
     fillPointsUVP(cellIndex: number, xs: number[], ys: number[], ps: number[]) {
         this.finitePlaneAbstraction.fillPointsXY(cellIndex, xs, ys);
-        this.finitePlaneAbstraction.fillPointsP(cellIndex, ps);
+        const pointsIndex = this.pointShiftSupplier === undefined ? cellIndex : this.pointShiftSupplier.getShiftedCellIndex(cellIndex);
+        this.finitePlaneAbstraction.fillPointsP(pointsIndex, ps);
     }
 
     fillPointsXYZP(cellIndex: number, xs: number[], ys: number[], zs: number[], ps: number[]) {
         const shiftedIndex = this.finitePlaneAbstraction.getShiftedCellIndex(cellIndex);
         this.finitePlaneAbstraction.fillPointsXY(shiftedIndex, xs, ys);
         this.finitePlaneAbstraction.fillPointsZ(cellIndex, zs, this.dataAccessor);
-        const pointShiftedIndex = this.pointShiftSupplier.getShiftedCellIndex(cellIndex);
+        const pointShiftedIndex = this.pointShiftSupplier === undefined ? shiftedIndex : this.pointShiftSupplier.getShiftedCellIndex(cellIndex);
         this.finitePlaneAbstraction.fillPointsP(pointShiftedIndex, ps);
 
         const shift = this.finitePlaneAbstraction.pointShift;
