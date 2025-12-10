@@ -55,13 +55,18 @@ export class HexesFieldStartPoint {
         this.widgetService.addFunctionButtons(state, updateWaterLevel);
 
         updateWaterLevel();
-
+        let counter = 0;
         this.scene.animationLoop(() => {
             if (runState.running) {
                 state.steps(runState.stepCount);
                 updateWaterLevel();
                 this.layerManager.layers.initial.selector.updateHeights();
+                counter += runState.stepCount;
+                if (counter === 2500) {
+                    runState.running = false;
+                }
             }
         });
+        runState.running = true;
     }
 }
