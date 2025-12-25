@@ -3,6 +3,7 @@ import {Camera, Quaternion, Raycaster, Vector2, Vector3} from "three";
 import {SettingsStub} from "../util/SettingsStub";
 import {Layer} from "./Layer";
 import {FinitePlaneMesh} from "../finiteplane/FinitePlaneMesh";
+import {Tooltip} from "../htmlcomponents/Tooltip";
 
 @Component
 export class PositionHelper {
@@ -14,6 +15,10 @@ export class PositionHelper {
     private _selectionChanged: boolean = false; // to trigger shifting code right on the start
     private cameraMoveStep: number = 0.2;
     private raycaster!: Raycaster;
+    private camera!: Camera;
+    private container!: HTMLElement;
+    private tooltip!: Tooltip<number>;
+    private selectedCell = {id: [0], x: [0], y: [0], z: [0], tooltip: new Vector3()};
     private faceAngles = [0, 0, 0];
     private pointIds = [0, 0, 0];
 
@@ -37,6 +42,14 @@ export class PositionHelper {
             }
         });
         this.raycaster = raycaster;
+        this.camera = camera;
+        this.container = element;
+        this.tooltip = new Tooltip(
+            e => `cell index: ${e}`,
+            e => this.selectedCell.tooltip
+        );
+        this.tooltip.attach(element);
+
         const mouse = new Vector2(1, 1);
         element.addEventListener('pointermove', event => {
             event.preventDefault();
@@ -96,14 +109,32 @@ export class PositionHelper {
                 mesh.inferPointIds(this.faceAngles, this.pointIds);
 
                 selectedCellId = layer.level.finitePlaneAbstraction.pickCellByPointIds(this.pointIds);
+                if (selectedCellId !== undefined) {
+                    const cell = this.selectedCell;
+                    cell.id[0] = selectedCellId;
+                    mesh.finitePlaneGeometry.fillCellsXYZ(cell.id, cell.x, cell.y, cell.z);
+                    cell.tooltip.x = cell.x[0];
+                    cell.tooltip.y = cell.y[0];
+                    cell.tooltip.z = cell.z[0];
+                    cell.tooltip.project(this.camera);
+
+                    var width = this.container.clientWidth, height = this.container.clientHeight;
+                    var widthHalf = width / 2, heightHalf = height / 2;
+
+                    cell.tooltip.x = (cell.tooltip.x * widthHalf) + widthHalf;
+                    cell.tooltip.y = -(cell.tooltip.y * heightHalf) + heightHalf;
+                    cell.tooltip.z = 0;
+                }
             }
         }
         if (selectedCellId !== undefined) {
             layer.selector.mesh.visible = true;
             layer.selector.cellRadius.cellIndex = selectedCellId;
             layer.selector.mesh.finitePlaneGeometry.refreshPositions();
+            this.tooltip.element = selectedCellId;
         } else {
             layer.selector.mesh.visible = false;
+            this.tooltip.element = undefined;
         }
 
 

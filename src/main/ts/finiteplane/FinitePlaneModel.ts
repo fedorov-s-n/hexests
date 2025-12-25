@@ -41,6 +41,18 @@ export class FinitePlaneModel {
         }
     }
 
+    fillCellsXYZ(cellIndexes: number[], xs: number[], ys: number[], zs: number[]) {
+        this.finitePlaneAbstraction.fillCellsXY(cellIndexes, xs, ys);
+        const array = this.dataAccessor.array;
+        const shift = this.finitePlaneAbstraction.pointShift;
+        for (let i = 0; i < cellIndexes.length; ++i) {
+            const cellIndex = cellIndexes[i];
+            xs[i] = (xs[i] + this.finitePlaneAbstraction.orientationOffset.x + shift.x - 0.5) * this.length;
+            ys[i] = (ys[i] + this.finitePlaneAbstraction.orientationOffset.y + shift.y - 0.5) * this.width;
+            zs[i] = array[cellIndex] * this.height;
+        }
+    }
+
     forEach(consumer: (index: number) => void): void {
         this.cellSource.forEach(consumer);
     }

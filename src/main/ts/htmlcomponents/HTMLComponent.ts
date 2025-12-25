@@ -1,5 +1,5 @@
 export class HTMLComponent {
-    private attachPoint: HTMLElement | undefined;
+    protected attachPoint: HTMLElement | undefined;
 
     public attach(attachPoint: HTMLElement): void {
         this.attachPoint = attachPoint;

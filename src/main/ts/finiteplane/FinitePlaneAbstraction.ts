@@ -142,10 +142,10 @@ export class FinitePlaneAbstraction implements CellShiftSupplier {
     fillPointsZ(cellIndex: number, zs: number[], accessor: CellDataAccessor<number>) {
         const lowCellIndex = this.cellField.mapIndexToLowerLevel(cellIndex);
         this.cellField.lower.fillNeighbours(lowCellIndex, FinitePlaneAbstraction.NEIGHBOURS);
-        const lowerAccessor = accessor.lower;
+        const lowerAccessorArray = accessor.lower.array;
         for (let arrayIndex = 0; arrayIndex < 6; ++arrayIndex) {
             const index = FinitePlaneAbstraction.NEIGHBOURS[arrayIndex];
-            zs[arrayIndex] = lowerAccessor.array[index];
+            zs[arrayIndex] = lowerAccessorArray[index];
         }
     }
 
@@ -159,6 +159,21 @@ export class FinitePlaneAbstraction implements CellShiftSupplier {
             for (let order = 0; order < 6; ++order) {
                 ps[order] = (2 * row + ROW_ID_SHIFTS[order]) * rowSize + column + columnIdShifts[order];
             }
+        }
+    }
+
+    fillCellsXY(cellIndexes: number[], xs: number[], ys: number[]) {
+        for (let i = 0; i < cellIndexes.length; ++i) {
+            const cellIndex = this.getShiftedCellIndex(cellIndexes[i]);
+            const column = cellIndex % this.cellField.columnCount;
+            const row = (cellIndex - column) / this.cellField.columnCount;
+            const colCellPosAdd = row % 2 === 0 ? 1 : 0.5;
+
+            const rowPos = (1.5 * row + 1) / this.rowsSize;
+            const columnPos = (SQRT3 * (column + colCellPosAdd)) / this.columnsSize;
+
+            xs[i] = this.orientation.getXPos(rowPos, columnPos);
+            ys[i] = this.orientation.getYPos(rowPos, columnPos);
         }
     }
 

@@ -73,6 +73,10 @@ export class FinitePlaneGeometry extends BufferGeometry {
         return this.pointIdsByIndices[index];
     }
 
+    fillCellsXYZ(cellIndexes: number[], xs: number[], ys: number[], zs: number[]) {
+        return this.finitePlaneModel.fillCellsXYZ(cellIndexes, xs, ys, zs);
+    }
+
     refreshPositions() {
         const vertices = this.getAttribute('position') as Float32BufferAttribute;
         const XS = FinitePlaneGeometry.XS;
