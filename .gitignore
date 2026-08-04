@@ -1,5 +1,6 @@
-./target/
-./node_modules/
-./.idea/
-./opera-user-data/
-./chrome-user-data/
+target/
+node_modules/
+.idea/
+opera-user-data/
+chrome-user-data/
+.playwright-mcp/
