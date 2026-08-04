@@ -19,7 +19,8 @@ export class Random {
         return this.rand.next();
     }
 
+    /** Uniform over 0 .. max - 1: rounding instead of flooring would halve the chance of the ends. */
     nextInt(max: number): number {
-        return Math.round(this.nextFloat() * (max - 1));
+        return Math.min(max - 1, Math.floor(this.nextFloat() * max));
     }
 }

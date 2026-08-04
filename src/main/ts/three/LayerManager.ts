@@ -1,5 +1,6 @@
 import {FinitePlaneGeometry} from "../finiteplane/FinitePlaneGeometry";
-import {MeshLambertMaterial, TextureLoader} from "three";
+import {LineBasicMaterial, LineSegments, MeshLambertMaterial, TextureLoader} from "three";
+import {FinitePlaneGridGeometry} from "../finiteplane/FinitePlaneGridGeometry";
 import {Texture1} from "./Texture1";
 import {Component} from "../di/Component";
 import {SettingsStub} from "../util/SettingsStub";
@@ -15,6 +16,10 @@ import {CellData} from "../cell/CellData";
 
 @Component
 export class LayerManager {
+    /** The cell outlines: a bright colour nothing on the surface uses, lifted clear of it. */
+    private static readonly GRID_COLOUR = '#ffff00';
+    private static readonly GRID_LIFT = 0.02;
+
     private readonly settingsStub: SettingsStub;
     private readonly positionHelper: PositionHelper;
     private readonly levelManager: LevelManager;
@@ -39,7 +44,7 @@ export class LayerManager {
         waterCanvasElement.height = this.settingsStub.bigTextureSize;
         this.flowMapTexture = new Texture1(waterCanvasElement);
 
-        this.layers = new LazyGeneratedArray(this.installLayer(0), l => this.installLayer(l.level.zoom));
+        this.layers = new LazyGeneratedArray(this.installLayer(0), l => this.installLayer(l.level.zoom + 1));
         this._visible = this.layers.initial;
         this._visible.visible = true;
     }
@@ -95,6 +100,11 @@ export class LayerManager {
         // });
         waterMesh.visible = false;
 
+        const gridGeometry = new FinitePlaneGridGeometry(new FinitePlaneModel(this.settingsStub, finitePlaneAbstraction,
+            this.levelManager.data.get(zoom).height, this.levelManager.cellFields.get(zoom)), LayerManager.GRID_LIFT);
+        const gridMesh = new LineSegments(gridGeometry, new LineBasicMaterial({color: LayerManager.GRID_COLOUR}));
+        gridMesh.visible = false;
+
         const selectorData = this.installSelector(zoom);
         const selector = new Selector(selectorData.radius, selectorData.mesh, selectorData.data);
         selector.updateHeights();
@@ -103,8 +113,9 @@ export class LayerManager {
             this.levelManager.levels.get(zoom),
             geometry, plane, texture,
             waterGeometry, waterMesh, flowMap,
+            gridGeometry, gridMesh,
             selector,
-            [selectorData.mesh]
+            [selectorData.mesh, gridMesh]
         );
     }
 

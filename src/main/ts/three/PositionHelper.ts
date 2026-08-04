@@ -82,6 +82,7 @@ export class PositionHelper {
 
         layer.landGeometry.refreshPositions();
         layer.waterGeometry.refreshPositions();
+        layer.gridGeometry.refreshPositions();
         layer.landTexture.updatePlane(finitePlaneAbstraction);
         layer.waterFlowMap.updatePlane(finitePlaneAbstraction);
         layer.selector.mesh.visible = false;

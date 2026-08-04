@@ -15,6 +15,7 @@ import {Object3D} from "three/src/core/Object3D";
 import {Component} from "../di/Component";
 import {PositionHelper} from "./PositionHelper";
 import {LayerManager} from "./LayerManager";
+import {Layer} from "./Layer";
 import {BackSide} from "three/src/constants";
 import {OrbitControls} from "three/examples/jsm/controls/OrbitControls";
 
@@ -89,11 +90,15 @@ export class SecondScene {
     }
 
     installHexesPlanes() {
-        this.layerManager.layers.array.forEach(level => {
-            this.scene.add(level.landMesh);
-            this.scene.add(level.waterMesh);
-            level.objects.forEach(object => this.scene.add(object));
-        });
+        this.layerManager.layers.array.forEach(layer => this.installLayer(layer));
+    }
+
+    /** Layers are built on demand, when a level is looked at for the first time. */
+    installLayer(layer: Layer) {
+        if (this.scene.children.indexOf(layer.landMesh) >= 0) return;
+        this.scene.add(layer.landMesh);
+        this.scene.add(layer.waterMesh);
+        layer.objects.forEach(object => this.scene.add(object));
     }
 
     installControls() {

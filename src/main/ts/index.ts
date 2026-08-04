@@ -12,9 +12,12 @@ const document = window.document;
 const container = new DIContainer();
 const commandCentre = new CommandCentre(container);
 container.put(DIContainer, container);
-container.put(Random, new Random(0.10909179581460537));
+container.put(Random, new Random(0.5772156649015329));
 container.put(Document, document);
 container.put(CommandCentre, commandCentre);
+
+// a handle for the javascript console: window.di.getIfExists('LevelManager') and the like
+(window as any).di = container;
 
 const circus = new CircusComponent();
 circus.attach(document.body);

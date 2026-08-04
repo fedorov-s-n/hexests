@@ -58,7 +58,7 @@ export class FinitePlaneModel {
     }
 
     get orientationNormalsCoefficient(): number {
-        return this.finitePlaneAbstraction.zoom % 2 === 0 ? -1 : +1;
+        return -1;
     }
 
     get length(): number {

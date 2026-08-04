@@ -19,5 +19,7 @@ export interface CellField extends CellSource {
 
     interpolate(highData: number[], lowData: number[]): void;
 
+    gather(highData: number[], lowData: number[]): void;
+
     radius(index?: number, radius?: number): CellRadius;
 }

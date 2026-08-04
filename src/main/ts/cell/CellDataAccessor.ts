@@ -31,6 +31,14 @@ export class CellDataAccessor<T> {
         this.cellField.interpolate(highData, lowData);
     }
 
+    /** Fills this level from the one below it, by the mean of the seven cells covered. */
+    gather() {
+        const lowData = this.dataSource.getOrCreate<number>(this.key.lower, this.cellField.lower.size, 0);
+        const highData = this.dataSource.getOrCreate<number>(this.key, this.cellField.size);
+
+        this.cellField.gather(highData, lowData);
+    }
+
     remove() {
         this.dataSource.remove(this.key);
     }

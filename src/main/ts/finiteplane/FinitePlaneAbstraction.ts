@@ -1,105 +1,96 @@
-import {RectangularCellField} from "../cell/RectangularCellField";
 import {Point2d} from "../util/Point2d";
 import {Lazy} from "../util/Lazy";
-import {FinitePlaneOrientation, getOrientation} from "./Orientation";
 import {CellDataAccessor} from "../cell/CellDataAccessor";
 import {CellShiftSupplier} from "../cell/CellShiftSupplier";
+import {LatticeCellField} from "../lattice/LatticeCellField";
+import {
+    cartX,
+    cartY,
+    CORNER_DIRECTIONS,
+    CORNER_LOWER_CELLS,
+    CORNER_X,
+    CORNER_Y,
+    DIRECTION_Q,
+    DIRECTION_R,
+    refineQ,
+    refineR
+} from "../lattice/HexLattice";
 
-const SQRT3 = Math.sqrt(3);
-const COS_MODS = [0, +SQRT3 / 2, +SQRT3 / 2, 0, -SQRT3 / 2, -SQRT3 / 2];
-const SIN_MODS = [+1, +0.5, -0.5, -1, -0.5, +0.5];
-
-const ROW_ID_SHIFTS = [3, 2, 1, 0, 1, 2];
-const ODD_COLUMN_ID_SHIFTS = [0, 1, 1, 0, 0, 0];
-const EVEN_COLUMN_ID_SHIFTS = [1, 1, 1, 1, 0, 0];
-
-
+/**
+ * Places the cells of one level into the world rectangle: positions of the cells and of their
+ * corners, identity of the corners shared by neighbours, and the panning of the whole level.
+ *
+ * Every level lives in the same rectangle, so a cell of a level and the seven cells it covers on
+ * the level below occupy the very same place; the lattice below is only turned and denser.
+ */
 export class FinitePlaneAbstraction implements CellShiftSupplier {
     static NEIGHBOURS = new Array<number>(6);
 
     readonly size: number;
     readonly orientationOffset: Point2d;
     readonly depth: number;
-
-    private _rowShift: number = 0;
-    private _columnShift: number = 0;
-    private _rowShiftMod2: number = 0;
-
     readonly textureWorkArea: Point2d;
+
+    private readonly cellField: LatticeCellField;
+
+    private _shiftQ: number = 0;
+    private _shiftR: number = 0;
+
     private readonly _textureShift = new MutablePoint();
     private readonly _pointShift = new MutablePoint();
     private readonly _helperShift = new MutablePoint();
+    private readonly _axial = new Array<number>(2);
 
-    private readonly cellField: RectangularCellField;
-    private readonly orientation: FinitePlaneOrientation;
+    private readonly cornerOffsetX = new Array<number>(6);
+    private readonly cornerOffsetY = new Array<number>(6);
 
-    private readonly columnsSize: number;
-    private readonly rowsSize: number;
-    private readonly rowMult: number;
-    private readonly columnMult: number;
+    private readonly _points: Lazy<PointNumbering>;
+    private readonly _cornerLowerCells: Lazy<Int32Array>;
 
     private readonly _lower: Lazy<FinitePlaneAbstraction>;
     private readonly _higher: FinitePlaneAbstraction | undefined;
 
-    constructor(cellField: RectangularCellField, higher?: FinitePlaneAbstraction) {
+    constructor(cellField: LatticeCellField, higher?: FinitePlaneAbstraction) {
         this.cellField = cellField;
 
         this.depth = 0;
         this.size = cellField.size;
-        this.orientation = getOrientation(cellField.zoom);
 
-        this.rowsSize = 1.5 * cellField.rowCount + 0.5;
-        this.columnsSize = SQRT3 * (cellField.columnCount + 0.5);
-        this.rowMult = 1.5 / (1.5 * cellField.rowCount + 0.5);
-        this.columnMult = 1 / (cellField.columnCount + 0.5);
+        const world = cellField.world;
+        this.textureWorkArea = new Point2d(world.width / world.columnsSize, world.height / world.rowsSize);
+        this.orientationOffset = new Point2d(0, 0);
 
-        const rowArea = cellField.rowCount * this.rowMult;
-        const columnArea = cellField.columnCount * this.columnMult;
-        this.textureWorkArea = new Point2d(
-            this.orientation.getXPos(rowArea, columnArea),
-            this.orientation.getYPos(rowArea, columnArea)
-        );
+        for (let corner = 0; corner < 6; ++corner) {
+            this.cornerOffsetX[corner] = cellField.offsetX(CORNER_X[corner], CORNER_Y[corner]);
+            this.cornerOffsetY[corner] = cellField.offsetY(CORNER_X[corner], CORNER_Y[corner]);
+        }
 
-        // todo: recalculate
-        const columnShift = -0.5 / (cellField.columnCount + 0.5);
-        this.orientationOffset = new Point2d(
-            this.orientation.getXPos(0, columnShift) + (higher?.orientationOffset?.x || 0),
-            this.orientation.getYPos(0, columnShift) + (higher?.orientationOffset?.y || 0)
-        );
+        this._points = new Lazy(() => new PointNumbering(cellField));
+        this._cornerLowerCells = new Lazy(() => this.generateCornerLowerCells());
 
         this._lower = new Lazy(() => new FinitePlaneAbstraction(cellField.lower, this));
         this._higher = higher;
     }
 
+    /**
+     * Snaps a panning of the level to a whole translation of its lattice: the cells are then
+     * renumbered instead of being moved, and only the remainder below one cell is left to the
+     * points themselves.
+     */
     applyShift(dx: number, dy: number) {
-        const rowCount = this.cellField.rowCount;
-        const columnCount = this.cellField.columnCount;
+        const world = this.cellField.world;
+        const axial = this._axial;
 
-        let rowShift = Math.round(this.orientation.getRowPos(dx, dy) / this.rowMult);
-        let columnShift = Math.round(this.orientation.getColumnPos(dx, dy) / this.columnMult);
+        this.cellField.nearestVector(dx * world.columnsSize, dy * world.rowsSize, axial);
+        const fullX = this.cellField.offsetX(cartX(axial[0], axial[1]), cartY(axial[0], axial[1])) / world.columnsSize;
+        const fullY = this.cellField.offsetY(cartX(axial[0], axial[1]), cartY(axial[0], axial[1])) / world.rowsSize;
 
-        const rowShiftMod2 = Math.abs(rowShift) % 2;
-        const columnCorrection = rowShiftMod2 * 0.5 * this.columnMult;
-        let dRow = rowShift * this.rowMult;
-        let dColumn = (columnShift) * this.columnMult + columnCorrection;
+        const remainedX = dx - fullX;
+        const remainedY = dy - fullY;
 
-        let actualX = this.orientation.getXPos(dRow, dColumn);
-        let actualY = this.orientation.getYPos(dRow, dColumn);
-
-        const remainedX = dx - actualX;
-        const remainedY = dy - actualY;
-
-        while (rowShift > rowCount) rowShift -= rowCount;
-        while (rowShift < -rowCount) rowShift += rowCount;
-        while (columnShift > columnCount) columnShift -= columnCount;
-        while (columnShift < -columnCount) columnShift += columnCount;
-
-        dRow = (rowShift) * this.rowMult;
-        dColumn = (columnShift) * this.columnMult;
-        dColumn += columnCorrection;
-
-        actualX = this.orientation.getXPos(dRow, dColumn);
-        actualY = this.orientation.getYPos(dRow, dColumn);
+        this.cellField.reduceVector(axial[0], axial[1], axial);
+        const actualX = this.cellField.offsetX(cartX(axial[0], axial[1]), cartY(axial[0], axial[1])) / world.columnsSize;
+        const actualY = this.cellField.offsetY(cartX(axial[0], axial[1]), cartY(axial[0], axial[1])) / world.rowsSize;
 
         this._helperShift.x = actualX + remainedX;
         this._helperShift.y = actualY + remainedY;
@@ -107,9 +98,8 @@ export class FinitePlaneAbstraction implements CellShiftSupplier {
         this._pointShift.y = -remainedY;
         this._textureShift.x = actualX;
         this._textureShift.y = actualY;
-        this._rowShift = rowShift;
-        this._rowShiftMod2 = rowShiftMod2;
-        this._columnShift = columnShift;
+        this._shiftQ = axial[0];
+        this._shiftR = axial[1];
     }
 
     getShiftedCellIndex(index: number) {
@@ -117,95 +107,92 @@ export class FinitePlaneAbstraction implements CellShiftSupplier {
     }
 
     private getShiftedCellIndex0(index: number, coeff: number) {
-        const column = index % this.cellField.columnCount;
-        const row = (index - column) / this.cellField.columnCount;
-        const colMod = (row % 2) * this._rowShiftMod2;
-        return this.cellField.getIndex(
-            row + coeff * this._rowShift,
-            column + coeff * this._columnShift - colMod
+        return this.cellField.indexOf(
+            this.cellField.q(index) + coeff * this._shiftQ,
+            this.cellField.r(index) + coeff * this._shiftR
         );
     }
 
     fillPointsXY(cellIndex: number, xs: number[], ys: number[]) {
-        const column = cellIndex % this.cellField.columnCount;
-        const row = (cellIndex - column) / this.cellField.columnCount;
-
-        const colCellPosAdd = row % 2 === 0 ? 1 : 0.5;
-        for (let order = 0; order < 6; ++order) {
-            const rowPos = (SIN_MODS[order] + 1.5 * row + 1) / this.rowsSize;
-            const columnPos = (COS_MODS[order] + SQRT3 * (column + colCellPosAdd)) / this.columnsSize;
-            xs[order] = this.orientation.getXPos(rowPos, columnPos);
-            ys[order] = this.orientation.getYPos(rowPos, columnPos);
+        const world = this.cellField.world;
+        const x = this.cellField.worldX(this.cellField.q(cellIndex), this.cellField.r(cellIndex));
+        const y = this.cellField.worldY(this.cellField.q(cellIndex), this.cellField.r(cellIndex));
+        for (let corner = 0; corner < 6; ++corner) {
+            xs[corner] = (x + this.cornerOffsetX[corner]) / world.columnsSize;
+            ys[corner] = (y + this.cornerOffsetY[corner]) / world.rowsSize;
         }
     }
 
+    /**
+     * Height of every corner: a corner of a cell is a corner of the lattice below as well, where
+     * three of its cells meet, so their mean is what the corner stands at.
+     */
     fillPointsZ(cellIndex: number, zs: number[], accessor: CellDataAccessor<number>) {
-        const lowCellIndex = this.cellField.mapIndexToLowerLevel(cellIndex);
-        this.cellField.lower.fillNeighbours(lowCellIndex, FinitePlaneAbstraction.NEIGHBOURS);
-        const lowerAccessorArray = accessor.lower.array;
-        for (let arrayIndex = 0; arrayIndex < 6; ++arrayIndex) {
-            const index = FinitePlaneAbstraction.NEIGHBOURS[arrayIndex];
-            zs[arrayIndex] = lowerAccessorArray[index];
+        const cells = this._cornerLowerCells.value;
+        const lowerArray = accessor.lower.array;
+        const offset = 18 * cellIndex;
+        for (let corner = 0; corner < 6; ++corner) {
+            zs[corner] = (lowerArray[cells[offset + 3 * corner]]
+                + lowerArray[cells[offset + 3 * corner + 1]]
+                + lowerArray[cells[offset + 3 * corner + 2]]) / 3;
         }
     }
 
     fillPointsP(cellIndex: number, ps?: number[]) {
-        const column = cellIndex % this.cellField.columnCount;
-        const row = (cellIndex - column) / this.cellField.columnCount;
-
-        if (ps) {
-            const columnIdShifts = row % 2 === 0 ? EVEN_COLUMN_ID_SHIFTS : ODD_COLUMN_ID_SHIFTS;
-            const rowSize = this.cellField.columnCount + 1;
-            for (let order = 0; order < 6; ++order) {
-                ps[order] = (2 * row + ROW_ID_SHIFTS[order]) * rowSize + column + columnIdShifts[order];
-            }
+        if (!ps) return;
+        const ids = this._points.value.cellPointIds;
+        for (let corner = 0; corner < 6; ++corner) {
+            ps[corner] = ids[6 * cellIndex + corner];
         }
     }
 
     fillCellsXY(cellIndexes: number[], xs: number[], ys: number[]) {
+        const world = this.cellField.world;
         for (let i = 0; i < cellIndexes.length; ++i) {
             const cellIndex = this.getShiftedCellIndex(cellIndexes[i]);
-            const column = cellIndex % this.cellField.columnCount;
-            const row = (cellIndex - column) / this.cellField.columnCount;
-            const colCellPosAdd = row % 2 === 0 ? 1 : 0.5;
-
-            const rowPos = (1.5 * row + 1) / this.rowsSize;
-            const columnPos = (SQRT3 * (column + colCellPosAdd)) / this.columnsSize;
-
-            xs[i] = this.orientation.getXPos(rowPos, columnPos);
-            ys[i] = this.orientation.getYPos(rowPos, columnPos);
+            xs[i] = this.cellField.worldX(this.cellField.q(cellIndex), this.cellField.r(cellIndex)) / world.columnsSize;
+            ys[i] = this.cellField.worldY(this.cellField.q(cellIndex), this.cellField.r(cellIndex)) / world.rowsSize;
         }
     }
 
+    /** The cell all the given corners belong to, if there is exactly one such cell. */
     pickCellByPointIds(pointIds: number[]): number | undefined {
-        const rowSize = this.cellField.columnCount + 1;
-        const hits: number[] = [];
+        const points = this._points.value;
+        for (let i = 0; i < 3; ++i) {
+            const candidate = points.pointCells[3 * pointIds[0] + i];
+            if (candidate < 0) continue;
+            let common = true;
+            for (let j = 1; j < pointIds.length && common; ++j) {
+                common = points.pointCells[3 * pointIds[j]] === candidate
+                    || points.pointCells[3 * pointIds[j] + 1] === candidate
+                    || points.pointCells[3 * pointIds[j] + 2] === candidate;
+            }
+            if (common) return this.getShiftedCellIndex0(candidate, +1);
+        }
+        return undefined;
+    }
 
-        for (let i = 0; i < pointIds.length; ++i) {
-            const pointId = pointIds[i];
-            const cp = pointId % rowSize;
-            const cs = Math.max(0, cp - 1);
-            const cf = Math.min(cp, this.cellField.columnCount - 1);
-
-            const r2f = (pointId - cp) / rowSize;
-            const r2s = Math.max(0, r2f - 3);
-            const rs = (r2s - (r2s % 2)) / 2;
-            const rf = Math.min((r2f - (r2f % 2)) / 2, this.cellField.rowCount - 1);
-
-            for (let column = cs; column <= cf; ++column) {
-                for (let row = rs; row <= rf; ++row) {
-                    const shiftedIndex = row * this.cellField.columnCount + column;
-                    hits[shiftedIndex] = (hits[shiftedIndex] || 0) + 1;
+    private generateCornerLowerCells(): Int32Array {
+        const lower = this.cellField.lower;
+        const cells = new Int32Array(18 * this.size);
+        for (let index = 0; index < this.size; ++index) {
+            const q = this.cellField.q(index);
+            const r = this.cellField.r(index);
+            const lq = refineQ(q, r);
+            const lr = refineR(q, r);
+            for (let corner = 0; corner < 6; ++corner) {
+                const triple = CORNER_LOWER_CELLS[corner];
+                for (let i = 0; i < 3; ++i) {
+                    cells[18 * index + 3 * corner + i] =
+                        lower.indexOf(lq + triple[i][0], lr + triple[i][1]);
                 }
             }
         }
-
-        const shiftedIndex = hits.findIndex(v => v === pointIds.length);
-        return shiftedIndex >= 0 ? this.getShiftedCellIndex0(shiftedIndex, 1) : undefined;
+        return cells;
     }
 
     get pointIdCount(): number {
-        return (2 * this.cellField.rowCount + 4) * (this.cellField.columnCount + 1);
+        return this._points.value.count;
     }
 
     get zoom(): number {
@@ -230,6 +217,70 @@ export class FinitePlaneAbstraction implements CellShiftSupplier {
 
     get pointShift(): Point2d {
         return this._pointShift as Point2d;
+    }
+}
+
+/**
+ * Numbers the corners of the lattice. A corner is shared by three cells, so it is named by the
+ * tripled axial point of the corner itself, which all three of them arrive at.
+ *
+ * The naming is deliberately not taken modulo the periods of the torus: the plane is drawn as an
+ * open patch, so the cells at the opposite edges must not share their corners -- they stand a
+ * whole period apart and could not agree on where the corner is.
+ */
+class PointNumbering {
+    readonly count: number;
+    /** Six corner ids per cell, in the corner order of the geometry. */
+    readonly cellPointIds: Int32Array;
+    /** Up to three cells per corner; the ones at the edges of the patch have fewer. */
+    readonly pointCells: Int32Array;
+
+    constructor(cellField: LatticeCellField) {
+        const size = cellField.size;
+        let minQ = 0, maxQ = 0, minR = 0, maxR = 0;
+        for (let index = 0; index < size; ++index) {
+            minQ = Math.min(minQ, cellField.q(index));
+            maxQ = Math.max(maxQ, cellField.q(index));
+            minR = Math.min(minR, cellField.r(index));
+            maxR = Math.max(maxR, cellField.r(index));
+        }
+        const boxQ = 3 * minQ - 2;
+        const boxR = 3 * minR - 2;
+        const boxWidth = 3 * maxQ + 2 - boxQ + 1;
+        const boxHeight = 3 * maxR + 2 - boxR + 1;
+        const box = new Int32Array(boxWidth * boxHeight).fill(-1);
+
+        this.cellPointIds = new Int32Array(6 * size);
+        const pointCells: number[] = [];
+        let counter = 0;
+
+        for (let index = 0; index < size; ++index) {
+            const q = 3 * cellField.q(index);
+            const r = 3 * cellField.r(index);
+            for (let corner = 0; corner < 6; ++corner) {
+                const directions = CORNER_DIRECTIONS[corner];
+                const pq = q + DIRECTION_Q[directions[0]] + DIRECTION_Q[directions[1]];
+                const pr = r + DIRECTION_R[directions[0]] + DIRECTION_R[directions[1]];
+
+                const boxIndex = (pq - boxQ) + (pr - boxR) * boxWidth;
+                let id = box[boxIndex];
+                if (id < 0) {
+                    id = counter++;
+                    box[boxIndex] = id;
+                    pointCells.push(-1, -1, -1);
+                }
+                this.cellPointIds[6 * index + corner] = id;
+                for (let i = 0; i < 3; ++i) {
+                    if (pointCells[3 * id + i] < 0) {
+                        pointCells[3 * id + i] = index;
+                        break;
+                    }
+                }
+            }
+        }
+
+        this.count = counter;
+        this.pointCells = Int32Array.from(pointCells);
     }
 }
 

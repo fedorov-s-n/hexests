@@ -12,7 +12,7 @@ describe('(!)', () => {
 
             heightGeneration.run({
                 metropolisStepCountMultiplier: 1,
-                zoomLevel: 0,
+                zoomLevel: 3,
                 domainTypeCount: 4,
                 driftStepCount: 50,
                 output: (index: number, height: number) => {

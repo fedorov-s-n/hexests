@@ -1,6 +1,6 @@
 import {Component} from "../di/Component";
 import {LazyGeneratedArray} from "../util/LazyGeneratedArray";
-import {RectangularCellField} from "../cell/RectangularCellField";
+import {LatticeCellField} from "../lattice/LatticeCellField";
 import {FinitePlaneAbstraction} from "../finiteplane/FinitePlaneAbstraction";
 import {Level} from "./Level";
 import {CellData} from "../cell/CellData";
@@ -19,13 +19,13 @@ export class LevelManager {
 
     constructor(dataManager: DataManager, settingsStub: SettingsStub) {
         this.cellFields = new LazyGeneratedArray(
-            new RectangularCellField(settingsStub.initialRowCount, settingsStub.initialColumnCount, 0) as CellField,
+            LatticeCellField.root(settingsStub.initialRowCount, settingsStub.initialColumnCount) as CellField,
             cellField => cellField.lower);
         this.data = new LazyGeneratedArray(
             new CellData(dataManager, this.cellFields.initial, 0, 0),
             data => data.lower);
         this.finitePlainAbstractions = new LazyGeneratedArray(
-            new FinitePlaneAbstraction(this.cellFields.initial as RectangularCellField),
+            new FinitePlaneAbstraction(this.cellFields.initial as LatticeCellField),
             fpa => fpa.lower);
         this.levels = new LazyGeneratedArray(
             new Level(this.finitePlainAbstractions.initial, this.cellFields.initial, this.data.initial),
