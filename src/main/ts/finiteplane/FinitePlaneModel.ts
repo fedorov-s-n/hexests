@@ -82,7 +82,12 @@ export class FinitePlaneModel {
         return this.settingsStub.planeSideSize;
     }
 
+    /**
+     * Heights are magnified exactly as the ground is, so a hill keeps its shape when the approach
+     * changes: without it the relief would flatten out as the lattice gets finer.
+     */
     get height(): number {
-        return this.settingsStub.planeSideSize;
+        const world = this.finitePlaneAbstraction.cellField.world;
+        return this.settingsStub.planeSideSize * world.width / this.finitePlaneAbstraction.viewState.worldSpan;
     }
 }
