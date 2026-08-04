@@ -1,42 +1,5 @@
 # Well-specified: ready to do
 
-- create support for layers
-    - layer is an ability to select a "layer" which displays information over the map
-    - ways of displaying information include several things; on the start it is
-        - color
-            - it may code numerical values
-            - it may color-denote a discrete option
-            - color is transparent, user is still able to see the map, but a layer is displayed on top, showing
-              intensity oor diversity
-        - label
-            - pinned to a point
-            - may be a small icon
-            - may be text
-            - may have designated color and bg color
-        - caption
-            - written over significant part of the map
-            - examples: Apl mountains, Narrow fields, Volga river
-            - curved text only
-            - curvature may be driven by landscape
-    - layer may be toggled on and off
-    - there may be several layers at the same time
-    - implement test layers to verify all the options
-        - plate
-            - derive values from metropolis run for height generation; save values in a cell data; it's ok to only
-              preserve the level of generation - but to display layer on any level
-            - show different clusters - plates - with different color
-            - at cell 0 on level 5 add a label "Cell 0 \n level 5"
-        - depth
-            - show color-coded depth, color-coding is how water is shown now
-            - if no water, then no indication
-            - display water just as light blue, to make the change testable
-        - landscape caption
-            - find a mountain (or highest hill) and write over it "Great mountain"
-            - find a body of water and write over it "The body of water"
-    - layers should survive
-        - always survive scrolling
-        - in some cases survive zoom changing
-            - whether it survives depends on if there's enough space for it
 
 # Vague: may require clarification before execution
 
@@ -58,6 +21,14 @@
 - get model set with idle animation
 
 # Finished: to be actualized before a commit
+
+- create support for layers
+    - an overlay may tint cells, pin labels and write captions along a curve; several may be shown
+      at once, each with a switch in the panel
+    - the map itself now only says land or water; how deep the water is, is an overlay
+    - test overlays: plates (kept from the generation, shown on any level, with the label on cell 0
+      of level 5), depth, landscape captions over the highest hill and the deepest water
+    - overlays survive scrolling; a label survives a zoom while the window reaches its cell
 
 - bring in react
     - the panel is a React component fed by a panel model; the map area is handed to three.js once
