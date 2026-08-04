@@ -5,6 +5,7 @@ import {createElement} from "react";
 import {createRoot} from "react-dom/client";
 import {Application} from "./panel/Application";
 import {PanelModel} from "./panel/PanelModel";
+import {OverlayView} from "./overlay/OverlayView";
 
 const document = window.document;
 const container = new DIContainer();
@@ -17,11 +18,13 @@ container.put(Document, document);
 
 const startPoint = container.get(HexesFieldStartPoint);
 const model = container.get(PanelModel);
+const view = container.get(OverlayView);
 
 const root = document.createElement('div');
 root.className = 'ht-root';
 document.body.appendChild(root);
 createRoot(root).render(createElement(Application, {
     model,
+    view,
     start: (element: HTMLElement) => setTimeout(() => startPoint.gogogo(element))
 }));

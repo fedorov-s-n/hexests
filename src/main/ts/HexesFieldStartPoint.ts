@@ -14,8 +14,10 @@ import {PositionHelper} from "./three/PositionHelper";
 import {ViewState} from "./three/ViewState";
 import {SelectionState} from "./three/SelectionState";
 import {OverlayManager} from "./overlay/OverlayManager";
+import {OverlayView} from "./overlay/OverlayView";
 import {PlateOverlay} from "./overlay/PlateOverlay";
 import {DepthOverlay} from "./overlay/DepthOverlay";
+import {LandscapeOverlay} from "./overlay/LandscapeOverlay";
 import {LineBasicMaterial} from "three";
 
 @Component
@@ -34,12 +36,13 @@ export class HexesFieldStartPoint {
     private readonly viewState: ViewState;
     private readonly selectionState: SelectionState;
     private readonly overlays: OverlayManager;
+    private readonly overlayView: OverlayView;
     private gridShown: boolean = true;
 
     constructor(scene: SecondScene, heightGeneration: HeightGeneration, flowGeneration: FlowGeneration,
                 layerManager: LayerManager, panel: PanelModel, levelManager: LevelManager,
                 settingsStub: SettingsStub, positionHelper: PositionHelper, viewState: ViewState,
-                selectionState: SelectionState, overlays: OverlayManager) {
+                selectionState: SelectionState, overlays: OverlayManager, overlayView: OverlayView) {
         this.scene = scene;
         this.heightGeneration = heightGeneration;
         this.flowGeneration = flowGeneration;
@@ -51,6 +54,7 @@ export class HexesFieldStartPoint {
         this.viewState = viewState;
         this.selectionState = selectionState;
         this.overlays = overlays;
+        this.overlayView = overlayView;
     }
 
     gogogo(container: HTMLElement) {
@@ -86,6 +90,7 @@ export class HexesFieldStartPoint {
         this.panel.addButton('zoom out()', () => this.changeZoom(-1));
         this.overlays.add(new PlateOverlay(this.levelManager, this.settingsStub));
         this.overlays.add(new DepthOverlay(this.levelManager));
+        this.overlays.add(new LandscapeOverlay(this.levelManager, this.settingsStub));
         this.overlays.all.forEach(overlay => this.panel.addToggle(overlay.name,
             () => this.overlays.isOn(overlay), () => this.overlays.toggle(overlay)));
         this.overlays.onChange(() => this.paintTexture(waterColorFunction, this.paintZoom(runState.running)));
@@ -118,6 +123,7 @@ export class HexesFieldStartPoint {
                 this.positionHelper.flushAccumulatedShift(this.layerManager.visible);
                 this.updateGrids(levelState);
             }
+            this.overlayView.refresh();
             if (runState.running) {
                 state.steps(runState.stepCount);
                 updateWaterLevel(true);

@@ -2,6 +2,8 @@ import * as React from "react";
 import {memo, useEffect, useRef} from "react";
 import {Panel} from "./Panel";
 import {PanelModel} from "./PanelModel";
+import {Overlays} from "./Overlays";
+import {OverlayView} from "../overlay/OverlayView";
 
 /**
  * The page: the map on the left, the panel on the right.
@@ -9,10 +11,14 @@ import {PanelModel} from "./PanelModel";
  * The map is not React's to draw. Its element is handed over once, three.js keeps the canvas in it,
  * and nothing that happens in the panel ever touches it again.
  */
-export function Application({model, start}: { model: PanelModel, start: (container: HTMLElement) => void }) {
+export function Application({model, view, start}:
+                                { model: PanelModel, view: OverlayView, start: (container: HTMLElement) => void }) {
     return (
         <div className="ht-application">
-            <MapArea start={start}/>
+            <div className="ht-map">
+                <MapArea start={start}/>
+                <Overlays view={view}/>
+            </div>
             <Panel model={model}/>
         </div>
     );

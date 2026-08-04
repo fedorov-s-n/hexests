@@ -94,3 +94,33 @@ html, body, .ht-root, .ht-application, .ht-three-js-panel {
     align-items: center;
     gap: 6px;
 }
+
+.ht-map {
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.ht-overlays {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.ht-overlay-label {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font: 13px sans-serif;
+    text-align: center;
+    white-space: pre;
+}
+
+.ht-overlay-caption {
+    position: absolute;
+    left: 0;
+    top: 0;
+    overflow: visible;
+    font: bold 22px sans-serif;
+}
