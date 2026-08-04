@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "experimentalDecorators": true,
+    "jsx": "react-jsx",
     "emitDecoratorMetadata": true,
     "target": "es6",
     "module": "es6",

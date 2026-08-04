@@ -3,7 +3,7 @@ import {SecondScene} from "./three/SecondScene";
 import {LayerManager} from "./three/LayerManager";
 import {HeightGeneration} from "./algorithms/HeightGeneration";
 import {FlowGeneration} from "./algorithms/FlowGeneration";
-import {WidgetService} from "./htmlcomponents/WidgetService";
+import {PanelModel} from "./panel/PanelModel";
 import {RunState} from "./algorithms/RunState";
 import {LevelManager} from "./level/LevelManager";
 import {ColorGenerator} from "./util/ColorGenerator";
@@ -20,7 +20,7 @@ export class HexesFieldStartPoint {
     private readonly heightGeneration: HeightGeneration;
     private readonly flowGeneration: FlowGeneration;
     private readonly layerManager: LayerManager;
-    private readonly widgetService: WidgetService;
+    private readonly panel: PanelModel;
     private readonly levelManager: LevelManager;
     private readonly settingsStub: SettingsStub;
     private readonly positionHelper: PositionHelper;
@@ -28,13 +28,13 @@ export class HexesFieldStartPoint {
     private gridShown: boolean = true;
 
     constructor(scene: SecondScene, heightGeneration: HeightGeneration, flowGeneration: FlowGeneration,
-                layerManager: LayerManager, widgetService: WidgetService, levelManager: LevelManager,
+                layerManager: LayerManager, panel: PanelModel, levelManager: LevelManager,
                 settingsStub: SettingsStub, positionHelper: PositionHelper, viewState: ViewState) {
         this.scene = scene;
         this.heightGeneration = heightGeneration;
         this.flowGeneration = flowGeneration;
         this.layerManager = layerManager;
-        this.widgetService = widgetService;
+        this.panel = panel;
         this.levelManager = levelManager;
         this.settingsStub = settingsStub;
         this.positionHelper = positionHelper;
@@ -63,16 +63,16 @@ export class HexesFieldStartPoint {
         };
 
 
-        this.widgetService.addNumberFieldEditors(runState);
-        this.widgetService.addFunctionButtons(runState);
-        this.widgetService.addNumberFieldEditors(state);
-        this.widgetService.addFunctionButtons(state, updateWaterLevel);
+        this.panel.addNumberFields(runState);
+        this.panel.addFunctionButtons(runState);
+        this.panel.addNumberFields(state);
+        this.panel.addFunctionButtons(state, updateWaterLevel);
         const levelState = new LevelState();
-        this.widgetService.addNumberFieldEditors(levelState);
-        const showLevelNumber = this.widgetService.addIndicator('level');
-        this.widgetService.addButton('zoom in()', () => this.changeZoom(+1));
-        this.widgetService.addButton('zoom out()', () => this.changeZoom(-1));
-        this.widgetService.addButton('grid()', () => {
+        this.panel.addNumberFields(levelState);
+        const showLevelNumber = this.panel.addIndicator('level');
+        this.panel.addButton('zoom in()', () => this.changeZoom(+1));
+        this.panel.addButton('zoom out()', () => this.changeZoom(-1));
+        this.panel.addButton('grid()', () => {
             this.gridShown = !this.gridShown;
             this.updateGrids(levelState);
         });

@@ -3,8 +3,44 @@ body {
     overflow: hidden;
 }
 
-html, body, .ht-three-js-panel {
+html, body, .ht-root, .ht-application, .ht-three-js-panel {
     height: 100%;
+}
+
+.ht-application {
+    display: flex;
+    flex-direction: row;
+}
+
+.ht-three-js-panel {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.ht-panel {
+    flex: 0 0 220px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 6px;
+    overflow-y: auto;
+    font: 14px sans-serif;
+    background: #f6f8fa;
+    border-left: 1px solid #d3d9df;
+}
+
+.ht-panel-numbers, .ht-panel-buttons, .ht-panel-indicators {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.ht-panel-buttons {
+    margin-top: auto;
+}
+
+.ht-panel-indicator {
+    color: #24292f;
 }
 
 .ht-help-panel {
