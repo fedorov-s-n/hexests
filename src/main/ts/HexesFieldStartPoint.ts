@@ -13,10 +13,16 @@ import {SettingsStub} from "./util/SettingsStub";
 import {PositionHelper} from "./three/PositionHelper";
 import {ViewState} from "./three/ViewState";
 import {SelectionState} from "./three/SelectionState";
+import {OverlayManager} from "./overlay/OverlayManager";
+import {PlateOverlay} from "./overlay/PlateOverlay";
+import {DepthOverlay} from "./overlay/DepthOverlay";
 import {LineBasicMaterial} from "three";
 
 @Component
 export class HexesFieldStartPoint {
+    /** Water on the map itself, plain and flat; its depth is an overlay of its own. */
+    private static readonly WATER = '#7fb8e0';
+
     private readonly scene: SecondScene;
     private readonly heightGeneration: HeightGeneration;
     private readonly flowGeneration: FlowGeneration;
@@ -27,12 +33,13 @@ export class HexesFieldStartPoint {
     private readonly positionHelper: PositionHelper;
     private readonly viewState: ViewState;
     private readonly selectionState: SelectionState;
+    private readonly overlays: OverlayManager;
     private gridShown: boolean = true;
 
     constructor(scene: SecondScene, heightGeneration: HeightGeneration, flowGeneration: FlowGeneration,
                 layerManager: LayerManager, panel: PanelModel, levelManager: LevelManager,
                 settingsStub: SettingsStub, positionHelper: PositionHelper, viewState: ViewState,
-                selectionState: SelectionState) {
+                selectionState: SelectionState, overlays: OverlayManager) {
         this.scene = scene;
         this.heightGeneration = heightGeneration;
         this.flowGeneration = flowGeneration;
@@ -43,6 +50,7 @@ export class HexesFieldStartPoint {
         this.positionHelper = positionHelper;
         this.viewState = viewState;
         this.selectionState = selectionState;
+        this.overlays = overlays;
     }
 
     gogogo(container: HTMLElement) {
@@ -57,7 +65,7 @@ export class HexesFieldStartPoint {
         // while the water is running the colours are painted from the level they are computed on,
         // which is cheap; the fine texture is painted once the water settles
         const updateWaterLevel = (running: boolean = false) => {
-            const paintZoom = running ? this.settingsStub.generationZoom : this.settingsStub.textureZoom;
+            const paintZoom = this.paintZoom(running);
             const generated = this.levelManager.data.get(this.settingsStub.generationZoom);
             generated.waterLevel.array.forEach((_, i, a) => a[i] = state.field[i]);
             this.spread(data => data.waterLevel, paintZoom);
@@ -76,6 +84,12 @@ export class HexesFieldStartPoint {
         const showLevelNumber = this.panel.addIndicator('level');
         this.panel.addButton('zoom in()', () => this.changeZoom(+1));
         this.panel.addButton('zoom out()', () => this.changeZoom(-1));
+        this.overlays.add(new PlateOverlay(this.levelManager, this.settingsStub));
+        this.overlays.add(new DepthOverlay(this.levelManager));
+        this.overlays.all.forEach(overlay => this.panel.addToggle(overlay.name,
+            () => this.overlays.isOn(overlay), () => this.overlays.toggle(overlay)));
+        this.overlays.onChange(() => this.paintTexture(waterColorFunction, this.paintZoom(runState.running)));
+
         this.panel.addSlider('selection', SelectionState.SMALLEST, SelectionState.LARGEST,
             () => this.selectionState.radius,
             radius => {
@@ -127,7 +141,12 @@ export class HexesFieldStartPoint {
         const height = data.height.array;
         this.layerManager.visible.landTexture.loadFrom(
             this.levelManager.finitePlainAbstractions.get(zoom),
-            (index) => colourOf(water[index] - height[index])
+            (index) => {
+                const depth = water[index] - height[index];
+                // the map itself only says land or water; how deep it is, is for an overlay to tell
+                const beneath = depth > DepthOverlay.PUDDLE ? HexesFieldStartPoint.WATER : colourOf(0);
+                return this.overlays.colourOf(index, zoom, beneath);
+            }
         );
     }
 
@@ -153,6 +172,11 @@ export class HexesFieldStartPoint {
             material.opacity = light;
             layer.gridMesh.visible = this.gridShown && light > 0.02;
         });
+    }
+
+    /** While the water runs the colours come from the level it runs on; then from a finer one. */
+    private paintZoom(running: boolean): number {
+        return running ? this.settingsStub.generationZoom : this.settingsStub.textureZoom;
     }
 
     private describeLevel(): string {

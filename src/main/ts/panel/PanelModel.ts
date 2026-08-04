@@ -8,6 +8,7 @@ import {Component} from "../di/Component";
 export class PanelModel {
     readonly numbers: NumberField[] = [];
     readonly sliders: Slider[] = [];
+    readonly toggles: Toggle[] = [];
     readonly buttons: PanelButton[] = [];
     readonly indicators: Indicator[] = [];
 
@@ -53,6 +54,15 @@ export class PanelModel {
         this.changed();
     }
 
+    /** Something that is either on or off. */
+    addToggle(label: string, isOn: () => boolean, toggle: () => void) {
+        this.toggles.push(new Toggle(label, isOn, () => {
+            toggle();
+            this.changed();
+        }));
+        this.changed();
+    }
+
     /** A line of text the world keeps up to date; returns the way to set it. */
     addIndicator(label: string): (value: string) => void {
         const indicator = new Indicator(label);
@@ -80,6 +90,18 @@ export class PanelModel {
     };
 
     version = (): number => this._version;
+}
+
+export class Toggle {
+    readonly label: string;
+    readonly isOn: () => boolean;
+    readonly toggle: () => void;
+
+    constructor(label: string, isOn: () => boolean, toggle: () => void) {
+        this.label = label;
+        this.isOn = isOn;
+        this.toggle = toggle;
+    }
 }
 
 export class Slider {

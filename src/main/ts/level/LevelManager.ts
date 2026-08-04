@@ -1,6 +1,7 @@
 import {Component} from "../di/Component";
 import {LazyGeneratedArray} from "../util/LazyGeneratedArray";
 import {LatticeCellField} from "../lattice/LatticeCellField";
+import {coarseQ, coarseR, refineQ, refineR, roundAxial} from "../lattice/HexLattice";
 import {FinitePlaneAbstraction} from "../finiteplane/FinitePlaneAbstraction";
 import {Level} from "./Level";
 import {CellData} from "../cell/CellData";
@@ -34,6 +35,28 @@ export class LevelManager {
             level => level.lower);
         this.levelHistory = new CircularBuffer<Level>(5);
         this.levelHistory.put(this.levels.initial);
+    }
+
+    /**
+     * The same place of the world, taken on another level: the cell that covers it when going up,
+     * the cell at its middle when going down.
+     */
+    mapCell(cell: number, fromZoom: number, toZoom: number): number {
+        let field = this.cellFields.get(fromZoom) as LatticeCellField;
+        let q = field.q(cell);
+        let r = field.r(cell);
+        const axial = new Array<number>(2);
+        for (let zoom = fromZoom; zoom < toZoom; ++zoom) {
+            const refinedQ = refineQ(q, r);
+            r = refineR(q, r);
+            q = refinedQ;
+        }
+        for (let zoom = fromZoom; zoom > toZoom; --zoom) {
+            roundAxial(coarseQ(q, r), coarseR(q, r), axial);
+            q = axial[0];
+            r = axial[1];
+        }
+        return (this.cellFields.get(toZoom) as LatticeCellField).indexOf(q, r);
     }
 
     get visible(): Level {

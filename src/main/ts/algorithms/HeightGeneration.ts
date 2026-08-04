@@ -6,6 +6,9 @@ import {SettingsStub} from "../util/SettingsStub";
 
 @Component
 export class HeightGeneration {
+    /** Where the plates of the last generation are kept, on the level they were made on. */
+    static readonly PLATES = 'plate';
+
     private readonly levelManager: LevelManager;
     private readonly genericMetropolis: GenericMetropolis;
     private readonly brownianDrift: BrownianDrift;
@@ -33,6 +36,10 @@ export class HeightGeneration {
             plateTagger: (index: number) => this.genericMetropolis.data.array[index],
             output: options.output
         });
+        // which plate a cell belonged to outlives the generation: an overlay shows them
+        const plates = this.levelManager.levels.get(options.zoomLevel || 0)
+            .data.accessor<number>(HeightGeneration.PLATES, 0).array;
+        this.genericMetropolis.data.array.forEach((plate, index) => plates[index] = plate);
         this.genericMetropolis.clear();
     }
 

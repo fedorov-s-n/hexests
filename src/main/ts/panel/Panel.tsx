@@ -1,6 +1,6 @@
 import * as React from "react";
 import {useSyncExternalStore} from "react";
-import {NumberField, PanelModel, Slider} from "./PanelModel";
+import {NumberField, PanelModel, Slider, Toggle} from "./PanelModel";
 
 /**
  * The panel beside the map: the numbers that can be edited, the buttons, and the lines the world
@@ -17,6 +17,9 @@ export function Panel({model}: { model: PanelModel }) {
             <div className="ht-panel-sliders">
                 {model.sliders.map(slider => <SliderControl key={slider.label} slider={slider}/>)}
             </div>
+            <div className="ht-panel-toggles">
+                {model.toggles.map(toggle => <ToggleControl key={toggle.label} toggle={toggle}/>)}
+            </div>
             <div className="ht-panel-indicators">
                 {model.indicators.map(indicator => (
                     <div className="ht-panel-indicator" key={indicator.label}>
@@ -30,6 +33,15 @@ export function Panel({model}: { model: PanelModel }) {
                 ))}
             </div>
         </div>
+    );
+}
+
+function ToggleControl({toggle}: { toggle: Toggle }) {
+    return (
+        <label className="ht-toggle">
+            <input type="checkbox" checked={toggle.isOn()} onChange={() => toggle.toggle()}/>
+            <span>{toggle.label}</span>
+        </label>
     );
 }
 

@@ -81,3 +81,16 @@ html, body, .ht-root, .ht-application, .ht-three-js-panel {
     width: 24px;
     height: 120px;
 }
+
+.ht-panel-toggles {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.ht-toggle {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+}
