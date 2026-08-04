@@ -77,7 +77,6 @@ html, body, .ht-root, .ht-application, .ht-three-js-panel {
 .ht-slider-input {
     writing-mode: vertical-lr;
     direction: rtl;
-    appearance: slider-vertical;
     width: 24px;
     height: 120px;
 }
