@@ -159,6 +159,15 @@ export class FinitePlaneAbstraction {
         return this.cellField.indexOf(this.centreQ + dq, this.centreR + dr);
     }
 
+    /** Where a step of the lattice takes one in the world; the same wherever it is taken from. */
+    vectorWorldX(dq: number, dr: number): number {
+        return this.cellField.offsetX(cartX(dq, dr), cartY(dq, dr));
+    }
+
+    vectorWorldY(dq: number, dr: number): number {
+        return this.cellField.offsetY(cartX(dq, dr), cartY(dq, dr));
+    }
+
     /** Where a place of the window stands in the world, counted from the middle of it. */
     offsetWorldX(dq: number, dr: number): number {
         return this.cellField.worldX(this.centreQ + dq, this.centreR + dr) - this.worldCentreX;

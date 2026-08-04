@@ -7,6 +7,7 @@ import {Component} from "../di/Component";
 @Component
 export class PanelModel {
     readonly numbers: NumberField[] = [];
+    readonly sliders: Slider[] = [];
     readonly buttons: PanelButton[] = [];
     readonly indicators: Indicator[] = [];
 
@@ -42,6 +43,16 @@ export class PanelModel {
         this.changed();
     }
 
+    /** A value chosen by dragging, shown beside the slider. */
+    addSlider(label: string, smallest: number, largest: number, read: () => number,
+              write: (value: number) => void) {
+        this.sliders.push(new Slider(label, smallest, largest, read, value => {
+            write(value);
+            this.changed();
+        }));
+        this.changed();
+    }
+
     /** A line of text the world keeps up to date; returns the way to set it. */
     addIndicator(label: string): (value: string) => void {
         const indicator = new Indicator(label);
@@ -69,6 +80,23 @@ export class PanelModel {
     };
 
     version = (): number => this._version;
+}
+
+export class Slider {
+    readonly label: string;
+    readonly smallest: number;
+    readonly largest: number;
+    readonly read: () => number;
+    readonly write: (value: number) => void;
+
+    constructor(label: string, smallest: number, largest: number, read: () => number,
+                write: (value: number) => void) {
+        this.label = label;
+        this.smallest = smallest;
+        this.largest = largest;
+        this.read = read;
+        this.write = write;
+    }
 }
 
 export class NumberField {

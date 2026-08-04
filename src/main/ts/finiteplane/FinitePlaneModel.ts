@@ -23,13 +23,12 @@ export class FinitePlaneModel {
         this.cellRadius = cellRadius;
     }
 
-    fillPointsUVP(cellIndex: number, us: number[], vs: number[], ps: number[]) {
+    fillPointsUVP(place: number, us: number[], vs: number[], ps: number[]) {
         const offset = FinitePlaneModel.OFFSET;
-        if (!this.cellRadius.fillOffset(cellIndex, offset)) return;
+        this.cellRadius.fillOffset(place, offset);
         this.finitePlaneAbstraction.fillOffsetWorldPointsXY(offset[0], offset[1], us, vs);
-        if (this.cellRadius.fillPointOffset(cellIndex, offset)) {
-            this.finitePlaneAbstraction.fillPointsP(offset[0], offset[1], ps);
-        }
+        this.cellRadius.fillPointOffset(place, offset);
+        this.finitePlaneAbstraction.fillPointsP(offset[0], offset[1], ps);
     }
 
     /** The heights of the level below, which the corners are read from: taken once per refresh. */
@@ -37,12 +36,12 @@ export class FinitePlaneModel {
         return this.dataAccessor.lower.array;
     }
 
-    fillPointsXYZ(cellIndex: number, xs: number[], ys: number[], zs: number[], cornerHeights: number[]) {
+    fillPointsXYZ(place: number, xs: number[], ys: number[], zs: number[], cornerHeights: number[]) {
         const offset = FinitePlaneModel.OFFSET;
-        if (!this.cellRadius.fillOffset(cellIndex, offset)) return;
+        this.cellRadius.fillOffset(place, offset);
         this.finitePlaneAbstraction.fillPointsXY(offset[0], offset[1], xs, ys);
         this.finitePlaneAbstraction.fillPointsZ(
-            this.finitePlaneAbstraction.getShiftedCellIndex(cellIndex), zs, cornerHeights);
+            this.finitePlaneAbstraction.getShiftedCellIndex(this.cellRadius.cellAt(place)), zs, cornerHeights);
 
         const shift = this.finitePlaneAbstraction.pointShift;
         for (let i = 0; i < 6; ++i) {
@@ -52,22 +51,29 @@ export class FinitePlaneModel {
         }
     }
 
+    /** Takes cells, not places: it answers where a cell of the level is being drawn right now. */
     fillCellsXYZ(cellIndexes: number[], xs: number[], ys: number[], zs: number[]) {
         const offset = FinitePlaneModel.OFFSET;
         const array = this.dataAccessor.array;
         const shift = this.finitePlaneAbstraction.pointShift;
         for (let i = 0; i < cellIndexes.length; ++i) {
-            const cellIndex = cellIndexes[i];
-            if (!this.cellRadius.fillOffset(cellIndex, offset)) continue;
+            const place = this.cellRadius.placeOf(cellIndexes[i]);
+            if (place < 0) continue;
+            this.cellRadius.fillOffset(place, offset);
             this.finitePlaneAbstraction.fillCellXY(offset[0], offset[1], xs, ys, i);
             xs[i] = (xs[i] + shift.x - 0.5) * this.length;
             ys[i] = (ys[i] + shift.y - 0.5) * this.width;
-            zs[i] = array[this.finitePlaneAbstraction.getShiftedCellIndex(cellIndex)] * this.height;
+            zs[i] = array[this.finitePlaneAbstraction.getShiftedCellIndex(cellIndexes[i])] * this.height;
         }
     }
 
-    forEach(consumer: (index: number) => void): void {
-        this.cellRadius.forEach(consumer);
+    /** Every place of the disc, by its number. */
+    forEach(consumer: (place: number) => void): void {
+        for (let place = 0; place < this.cellRadius.size; ++place) consumer(place);
+    }
+
+    get placeCount(): number {
+        return this.cellRadius.size;
     }
 
     get orientationNormalsCoefficient(): number {

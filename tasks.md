@@ -1,16 +1,5 @@
 # Well-specified: ready to do
 
-- bring in react
-    - main area with threejs should never be repainted
-    - all controls sholud move to react
-    - command center is to be deleted with related code
-    - react should provide component-level incapsulation with not too fine granularity
-    - all code in ts
-- make it possible to select areas with an arbitrary radius
-    - (1<=r<=7)
-    - rigth now there's a bug in selecting; fix it
-    - there should be a vertical slider control for choosing the value
-    - and a display to show the value
 - create support for layers
     - layer is an ability to select a "layer" which displays information over the map
     - ways of displaying information include several things; on the start it is
@@ -69,6 +58,14 @@
 - get model set with idle animation
 
 # Finished: to be actualized before a commit
+
+- bring in react
+    - the panel is a React component fed by a panel model; the map area is handed to three.js once
+      and never redrawn by React
+    - the command centre and the hand-written widgets are gone
+- make it possible to select areas with an arbitrary radius
+    - a round disc of one to seven cells, chosen by an upright slider that shows its value
+    - the marker lay on the ground and tore itself apart; both are fixed
 
 - make scroll-based scaling with auto-changed level
     - the wheel changes the approach smoothly, about twenty notches to a level

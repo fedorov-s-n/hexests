@@ -1,6 +1,6 @@
 import * as React from "react";
 import {useSyncExternalStore} from "react";
-import {NumberField, PanelModel} from "./PanelModel";
+import {NumberField, PanelModel, Slider} from "./PanelModel";
 
 /**
  * The panel beside the map: the numbers that can be edited, the buttons, and the lines the world
@@ -14,6 +14,9 @@ export function Panel({model}: { model: PanelModel }) {
             <div className="ht-panel-numbers">
                 {model.numbers.map(field => <NumberEditor key={field.name} field={field}/>)}
             </div>
+            <div className="ht-panel-sliders">
+                {model.sliders.map(slider => <SliderControl key={slider.label} slider={slider}/>)}
+            </div>
             <div className="ht-panel-indicators">
                 {model.indicators.map(indicator => (
                     <div className="ht-panel-indicator" key={indicator.label}>
@@ -26,6 +29,18 @@ export function Panel({model}: { model: PanelModel }) {
                     <button key={button.label} onClick={() => button.press()}>{button.label}</button>
                 ))}
             </div>
+        </div>
+    );
+}
+
+/** Stands upright beside its own reading, and takes effect as it is dragged. */
+function SliderControl({slider}: { slider: Slider }) {
+    return (
+        <div className="ht-slider">
+            <div className="ht-slider-label">{slider.label}: {slider.read()}</div>
+            <input type="range" className="ht-slider-input" min={slider.smallest} max={slider.largest}
+                   step={1} value={slider.read()}
+                   onChange={event => slider.write(Number.parseInt(event.target.value, 10))}/>
         </div>
     );
 }

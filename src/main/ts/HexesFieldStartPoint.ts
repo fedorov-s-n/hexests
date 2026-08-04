@@ -12,6 +12,7 @@ import {CellDataAccessor} from "./cell/CellDataAccessor";
 import {SettingsStub} from "./util/SettingsStub";
 import {PositionHelper} from "./three/PositionHelper";
 import {ViewState} from "./three/ViewState";
+import {SelectionState} from "./three/SelectionState";
 import {LineBasicMaterial} from "three";
 
 @Component
@@ -25,11 +26,13 @@ export class HexesFieldStartPoint {
     private readonly settingsStub: SettingsStub;
     private readonly positionHelper: PositionHelper;
     private readonly viewState: ViewState;
+    private readonly selectionState: SelectionState;
     private gridShown: boolean = true;
 
     constructor(scene: SecondScene, heightGeneration: HeightGeneration, flowGeneration: FlowGeneration,
                 layerManager: LayerManager, panel: PanelModel, levelManager: LevelManager,
-                settingsStub: SettingsStub, positionHelper: PositionHelper, viewState: ViewState) {
+                settingsStub: SettingsStub, positionHelper: PositionHelper, viewState: ViewState,
+                selectionState: SelectionState) {
         this.scene = scene;
         this.heightGeneration = heightGeneration;
         this.flowGeneration = flowGeneration;
@@ -39,6 +42,7 @@ export class HexesFieldStartPoint {
         this.settingsStub = settingsStub;
         this.positionHelper = positionHelper;
         this.viewState = viewState;
+        this.selectionState = selectionState;
     }
 
     gogogo(container: HTMLElement) {
@@ -72,6 +76,12 @@ export class HexesFieldStartPoint {
         const showLevelNumber = this.panel.addIndicator('level');
         this.panel.addButton('zoom in()', () => this.changeZoom(+1));
         this.panel.addButton('zoom out()', () => this.changeZoom(-1));
+        this.panel.addSlider('selection', SelectionState.SMALLEST, SelectionState.LARGEST,
+            () => this.selectionState.radius,
+            radius => {
+                this.selectionState.radius = radius;
+                this.layerManager.layers.array.forEach(layer => layer.selector.setRadius(radius));
+            });
         this.panel.addButton('grid()', () => {
             this.gridShown = !this.gridShown;
             this.updateGrids(levelState);

@@ -14,6 +14,7 @@ import {FinitePlaneMesh} from "../finiteplane/FinitePlaneMesh";
 import {CellRadius} from "../cell/CellRadius";
 import {Selector} from "./Selector";
 import {CellData} from "../cell/CellData";
+import {SelectionState} from "./SelectionState";
 
 @Component
 export class LayerManager {
@@ -24,6 +25,7 @@ export class LayerManager {
     private readonly settingsStub: SettingsStub;
     private readonly positionHelper: PositionHelper;
     private readonly levelManager: LevelManager;
+    private readonly selectionState: SelectionState;
     /** Cuts the grids to what the screen shows; the ground itself is left whole. */
     readonly gridPlanes: Plane[];
 
@@ -33,10 +35,12 @@ export class LayerManager {
     private _visible: Layer;
     readonly layers: LazyGeneratedArray<Layer>;
 
-    constructor(settingsStub: SettingsStub, positionHelper: PositionHelper, levelManager: LevelManager) {
+    constructor(settingsStub: SettingsStub, positionHelper: PositionHelper, levelManager: LevelManager,
+                selectionState: SelectionState) {
         this.settingsStub = settingsStub;
         this.positionHelper = positionHelper;
         this.levelManager = levelManager;
+        this.selectionState = selectionState;
 
         const canvasElement = document.createElement('canvas');
         canvasElement.width = this.settingsStub.bigTextureSize;
@@ -64,18 +68,23 @@ export class LayerManager {
         this.gridPlanes.forEach(plane => plane.constant = reach);
     }
 
-    private installSelector(zoom: number): { radius: CellRadius, mesh: FinitePlaneMesh, data: CellData } {
+    private installSelector(zoom: number): Selector {
         const finitePlaneAbstraction = this.levelManager.finitePlainAbstractions.get(zoom);
-        // one cell, moved around the window by the pointer
-        const radius = new LatticeCellRadius(finitePlaneAbstraction, 0);
+        // a round disc of cells, moved around the window by the pointer
+        const radius = new LatticeCellRadius(finitePlaneAbstraction, this.selectionState.radius, false);
         const data = this.levelManager.data.get(zoom);
 
-        const geometry = new FinitePlaneGeometry(new FinitePlaneModel(this.settingsStub, finitePlaneAbstraction,
-            data.accessor<number>(Selector.ACCESSOR_KEY), radius));
-        const material = new MeshLambertMaterial({color: '#ff0000'});
-        const mesh = new FinitePlaneMesh(geometry, material);
+        const build = () => new FinitePlaneGeometry(new FinitePlaneModel(this.settingsStub,
+            finitePlaneAbstraction, data.accessor<number>(Selector.ACCESSOR_KEY), radius));
+        // the marker lies right on the ground, so it is pulled towards the eye to stop the two
+        // surfaces from fighting over which of them is in front
+        const material = new MeshLambertMaterial({
+            color: '#ff0000', polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4
+        });
+        const mesh = new FinitePlaneMesh(build(), material);
         mesh.selector = true;
-        return {mesh, radius, data};
+        mesh.visible = false;
+        return new Selector(radius, mesh, data, finitePlaneAbstraction, build);
     }
 
     private installLayer(zoom: number): Layer {
@@ -122,9 +131,7 @@ export class LayerManager {
         }));
         gridMesh.visible = false;
 
-        const selectorData = this.installSelector(zoom);
-        const selector = new Selector(selectorData.radius, selectorData.mesh, selectorData.data,
-            finitePlaneAbstraction);
+        const selector = this.installSelector(zoom);
         selector.updateHeights();
 
         return new Layer(
@@ -133,7 +140,7 @@ export class LayerManager {
             waterGeometry, waterMesh, flowMap,
             gridGeometry, gridMesh,
             selector,
-            [selectorData.mesh, gridMesh]
+            [selector.mesh, gridMesh]
         );
     }
 

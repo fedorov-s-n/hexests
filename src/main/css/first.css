@@ -67,3 +67,17 @@ html, body, .ht-root, .ht-application, .ht-three-js-panel {
     display: flex;
     flex-direction: column;
 }
+.ht-slider {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+}
+
+.ht-slider-input {
+    writing-mode: vertical-lr;
+    direction: rtl;
+    appearance: slider-vertical;
+    width: 24px;
+    height: 120px;
+}

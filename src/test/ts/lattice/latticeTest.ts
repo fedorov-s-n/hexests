@@ -242,7 +242,7 @@ describe('the window into a level', () => {
         const window = new LatticeCellRadius(abstraction, 1);
 
         const collected: number[] = [];
-        window.forEach(index => collected.push(index));
+        for (let place = 0; place < window.size; ++place) collected.push(window.cellAt(place));
         expect(collected.length).toBe(window.size);
         expect(new Set(collected).size).toBe(window.size);
 
@@ -261,10 +261,10 @@ describe('the window into a level', () => {
         expect(window.size).toBe(4);
         const offset = new Array<number>(2);
         const distances: number[] = [];
-        window.forEach(index => {
-            expect(window.fillOffset(index, offset)).toBe(true);
+        for (let place = 0; place < window.size; ++place) {
+            window.fillOffset(place, offset);
             distances.push(Math.max(Math.abs(offset[0]), Math.abs(offset[1]), Math.abs(offset[0] + offset[1])));
-        });
+        }
         // and gathers them around the centre, not spread over the torus
         expect(Math.max(...distances)).toBeLessThanOrEqual(1);
     });
@@ -332,5 +332,37 @@ describe('the window into a level', () => {
 
         expect(abstraction.pointShift.x).toBeCloseTo(-tenth, 9);
         cellField.forEach(index => expect(abstraction.getShiftedCellIndex(index)).toBe(index));
+    });
+});
+
+describe('a selection', () => {
+
+    test.each([1, 2, 3, 4, 5, 6, 7])('of radius %i holds the cells within that many of the centre', radius => {
+        const cellField = field(30, 30, 0);
+        const abstraction = windowInto(cellField, 18);
+        const selection = new LatticeCellRadius(abstraction, radius, false);
+
+        // a round disc holds about three and a half cells per unit of its area
+        const perArea = 2 * Math.PI / SQRT3;
+        expect(selection.size).toBeGreaterThanOrEqual(perArea * (radius - 0.5) * (radius - 0.5) - 6);
+        expect(selection.size).toBeLessThanOrEqual(perArea * (radius + 0.5) * (radius + 0.5) + 6);
+
+        const offset = new Array<number>(2);
+        const cell = SQRT3 * cellField.scale;
+        const centreX = abstraction.offsetWorldX(0, 0);
+        const centreY = abstraction.offsetWorldY(0, 0);
+        for (let place = 0; place < selection.size; ++place) {
+            selection.fillOffset(place, offset);
+            const x = abstraction.offsetWorldX(offset[0], offset[1]) - centreX;
+            const y = abstraction.offsetWorldY(offset[0], offset[1]) - centreY;
+            expect(Math.hypot(x, y) / cell).toBeLessThanOrEqual(radius + 1e-6);
+        }
+    });
+
+    test('of the smallest radius holds one cell, at every level', () => {
+        for (let zoom = 0; zoom <= 3; ++zoom) {
+            const abstraction = windowInto(field(30, 30, zoom), 18);
+            expect(new LatticeCellRadius(abstraction, 0, false).size).toBe(1);
+        }
     });
 });
