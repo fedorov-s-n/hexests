@@ -13,6 +13,10 @@ export class SettingsStub {
     initialZoom = 3;
     /** The level the colours are painted from: the texture is finer than the cells being drawn. */
     textureZoom = 5;
+    /** The window is a disc of this many cells around its centre, whatever the level. */
+    viewRadius = 18;
+    /** The share of the screen the window fills. */
+    screenFill = 0.95;
     bigTextureSize = 512;
     planeSideSize = 10;
     shiftMultiplier = 10;

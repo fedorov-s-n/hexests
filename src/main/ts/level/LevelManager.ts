@@ -8,6 +8,7 @@ import {DataManager} from "../data/DataManager";
 import {CellField} from "../cell/CellField";
 import {CircularBuffer} from "../util/CircularBuffer";
 import {SettingsStub} from "../util/SettingsStub";
+import {ViewState} from "../three/ViewState";
 
 @Component
 export class LevelManager {
@@ -17,7 +18,7 @@ export class LevelManager {
     readonly levels: LazyGeneratedArray<Level>;
     readonly levelHistory: CircularBuffer<Level>;
 
-    constructor(dataManager: DataManager, settingsStub: SettingsStub) {
+    constructor(dataManager: DataManager, settingsStub: SettingsStub, viewState: ViewState) {
         this.cellFields = new LazyGeneratedArray(
             LatticeCellField.root(settingsStub.initialRowCount, settingsStub.initialColumnCount) as CellField,
             cellField => cellField.lower);
@@ -25,7 +26,8 @@ export class LevelManager {
             new CellData(dataManager, this.cellFields.initial, 0, 0),
             data => data.lower);
         this.finitePlainAbstractions = new LazyGeneratedArray(
-            new FinitePlaneAbstraction(this.cellFields.initial as LatticeCellField),
+            new FinitePlaneAbstraction(this.cellFields.initial as LatticeCellField, viewState,
+                settingsStub.viewRadius),
             fpa => fpa.lower);
         this.levels = new LazyGeneratedArray(
             new Level(this.finitePlainAbstractions.initial, this.cellFields.initial, this.data.initial),

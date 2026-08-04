@@ -9,7 +9,6 @@ export class FinitePlaneGridGeometry extends BufferGeometry {
     private static readonly XS = new Array<number>(6);
     private static readonly YS = new Array<number>(6);
     private static readonly ZS = new Array<number>(6);
-    private static readonly PS = new Array<number>(6);
 
     private readonly finitePlaneModel: FinitePlaneModel;
     private readonly lift: number;
@@ -41,10 +40,10 @@ export class FinitePlaneGridGeometry extends BufferGeometry {
         const XS = FinitePlaneGridGeometry.XS;
         const YS = FinitePlaneGridGeometry.YS;
         const ZS = FinitePlaneGridGeometry.ZS;
-        const PS = FinitePlaneGridGeometry.PS;
+        const cornerHeights = this.finitePlaneModel.cornerHeights;
 
         for (let i = 0; i < this.cellIndices.length; ++i) {
-            this.finitePlaneModel.fillPointsXYZP(this.cellIndices[i], XS, YS, ZS, PS);
+            this.finitePlaneModel.fillPointsXYZ(this.cellIndices[i], XS, YS, ZS, cornerHeights);
             for (let corner = 0; corner < 6; ++corner) {
                 position.setXYZ(6 * i + corner, XS[corner], YS[corner], ZS[corner] + this.lift);
             }

@@ -21,6 +21,9 @@ export class PositionHelper {
     private selectedCell = {id: [0], x: [0], y: [0], z: [0], tooltip: new Vector3()};
     private faceAngles = [0, 0, 0];
     private pointIds = [0, 0, 0];
+    private readonly offset = [0, 0];
+    private dataCell: number | undefined = undefined;
+    private _wheelNotches: number = 0;
 
     constructor(settingsStub: SettingsStub) {
         this.settingsStub = settingsStub;
@@ -44,6 +47,11 @@ export class PositionHelper {
         this.raycaster = raycaster;
         this.camera = camera;
         this.container = element;
+        element.addEventListener('wheel', event => {
+            // the wheel picks the level, not the distance to the plane
+            event.preventDefault();
+            this._wheelNotches += event.deltaY < 0 ? +1 : -1;
+        }, {passive: false});
         this.tooltip = new Tooltip(
             e => `cell index: ${e}`,
             e => this.selectedCell.tooltip
@@ -94,7 +102,15 @@ export class PositionHelper {
         return this._shiftChanged;
     }
 
+    /** Notches of the wheel turned since this was last asked; the view decides what they are worth. */
+    takeWheelNotches(): number {
+        const notches = this._wheelNotches;
+        this._wheelNotches = 0;
+        return notches;
+    }
+
     flushAccumulatedSelection(layer: Layer) {
+        const abstraction = layer.level.finitePlaneAbstraction;
         const intersections = this.raycaster
             .intersectObjects([layer.landMesh, layer.waterMesh])
             .filter(i => i.object instanceof FinitePlaneMesh && !i.object.selector && i.face?.a && i.face?.b && i.face?.c);
@@ -109,8 +125,9 @@ export class PositionHelper {
                 this.faceAngles[2] = face!.c;
                 mesh.inferPointIds(this.faceAngles, this.pointIds);
 
-                selectedCellId = layer.level.finitePlaneAbstraction.pickCellByPointIds(this.pointIds);
-                if (selectedCellId !== undefined) {
+                if (abstraction.pickOffsetByPointIds(this.pointIds, this.offset)) {
+                    selectedCellId = abstraction.cellAtOffset(this.offset[0], this.offset[1]);
+                    this.dataCell = abstraction.getShiftedCellIndex(selectedCellId);
                     const cell = this.selectedCell;
                     cell.id[0] = selectedCellId;
                     mesh.finitePlaneGeometry.fillCellsXYZ(cell.id, cell.x, cell.y, cell.z);
@@ -130,9 +147,10 @@ export class PositionHelper {
         }
         if (selectedCellId !== undefined) {
             layer.selector.mesh.visible = true;
-            layer.selector.cellRadius.cellIndex = selectedCellId;
+            layer.selector.cellRadius.setAnchor(this.offset[0], this.offset[1]);
+            layer.selector.updateHeights();
             layer.selector.mesh.finitePlaneGeometry.refreshPositions();
-            this.tooltip.element = selectedCellId;
+            this.tooltip.element = this.dataCell;
         } else {
             layer.selector.mesh.visible = false;
             this.tooltip.element = undefined;

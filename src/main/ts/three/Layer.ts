@@ -43,6 +43,8 @@ export class Layer {
     set visible(visible: boolean) {
         this.landMesh.visible = visible;
         this.waterMesh.visible = visible;
-        this.objects.forEach(object => object.visible = visible);
+        // the grid is not the layer's to hide: two of them fade into one another across a switch
+        this.objects.filter(object => object !== this.gridMesh)
+            .forEach(object => object.visible = visible);
     }
 }

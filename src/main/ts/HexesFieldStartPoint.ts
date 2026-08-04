@@ -10,6 +10,9 @@ import {ColorGenerator} from "./util/ColorGenerator";
 import {CellData} from "./cell/CellData";
 import {CellDataAccessor} from "./cell/CellDataAccessor";
 import {SettingsStub} from "./util/SettingsStub";
+import {PositionHelper} from "./three/PositionHelper";
+import {ViewState} from "./three/ViewState";
+import {LineBasicMaterial} from "three";
 
 @Component
 export class HexesFieldStartPoint {
@@ -20,10 +23,13 @@ export class HexesFieldStartPoint {
     private readonly widgetService: WidgetService;
     private readonly levelManager: LevelManager;
     private readonly settingsStub: SettingsStub;
+    private readonly positionHelper: PositionHelper;
+    private readonly viewState: ViewState;
+    private gridShown: boolean = true;
 
     constructor(scene: SecondScene, heightGeneration: HeightGeneration, flowGeneration: FlowGeneration,
                 layerManager: LayerManager, widgetService: WidgetService, levelManager: LevelManager,
-                settingsStub: SettingsStub) {
+                settingsStub: SettingsStub, positionHelper: PositionHelper, viewState: ViewState) {
         this.scene = scene;
         this.heightGeneration = heightGeneration;
         this.flowGeneration = flowGeneration;
@@ -31,6 +37,8 @@ export class HexesFieldStartPoint {
         this.widgetService = widgetService;
         this.levelManager = levelManager;
         this.settingsStub = settingsStub;
+        this.positionHelper = positionHelper;
+        this.viewState = viewState;
     }
 
     gogogo(container: HTMLElement) {
@@ -42,12 +50,16 @@ export class HexesFieldStartPoint {
         const waterColorFunction = ColorGenerator.getWaterColorsIndexFunction();
         const runState = new RunState(false, 10);
         const state = this.flowGeneration.run(this.settingsStub.generationZoom);
-        const updateWaterLevel = () => {
+        // while the water is running the colours are painted from the level they are computed on,
+        // which is cheap; the fine texture is painted once the water settles
+        const updateWaterLevel = (running: boolean = false) => {
+            const paintZoom = running ? this.settingsStub.generationZoom : this.settingsStub.textureZoom;
             const generated = this.levelManager.data.get(this.settingsStub.generationZoom);
             generated.waterLevel.array.forEach((_, i, a) => a[i] = state.field[i]);
-            this.spread(data => data.waterLevel);
-            this.layerManager.layers.array.forEach(l => l.waterGeometry.refreshPositions());
-            this.paintTexture(waterColorFunction);
+            this.spread(data => data.waterLevel, paintZoom);
+            // only the layer on the screen is worth refreshing; the others are laid out when shown
+            this.layerManager.visible.waterGeometry.refreshPositions();
+            this.paintTexture(waterColorFunction, paintZoom);
         };
 
 
@@ -55,23 +67,40 @@ export class HexesFieldStartPoint {
         this.widgetService.addFunctionButtons(runState);
         this.widgetService.addNumberFieldEditors(state);
         this.widgetService.addFunctionButtons(state, updateWaterLevel);
+        const levelState = new LevelState();
+        this.widgetService.addNumberFieldEditors(levelState);
+        const showLevelNumber = this.widgetService.addIndicator('level');
         this.widgetService.addButton('zoom in()', () => this.changeZoom(+1));
         this.widgetService.addButton('zoom out()', () => this.changeZoom(-1));
         this.widgetService.addButton('grid()', () => {
-            const grid = this.layerManager.visible.gridMesh;
-            grid.visible = !grid.visible;
+            this.gridShown = !this.gridShown;
+            this.updateGrids(levelState);
         });
 
         updateWaterLevel();
+        showLevelNumber(this.describeLevel());
+        this.updateGrids(levelState);
         let counter = 0;
         this.scene.animationLoop(() => {
+            const notches = this.positionHelper.takeWheelNotches();
+            if (notches) this.viewState.zoomBy(notches);
+            const wanted = this.wantedZoom(levelState);
+            if (wanted !== this.layerManager.visible.level.zoom) {
+                this.showLevel(wanted);
+                showLevelNumber(this.describeLevel());
+                this.updateGrids(levelState);
+            } else if (notches) {
+                // the approach itself moved, so the places have to be laid out anew
+                this.positionHelper.flushAccumulatedShift(this.layerManager.visible);
+                this.updateGrids(levelState);
+            }
             if (runState.running) {
                 state.steps(runState.stepCount);
-                updateWaterLevel();
-                this.layerManager.visible.selector.updateHeights();
+                updateWaterLevel(true);
                 counter += runState.stepCount;
-                if (counter === 2500) {
+                if (counter >= 2500) {
                     runState.running = false;
+                    updateWaterLevel(false);
                 }
             }
         });
@@ -82,22 +111,57 @@ export class HexesFieldStartPoint {
      * Paints the colours from a level of its own, finer than the one being drawn: the texture keeps
      * the detail the cells of the visible level are too coarse to show.
      */
-    private paintTexture(colourOf: (waterDepth: number) => string) {
-        const data = this.levelManager.data.get(this.settingsStub.textureZoom);
+    private paintTexture(colourOf: (waterDepth: number) => string, zoom: number) {
+        const data = this.levelManager.data.get(zoom);
         const water = data.waterLevel.array;
         const height = data.height.array;
         this.layerManager.visible.landTexture.loadFrom(
-            this.levelManager.finitePlainAbstractions.get(this.settingsStub.textureZoom),
+            this.levelManager.finitePlainAbstractions.get(zoom),
             (index) => colourOf(water[index] - height[index])
         );
     }
 
-    /** Shows the next level up or down. */
+    /**
+     * Two grids at a time: the one of the level being shown and the one of the level the approach is
+     * heading for, one dimming as the other lights up, so a switch is not a jump.
+     */
+    private updateGrids(levelState: LevelState) {
+        const offset = Number.isFinite(levelState.levelOffset) ? levelState.levelOffset : 0;
+        const deepest = this.settingsStub.maxZoom - 1;
+        const at = Math.max(0, Math.min(deepest, this.viewState.fractionalLevel + offset));
+
+        for (const zoom of [Math.floor(at), Math.ceil(at)]) {
+            const layer = this.layerManager.layers.get(zoom);
+            this.scene.installLayer(layer);
+            layer.level.finitePlaneAbstraction.refreshShift();
+            layer.gridGeometry.refreshPositions();
+        }
+
+        this.layerManager.layers.array.forEach(layer => {
+            const light = Math.max(0, 1 - Math.abs(at - layer.level.zoom));
+            const material = layer.gridMesh.material as LineBasicMaterial;
+            material.opacity = light;
+            layer.gridMesh.visible = this.gridShown && light > 0.02;
+        });
+    }
+
+    private describeLevel(): string {
+        const level = this.layerManager.visible.level;
+        return `${level.zoom} (${level.cellField.size} cells)`;
+    }
+
+    /** The level the approach asks for, with the correction from the panel on top of it. */
+    private wantedZoom(levelState: LevelState): number {
+        const offset = Number.isFinite(levelState.levelOffset) ? levelState.levelOffset : 0;
+        // the deepest level of the hierarchy can only serve the corners of the one above it
+        return Math.max(0, Math.min(this.settingsStub.maxZoom - 1, this.viewState.level + offset));
+    }
+
+    /** Steps the approach a whole level in or out. */
     private changeZoom(delta: number) {
         const current = this.layerManager.visible.level.zoom;
-        // the deepest level of the hierarchy can only serve the corners of the one above it
         const zoom = Math.max(0, Math.min(this.settingsStub.maxZoom - 1, current + delta));
-        if (zoom !== current) this.showLevel(zoom);
+        if (zoom !== current) this.viewState.worldSpan = this.viewState.spanAt(zoom);
     }
 
     private showLevel(zoom: number) {
@@ -113,9 +177,10 @@ export class HexesFieldStartPoint {
      * seven cells they cover, the finer ones are interpolated. It has to reach one level below the
      * visible one, whose corners it feeds, and the level the texture is painted from.
      */
-    private spread(pick: (data: CellData) => CellDataAccessor<number>) {
+    private spread(pick: (data: CellData) => CellDataAccessor<number>,
+                   paintZoom: number = this.settingsStub.textureZoom) {
         const generation = this.settingsStub.generationZoom;
-        const deepest = Math.max(this.levelManager.visible.zoom + 1, this.settingsStub.textureZoom);
+        const deepest = Math.max(this.levelManager.visible.zoom + 1, paintZoom);
         for (let zoom = generation - 1; zoom >= 0; --zoom) {
             pick(this.levelManager.data.get(zoom)).gather();
         }
@@ -123,4 +188,9 @@ export class HexesFieldStartPoint {
             pick(this.levelManager.data.get(zoom)).interpolate();
         }
     }
+}
+
+/** The correction the panel keeps on top of the level the wheel has chosen. */
+class LevelState {
+    levelOffset: number = 0;
 }

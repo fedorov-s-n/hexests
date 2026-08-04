@@ -10,6 +10,9 @@ export class FinitePlaneGeometry extends BufferGeometry {
     private readonly pointIdsByIndices: number[];
     private readonly indicesByPointId: number[];
     private readonly finitePlaneModel: FinitePlaneModel;
+    /** The places drawn, and the six vertices each of them owns. */
+    private readonly places: number[] = [];
+    private readonly placeVertices: number[] = [];
 
     constructor(finitePlaneModel: FinitePlaneModel) {
         super();
@@ -34,6 +37,7 @@ export class FinitePlaneGeometry extends BufferGeometry {
 
         finitePlaneModel.forEach(cellIndex => {
             finitePlaneModel.fillPointsUVP(cellIndex, US, VS, PS);
+            this.places.push(cellIndex);
             for (let j = 0; j < 6; ++j) {
                 const pid = PS[j];
                 if (!Number.isFinite(indexMap[pid])) {
@@ -44,6 +48,7 @@ export class FinitePlaneGeometry extends BufferGeometry {
                     indexMap[pid] = ++counter;
                 }
                 pointIndices[j] = indexMap[pid];
+                this.placeVertices.push(indexMap[pid]);
             }
 
             const d = finitePlaneModel.orientationNormalsCoefficient;
@@ -82,16 +87,14 @@ export class FinitePlaneGeometry extends BufferGeometry {
         const XS = FinitePlaneGeometry.XS;
         const YS = FinitePlaneGeometry.YS;
         const ZS = FinitePlaneGeometry.ZS;
-        const PS = FinitePlaneGeometry.PS;
+        const cornerHeights = this.finitePlaneModel.cornerHeights;
 
-        this.finitePlaneModel.forEach(cellIndex => {
-            this.finitePlaneModel.fillPointsXYZP(cellIndex, XS, YS, ZS, PS);
+        for (let place = 0; place < this.places.length; ++place) {
+            this.finitePlaneModel.fillPointsXYZ(this.places[place], XS, YS, ZS, cornerHeights);
             for (let order = 0; order < 6; ++order) {
-                const pointId = PS[order];
-                const index = this.indicesByPointId[pointId];
-                vertices.setXYZ(index, XS[order], YS[order], ZS[order]);
+                vertices.setXYZ(this.placeVertices[6 * place + order], XS[order], YS[order], ZS[order]);
             }
-        });
+        }
         this.computeVertexNormals();
         vertices.needsUpdate = true;
     }

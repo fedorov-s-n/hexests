@@ -1,6 +1,7 @@
 import {FinitePlaneGeometry} from "../finiteplane/FinitePlaneGeometry";
-import {LineBasicMaterial, LineSegments, MeshLambertMaterial, TextureLoader} from "three";
+import {LineBasicMaterial, LineSegments, MeshLambertMaterial, Plane, TextureLoader, Vector3} from "three";
 import {FinitePlaneGridGeometry} from "../finiteplane/FinitePlaneGridGeometry";
+import {LatticeCellRadius} from "../lattice/LatticeCellRadius";
 import {Texture1} from "./Texture1";
 import {Component} from "../di/Component";
 import {SettingsStub} from "../util/SettingsStub";
@@ -23,6 +24,8 @@ export class LayerManager {
     private readonly settingsStub: SettingsStub;
     private readonly positionHelper: PositionHelper;
     private readonly levelManager: LevelManager;
+    /** Cuts the grids to what the screen shows; the ground itself is left whole. */
+    readonly gridPlanes: Plane[];
 
     private readonly texture1common: Texture1;
     private readonly flowMapTexture: Texture1;
@@ -44,19 +47,31 @@ export class LayerManager {
         waterCanvasElement.height = this.settingsStub.bigTextureSize;
         this.flowMapTexture = new Texture1(waterCanvasElement);
 
+        this.gridPlanes = [0, 1, 2, 3, 4, 5].map(side => {
+            const angle = Math.PI * side / 3;
+            return new Plane(new Vector3(-Math.cos(angle), -Math.sin(angle), 0),
+                this.settingsStub.planeSideSize);
+        });
+
+
         this.layers = new LazyGeneratedArray(this.installLayer(0), l => this.installLayer(l.level.zoom + 1));
         this._visible = this.layers.initial;
         this._visible.visible = true;
     }
 
+    /** How far from the middle the grids are allowed to reach, in the units of the plane. */
+    fitGrids(reach: number) {
+        this.gridPlanes.forEach(plane => plane.constant = reach);
+    }
+
     private installSelector(zoom: number): { radius: CellRadius, mesh: FinitePlaneMesh, data: CellData } {
         const finitePlaneAbstraction = this.levelManager.finitePlainAbstractions.get(zoom);
-        const cellField = this.levelManager.cellFields.get(zoom);
-        const radius = cellField.radius();
+        // one cell, moved around the window by the pointer
+        const radius = new LatticeCellRadius(finitePlaneAbstraction, 0);
         const data = this.levelManager.data.get(zoom);
 
         const geometry = new FinitePlaneGeometry(new FinitePlaneModel(this.settingsStub, finitePlaneAbstraction,
-            data.accessor<number>(Selector.ACCESSOR_KEY), radius, radius));
+            data.accessor<number>(Selector.ACCESSOR_KEY), radius));
         const material = new MeshLambertMaterial({color: '#ff0000'});
         const mesh = new FinitePlaneMesh(geometry, material);
         mesh.selector = true;
@@ -65,13 +80,13 @@ export class LayerManager {
 
     private installLayer(zoom: number): Layer {
         const finitePlaneAbstraction = this.levelManager.finitePlainAbstractions.get(zoom);
+        // the window into the level: the same disc of cells whatever the level is
+        const window = new LatticeCellRadius(finitePlaneAbstraction, finitePlaneAbstraction.viewRadius);
 
         const geometry = new FinitePlaneGeometry(new FinitePlaneModel(this.settingsStub, finitePlaneAbstraction,
-            this.levelManager.data.get(zoom).height, this.levelManager.cellFields.get(zoom)));
+            this.levelManager.data.get(zoom).height, window));
         const texture = this.texture1common;
-        const material = new MeshLambertMaterial({
-            map: texture
-        });
+        const material = new MeshLambertMaterial({map: texture});
         const plane = new FinitePlaneMesh(geometry, material);
 
         plane.castShadow = true;
@@ -79,7 +94,7 @@ export class LayerManager {
         plane.visible = false;
 
         const waterGeometry = new FinitePlaneGeometry(new FinitePlaneModel(this.settingsStub, finitePlaneAbstraction,
-            this.levelManager.data.get(zoom).waterLevel, this.levelManager.cellFields.get(zoom)));
+            this.levelManager.data.get(zoom).waterLevel, window));
         const flowMap = this.flowMapTexture;
 
         const textureLoader = new TextureLoader();
@@ -101,12 +116,15 @@ export class LayerManager {
         waterMesh.visible = false;
 
         const gridGeometry = new FinitePlaneGridGeometry(new FinitePlaneModel(this.settingsStub, finitePlaneAbstraction,
-            this.levelManager.data.get(zoom).height, this.levelManager.cellFields.get(zoom)), LayerManager.GRID_LIFT);
-        const gridMesh = new LineSegments(gridGeometry, new LineBasicMaterial({color: LayerManager.GRID_COLOUR}));
+            this.levelManager.data.get(zoom).height, window), LayerManager.GRID_LIFT);
+        const gridMesh = new LineSegments(gridGeometry, new LineBasicMaterial({
+            color: LayerManager.GRID_COLOUR, transparent: true, clippingPlanes: this.gridPlanes
+        }));
         gridMesh.visible = false;
 
         const selectorData = this.installSelector(zoom);
-        const selector = new Selector(selectorData.radius, selectorData.mesh, selectorData.data);
+        const selector = new Selector(selectorData.radius, selectorData.mesh, selectorData.data,
+            finitePlaneAbstraction);
         selector.updateHeights();
 
         return new Layer(

@@ -16,6 +16,7 @@ import {Component} from "../di/Component";
 import {PositionHelper} from "./PositionHelper";
 import {LayerManager} from "./LayerManager";
 import {Layer} from "./Layer";
+import {SettingsStub} from "../util/SettingsStub";
 import {BackSide} from "three/src/constants";
 import {OrbitControls} from "three/examples/jsm/controls/OrbitControls";
 
@@ -23,6 +24,7 @@ import {OrbitControls} from "three/examples/jsm/controls/OrbitControls";
 export class SecondScene {
     private readonly positionHelper: PositionHelper;
     private readonly layerManager: LayerManager;
+    private readonly settingsStub: SettingsStub;
 
     scene!: Scene;
     camera!: PerspectiveCamera;
@@ -30,9 +32,10 @@ export class SecondScene {
     renderer!: Renderer;
     container!: HTMLElement;
 
-    constructor(positionHelper: PositionHelper, layerManager: LayerManager) {
+    constructor(positionHelper: PositionHelper, layerManager: LayerManager, settingsStub: SettingsStub) {
         this.positionHelper = positionHelper;
         this.layerManager = layerManager;
+        this.settingsStub = settingsStub;
     }
 
     installDefaults(container: HTMLElement) {
@@ -51,6 +54,8 @@ export class SecondScene {
         this.renderer = new WebGLRenderer({
             antialias: true
         });
+        // only the grids are cut, and only to the screen
+        (this.renderer as WebGLRenderer).localClippingEnabled = true;
         this.container = container;
         this.onWindowResize();
         container.appendChild(this.renderer.domElement);
@@ -63,6 +68,14 @@ export class SecondScene {
         this.camera.aspect = this.container.clientWidth / this.container.clientHeight
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+        this.fitGrids();
+    }
+
+    /** Lets the grids reach the corners of the screen, and no further. */
+    private fitGrids() {
+        const distance = this.camera.position.length() || this.fittingDistance();
+        const half = distance * Math.tan(this.camera.fov * Math.PI / 360);
+        this.layerManager.fitGrids(Math.hypot(half * this.camera.aspect, half));
     }
 
     installHelper(): Object3D {
@@ -102,10 +115,20 @@ export class SecondScene {
     }
 
     installControls() {
-        new OrbitControls(this.camera, this.renderer.domElement);
+        const controls = new OrbitControls(this.camera, this.renderer.domElement);
+        // the wheel chooses the level instead of the distance, and the window stays in the middle
+        controls.enableZoom = false;
+        controls.enablePan = false;
 
-        this.camera.position.set(0, 0, 10);
+        this.camera.position.set(0, 0, this.fittingDistance());
         this.camera.lookAt(this.scene.position);
+        this.fitGrids();
+    }
+
+    /** How far the camera has to stand for the window to fill the screen. */
+    private fittingDistance(): number {
+        const half = this.settingsStub.planeSideSize / 2;
+        return half / (this.settingsStub.screenFill * Math.tan(this.camera.fov * Math.PI / 360));
     }
 
     animationLoop(action: () => void) {

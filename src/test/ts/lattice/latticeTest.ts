@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import {describe, expect, test} from '@jest/globals';
 import {LatticeCellField} from "../../../main/ts/lattice/LatticeCellField";
 import {
@@ -11,8 +12,19 @@ import {
     SQRT3
 } from "../../../main/ts/lattice/HexLattice";
 import {FinitePlaneAbstraction} from "../../../main/ts/finiteplane/FinitePlaneAbstraction";
+import {LatticeCellRadius} from "../../../main/ts/lattice/LatticeCellRadius";
+import {ViewState} from "../../../main/ts/three/ViewState";
+import {SettingsStub} from "../../../main/ts/util/SettingsStub";
 
 const SIZES: number[][] = [[30, 30], [12, 20], [6, 6], [4, 10]];
+
+/** A window into a level, with a view of its own so that tests do not share the panning. */
+function windowInto(cellField: LatticeCellField, radius: number): FinitePlaneAbstraction {
+    const settingsStub = new SettingsStub();
+    settingsStub.viewRadius = radius;
+    settingsStub.initialZoom = cellField.zoom;
+    return new FinitePlaneAbstraction(cellField, new ViewState(settingsStub), radius);
+}
 
 function field(rowCount: number, columnCount: number, zoom: number): LatticeCellField {
     let result = LatticeCellField.root(rowCount, columnCount);
@@ -220,88 +232,101 @@ describe('hexagonal lattice on a torus', () => {
         expect(meanHigh).toBeCloseTo(meanLow, 12);
     });
 
-    test.each(SIZES)('a cell radius is a hexagonal disc around its centre (%i by %i)', (rowCount, columnCount) => {
-        const cellField = field(rowCount, columnCount, 0);
-        const radius = cellField.radius(0, 1);
-        const collected: number[] = [];
-        radius.forEach(index => collected.push(index));
-        expect(collected.length).toBe(radius.size);
-        expect(new Set(collected).size).toBe(radius.size);
-
-        const neighbours = new Array<number>(6);
-        cellField.fillNeighbours(0, neighbours);
-        expect(new Set(collected)).toEqual(new Set([0, ...neighbours]));
-    });
 });
 
-describe('placing a level into the world', () => {
+describe('the window into a level', () => {
 
-    test.each(SIZES)('cells sharing a corner agree on where it is (%i by %i)', (rowCount, columnCount) => {
+    test.each(SIZES)('is a disc of cells around the centre (%i by %i)', (rowCount, columnCount) => {
         const cellField = field(rowCount, columnCount, 0);
-        const abstraction = new FinitePlaneAbstraction(cellField);
-        const ps = new Array<number>(6);
-        const xs = new Array<number>(6);
-        const ys = new Array<number>(6);
-        const known = new Map<number, number[]>();
-        const counts = new Map<number, number>();
+        const abstraction = windowInto(cellField, 1);
+        const window = new LatticeCellRadius(abstraction, 1);
 
-        cellField.forEach(index => {
-            abstraction.fillPointsP(index, ps);
-            abstraction.fillPointsXY(index, xs, ys);
-            expect(new Set(ps).size).toBe(6);
-            for (let corner = 0; corner < 6; ++corner) {
-                counts.set(ps[corner], (counts.get(ps[corner]) || 0) + 1);
-                const seen = known.get(ps[corner]);
-                if (seen) {
-                    // a shared corner must not jump over the cyclic boundary: the patch is open
-                    expect(xs[corner]).toBeCloseTo(seen[0], 9);
-                    expect(ys[corner]).toBeCloseTo(seen[1], 9);
-                } else {
-                    known.set(ps[corner], [xs[corner], ys[corner]]);
+        const collected: number[] = [];
+        window.forEach(index => collected.push(index));
+        expect(collected.length).toBe(window.size);
+        expect(new Set(collected).size).toBe(window.size);
+
+        const centre = abstraction.centreCell;
+        const neighbours = new Array<number>(6);
+        cellField.fillNeighbours(centre, neighbours);
+        expect(new Set(collected)).toEqual(new Set([centre, ...neighbours]));
+    });
+
+    test('shows every cell once when the level holds fewer of them than it takes', () => {
+        const cellField = field(2, 2, 0);
+        expect(cellField.size).toBe(4);
+        const abstraction = windowInto(cellField, 3);
+        const window = new LatticeCellRadius(abstraction, 3);
+
+        expect(window.size).toBe(4);
+        const offset = new Array<number>(2);
+        const distances: number[] = [];
+        window.forEach(index => {
+            expect(window.fillOffset(index, offset)).toBe(true);
+            distances.push(Math.max(Math.abs(offset[0]), Math.abs(offset[1]), Math.abs(offset[0] + offset[1])));
+        });
+        // and gathers them around the centre, not spread over the torus
+        expect(Math.max(...distances)).toBeLessThanOrEqual(1);
+    });
+
+    test('takes the whole disc when the level is larger than it', () => {
+        const abstraction = windowInto(field(30, 30, 0), 3);
+        expect(new LatticeCellRadius(abstraction, 3).size).toBe(3 * 3 * 3 + 3 * 3 + 1);
+    });
+
+    test.each(SIZES)('gives neighbouring places two common corners (%i by %i)', (rowCount, columnCount) => {
+        const abstraction = windowInto(field(rowCount, columnCount, 0), 4);
+        const own = new Array<number>(6);
+        const other = new Array<number>(6);
+
+        for (let dq = -2; dq <= 2; ++dq) {
+            for (let dr = -2; dr <= 2; ++dr) {
+                abstraction.fillPointsP(dq, dr, own);
+                expect(new Set(own).size).toBe(6);
+                for (let direction = 0; direction < 6; ++direction) {
+                    abstraction.fillPointsP(dq + DIRECTION_Q[direction], dr + DIRECTION_R[direction], other);
+                    const common = own.filter(id => other.indexOf(id) >= 0);
+                    expect(common.length).toBe(2);
                 }
             }
-        });
-
-        expect(abstraction.pointIdCount).toBe(known.size);
-        counts.forEach(count => expect(count).toBeLessThanOrEqual(3));
-        // inside the patch every corner belongs to three cells; the edges of it hold the rest
-        const inner = Array.from(counts.values()).filter(count => count === 3).length;
-        expect(inner).toBeGreaterThan(2 * cellField.size - 8 * (rowCount + columnCount));
+        }
     });
 
-    test.each(SIZES)('a cell is found back by the corners of its own triangles (%i by %i)', (rowCount, columnCount) => {
-        const cellField = field(rowCount, columnCount, 0);
-        const abstraction = new FinitePlaneAbstraction(cellField);
-        abstraction.applyShift(0, 0);
+    test('finds a place back by the corners of its own triangles', () => {
+        const abstraction = windowInto(field(30, 30, 0), 4);
         const ps = new Array<number>(6);
+        const out = new Array<number>(2);
 
-        cellField.forEach(index => {
-            abstraction.fillPointsP(index, ps);
-            expect(abstraction.pickCellByPointIds([ps[0], ps[2], ps[4]])).toBe(index);
-            expect(abstraction.pickCellByPointIds([ps[1], ps[3], ps[5]])).toBe(index);
-        });
+        for (let dq = -3; dq <= 3; ++dq) {
+            for (let dr = -3; dr <= 3; ++dr) {
+                abstraction.fillPointsP(dq, dr, ps);
+                expect(abstraction.pickOffsetByPointIds([ps[0], ps[2], ps[4]], out)).toBe(true);
+                expect(out).toEqual([dq, dr]);
+                expect(abstraction.pickOffsetByPointIds([ps[1], ps[3], ps[5]], out)).toBe(true);
+                expect(out).toEqual([dq, dr]);
+            }
+        }
     });
 
-    test('panning by a whole cell renumbers the cells and leaves no remainder', () => {
+    test('panning by a whole cell lets the data flow and leaves no remainder', () => {
         const cellField = field(30, 30, 0);
-        const abstraction = new FinitePlaneAbstraction(cellField);
-        const world = cellField.world;
+        const abstraction = windowInto(cellField, 4);
+        const cell = SQRT3 * cellField.scale;
 
-        const dx = cellField.offsetX(SQRT3 * (DIRECTION_Q[0] + DIRECTION_R[0] / 2), 1.5 * DIRECTION_R[0]);
-        const dy = cellField.offsetY(SQRT3 * (DIRECTION_Q[0] + DIRECTION_R[0] / 2), 1.5 * DIRECTION_R[0]);
-        abstraction.applyShift(dx / world.columnsSize, dy / world.rowsSize);
+        abstraction.applyShift(cell / abstraction.viewState.worldSpan, 0);
 
         expect(abstraction.pointShift.x).toBeCloseTo(0, 9);
         expect(abstraction.pointShift.y).toBeCloseTo(0, 9);
         cellField.forEach(index => {
-            expect(abstraction.getShiftedCellIndex(index)).toBe(cellField.neighbour(index, 3));
+            // the place keeps standing where it is, the cell under it moves one step east
+            expect(abstraction.getShiftedCellIndex(index)).toBe(cellField.neighbour(index, 0));
         });
     });
 
-    test('a fraction of a cell is left to the points', () => {
+    test('a fraction of a cell is left to the window itself', () => {
         const cellField = field(30, 30, 0);
-        const abstraction = new FinitePlaneAbstraction(cellField);
-        const tenth = 0.1 * SQRT3 * cellField.scale / cellField.world.columnsSize;
+        const abstraction = windowInto(cellField, 4);
+        const tenth = 0.1 * SQRT3 * cellField.scale / abstraction.viewState.worldSpan;
 
         abstraction.applyShift(tenth, 0);
 

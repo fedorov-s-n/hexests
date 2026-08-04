@@ -1,9 +1,7 @@
 import {CellField} from "../cell/CellField";
-import {CellRadius} from "../cell/CellRadius";
 import {GraphSearchBuilder} from "../util/GraphSearchBuilder";
 import {ArrayDataStorageFactory} from "../util/DataStorageFactory";
 import {Lazy} from "../util/Lazy";
-import {LatticeCellRadius} from "./LatticeCellRadius";
 import {
     cartX,
     cartY,
@@ -278,9 +276,5 @@ export class LatticeCellField implements CellField {
             for (let i = 0; i < 7; ++i) sum += lowData[cells[i]];
             highData[index] = sum / 7;
         }
-    }
-
-    radius(index?: number, radius?: number): CellRadius {
-        return new LatticeCellRadius(this, index, radius);
     }
 }
