@@ -11,7 +11,8 @@ import {
     DIRECTION_R,
     refineQ,
     refineR,
-    SQRT3
+    SQRT3,
+    stepDistance
 } from "../../../main/ts/lattice/HexLattice";
 import {FinitePlaneAbstraction} from "../../../main/ts/finiteplane/FinitePlaneAbstraction";
 import {LatticeCellRadius} from "../../../main/ts/lattice/LatticeCellRadius";
@@ -375,26 +376,20 @@ describe('the window into a level', () => {
 
 describe('a selection', () => {
 
-    test.each([1, 2, 3, 4, 5, 6, 7])('of radius %i holds the cells within that many of the centre', radius => {
+    test.each([1, 2, 3, 4, 5, 6, 7])('of radius %i reaches no farther than that many cells', radius => {
         const cellField = field(30, 30, 0);
         const abstraction = windowInto(cellField, 18);
         const selection = new LatticeCellRadius(abstraction, radius, false);
 
-        // a round disc holds about three and a half cells per unit of its area
-        const perArea = 2 * Math.PI / SQRT3;
-        expect(selection.size).toBeGreaterThanOrEqual(perArea * (radius - 0.5) * (radius - 0.5) - 6);
-        expect(selection.size).toBeLessThanOrEqual(perArea * (radius + 0.5) * (radius + 0.5) + 6);
-
+        // the rule, and the whole of it: a radius of seven takes in what is seven cells away and not
+        // what is eight, however tempting a circle drawn in the world may find that eighth ring
         const offset = new Array<number>(2);
-        const cell = SQRT3 * cellField.scale;
-        const centreX = abstraction.offsetWorldX(0, 0);
-        const centreY = abstraction.offsetWorldY(0, 0);
         for (let place = 0; place < selection.size; ++place) {
             selection.fillOffset(place, offset);
-            const x = abstraction.offsetWorldX(offset[0], offset[1]) - centreX;
-            const y = abstraction.offsetWorldY(offset[0], offset[1]) - centreY;
-            expect(Math.hypot(x, y) / cell).toBeLessThanOrEqual(radius + 1e-6);
+            expect(stepDistance(offset[0], offset[1])).toBeLessThanOrEqual(radius);
         }
+        // and it leaves out nothing that is within its reach, which is what makes it a hexagon here
+        expect(selection.size).toBe(3 * radius * radius + 3 * radius + 1);
     });
 
     test('is never as wide as two to the power of the level', () => {

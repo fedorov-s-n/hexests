@@ -1,6 +1,6 @@
 import {CellRadius} from "../cell/CellRadius";
 import {FinitePlaneAbstraction} from "../finiteplane/FinitePlaneAbstraction";
-import {SQRT3} from "./HexLattice";
+import {SQRT3, stepDistance} from "./HexLattice";
 
 /**
  * The disc of places of a window that are drawn, by distance from its anchor.
@@ -11,7 +11,7 @@ import {SQRT3} from "./HexLattice";
  */
 export class LatticeCellRadius implements CellRadius {
     private _radius: number;
-    /** A window is stretched to the shape of the screen; a selection stays round. */
+    /** A window is stretched to the shape of the screen; a selection is a hexagon of cells. */
     private readonly stretched: boolean;
 
     private readonly abstraction: FinitePlaneAbstraction;
@@ -72,8 +72,11 @@ export class LatticeCellRadius implements CellRadius {
     }
 
     private rebuild() {
-        // measured in cells, and in the world, whose axes the screen keeps, not in the axes of this
-        // level's own lattice; a window is also stretched to the shape of the screen
+        // a window is measured in cells but in the world, whose axes the screen keeps rather than this
+        // level's own, and it is stretched to the shape of the screen so that none of it is wasted. A
+        // selection is measured in steps of the lattice itself, so it comes out as a hexagon of cells
+        // however the lattice is turned -- which a circle drawn in the world does not, from the reach
+        // at which it starts taking in the cells beyond the hexagon's corners.
         const aspect = this.stretched ? Math.max(1, this.abstraction.viewState.aspect) : 1;
         const cell = SQRT3 * this.abstraction.cellField.scale;
         const tall = cell;
@@ -84,9 +87,14 @@ export class LatticeCellRadius implements CellRadius {
         const places: number[][] = [];
         for (let dq = -reach; dq <= reach; ++dq) {
             for (let dr = -reach; dr <= reach; ++dr) {
-                const x = this.abstraction.vectorWorldX(dq, dr) / wide;
-                const y = this.abstraction.vectorWorldY(dq, dr) / tall;
-                const distance = Math.sqrt(x * x + y * y);
+                let distance;
+                if (this.stretched) {
+                    const x = this.abstraction.vectorWorldX(dq, dr) / wide;
+                    const y = this.abstraction.vectorWorldY(dq, dr) / tall;
+                    distance = Math.sqrt(x * x + y * y);
+                } else {
+                    distance = stepDistance(dq, dr);
+                }
                 if (distance > this._radius + 1e-9) continue;
                 places.push([distance, dq, dr]);
             }

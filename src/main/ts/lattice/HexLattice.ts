@@ -23,6 +23,14 @@ export const CORNER_Y = [+1, +0.5, -0.5, -1, -0.5, +0.5];
  */
 export const CORNER_DIRECTIONS = [[1, 2], [0, 1], [0, 5], [4, 5], [3, 4], [2, 3]];
 
+/**
+ * How many steps of the lattice a place is from the middle: the distance a hexagon itself knows,
+ * by which the cells within a given reach make a hexagon and not a circle.
+ */
+export function stepDistance(dq: number, dr: number): number {
+    return (Math.abs(dq) + Math.abs(dr) + Math.abs(dq + dr)) / 2;
+}
+
 /** Axial coordinates of the image of a cell on the level below: seven times denser lattice. */
 export function refineQ(q: number, r: number): number {
     return 2 * q - r;
