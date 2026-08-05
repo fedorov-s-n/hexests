@@ -9,6 +9,7 @@ import {CellRadius} from "../cell/CellRadius";
  */
 export class FinitePlaneModel {
     private static readonly OFFSET = new Array<number>(2);
+    private static readonly CORNER_ZS = new Array<number>(6);
 
     private readonly settingsStub: SettingsStub;
     private readonly finitePlaneAbstraction: FinitePlaneAbstraction;
@@ -63,6 +64,10 @@ export class FinitePlaneModel {
      * where its own turn around it falls, so a stretch of the world lying across the seam would come
      * back as two pieces a whole world apart. Every cell is put on the turn of the first one instead,
      * which keeps a stretch whole and lets it walk off the edge of the map in one piece.
+     *
+     * The height is the one the ground is drawn at over the middle of the cell -- the mean of its six
+     * corners -- and not the cell's own value, which the surface nowhere stands at. A name put at the
+     * wrong height would slide over the land as the camera turned, by the parallax between the two.
      */
     fillCellsXYZ(cellIndexes: number[], xs: number[], ys: number[], zs: number[]) {
         const offset = FinitePlaneModel.OFFSET;
@@ -81,7 +86,11 @@ export class FinitePlaneModel {
             this.finitePlaneAbstraction.fillCellXY(offset[0], offset[1], xs, ys, i);
             xs[i] = (xs[i] + shift.x - 0.5) * this.length;
             ys[i] = (ys[i] + shift.y - 0.5) * this.width;
-            zs[i] = array[cellIndexes[i]] * this.height;
+            const cornerZs = FinitePlaneModel.CORNER_ZS;
+            this.finitePlaneAbstraction.fillPointsZ(cellIndexes[i], cornerZs, array);
+            let total = 0;
+            for (let corner = 0; corner < 6; ++corner) total += cornerZs[corner];
+            zs[i] = total / 6 * this.height;
             if (Number.isNaN(firstX)) {
                 firstX = xs[i];
                 firstY = ys[i];

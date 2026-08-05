@@ -40,6 +40,15 @@
     - a selection may be a single cell: the radius starts at nothing
     - all of it is guarded by tests, and the invariants are written into `CLAUDE.md`
 
+- make the names float over the land instead of crawling along it
+    - a caption is a flat arched line of words hanging over its place, the same words from wherever the
+      world is looked at; it no longer bends along the relief or reflows when the camera turns
+    - a name hangs at the height the ground is drawn at, so turning the camera cannot slide it over
+      the land, and it is redrawn on any move at all instead of in whole pixels
+    - the marker under the pointer is picked again as the world flows past it, so it keeps the cell it
+      is over instead of vanishing until the pointer stirs
+    - moving a disc no longer walks over a whole level's worth of memory
+
 - name the plates and open the deepest level
     - every plate carries its own name, on the cell of the plate that stands in the middle of it; the
       colour still tells the kind the plate was drawn from, of which there are only a few

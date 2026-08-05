@@ -124,10 +124,10 @@ html, body, .ht-root, .ht-application, .ht-three-js-panel {
     white-space: pre;
 }
 
+/* floats over its place, flat and upright, whichever way the world is being looked at */
 .ht-overlay-caption {
     position: absolute;
-    left: 0;
-    top: 0;
+    transform: translate(-50%, -50%);
     overflow: visible;
     font: bold 22px sans-serif;
 }

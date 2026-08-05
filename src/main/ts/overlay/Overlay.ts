@@ -20,7 +20,7 @@ export interface Overlay {
     /** Labels pinned to cells, in the coordinates of the level they were made for. */
     labels?(): OverlayLabel[];
 
-    /** Words written over a stretch of the map. */
+    /** Words written over a place of the map, larger than a label and without a box. */
     captions?(): OverlayCaption[];
 }
 
@@ -35,8 +35,8 @@ export interface OverlayLabel {
 }
 
 export interface OverlayCaption {
-    /** The cells the caption is written across; the first and the last set its ends. */
-    readonly cells: number[];
+    /** The cell the words are written over, and the level that cell belongs to. */
+    readonly cell: number;
     readonly zoom: number;
     readonly text: string;
     readonly colour?: string;

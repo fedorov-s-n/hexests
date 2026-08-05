@@ -96,7 +96,13 @@ export class LatticeCellRadius implements CellRadius {
         const cells: number[] = [];
         const offsets: number[] = [];
         const localOffsets: number[] = [];
-        this.placeByCell = new Int32Array(this.abstraction.size);
+        // a disc is moved about on every stir of the pointer, and the level it is moved over may hold
+        // millions of cells: the map from cell to place is kept and only the entries it used are let go
+        if (this.placeByCell.length !== this.abstraction.size) {
+            this.placeByCell = new Int32Array(this.abstraction.size);
+        } else {
+            for (let place = 0; place < this.cells.length; ++place) this.placeByCell[this.cells[place]] = 0;
+        }
         places.forEach(([, dq, dr]) => {
             const at = this.abstraction.cellAtOffset(this.anchorQ + dq, this.anchorR + dr);
             if (this.placeByCell[at] > 0) return;

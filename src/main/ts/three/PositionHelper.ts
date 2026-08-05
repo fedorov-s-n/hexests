@@ -93,7 +93,10 @@ export class PositionHelper {
         layer.gridGeometry.refreshPositions();
         layer.landTexture.updatePlane(finitePlaneAbstraction);
         layer.waterFlowMap.updatePlane(finitePlaneAbstraction);
-        layer.selector.mesh.visible = false;
+        // the world has flowed under a pointer that has not moved, so the cell it is over is another
+        // one: the marker is picked again, in this very frame, instead of being hidden until the
+        // pointer stirs. The ray is still the one the pointer cast; it is the world that is new.
+        this._selectionChanged = true;
 
         this._shiftChanged = false;
     }

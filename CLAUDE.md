@@ -51,14 +51,15 @@ heights must be checked against all of them.
 4. **A stretch of the world is never torn by the seam.** The world closes on itself, and every cell
    is drawn on the turn around the torus nearest the middle of the window, so a stretch lying across
    that seam would come back as two pieces a whole world apart. `FinitePlaneModel.fillCellsXYZ` puts
-   every cell of a request on the turn of the first one; so a caption must be asked for in **one**
-   call, never cell by cell. Guarded by *a stretch of the world is never torn by the seam the map
-   closes on*.
-5. **A caption's line is longer than its words.** A letter that falls off the end of its path is not
-   drawn at all, and which letters those are changes with every step of a pan, so the words rebuild
-   themselves as the map moves. The line is carried past both ends by more than the words can need
-   (`src/main/ts/overlay/CaptionCurve.ts`). Guarded by *is carried past both ends by the room the
-   words asked for*.
+   every cell of a request on the turn of the first one; so anything spanning several cells must be
+   asked for in **one** call, never cell by cell. Guarded by *a stretch of the world is never torn by
+   the seam the map closes on*.
+5. **A name is flat, and the same name from anywhere.** Labels and captions are plain HTML floating
+   over the place they belong to: they follow the world, but the words themselves never bend, turn or
+   reflow, whichever way the camera is pointed. Nothing about them is drawn into the scene. Captions
+   used to be written along a curve through the land, which looked charming and cost dearly: the
+   curve was shorter than the words, so a browser silently dropped the letters that fell off its
+   ends — different letters at every step of a pan.
 6. **A fresh texture arrives already in its place.** The colours are painted from a level of their
    own, finer than the one on the screen, but the shift they must follow belongs to the level on the
    screen — that is the lattice the data has stepped along. `Texture1.loadFrom` takes the two apart

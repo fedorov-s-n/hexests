@@ -10,7 +10,8 @@ import {Vector3} from "three";
  *
  * A label is pinned to a cell of a level of its own; it is followed to the level being looked at
  * and to the place of the window that cell has flowed under. When the window does not reach it --
- * it is off the map, or the level is too coarse to hold it apart -- the label is not shown.
+ * it is off the map, or the level is too coarse to hold it apart -- the label is not shown. A caption
+ * is the same thing said larger, so both are worked out the same way.
  */
 @Component
 export class OverlayView {
@@ -59,11 +60,8 @@ export class OverlayView {
 
         const captions: PlacedCaption[] = [];
         this.overlays.captions.forEach(caption => {
-            const points = this.screenPositionsOf(caption.cells, caption.zoom);
-            // a caption is written only while the whole stretch it belongs to is on the screen
-            if (points && points.length >= 2) {
-                captions.push({points, text: caption.text, colour: caption.colour});
-            }
+            const at = this.screenPositionsOf([caption.cell], caption.zoom);
+            if (at) captions.push({...at[0], text: caption.text, colour: caption.colour});
         });
 
         if (this.same(labels, captions)) return;
@@ -103,14 +101,18 @@ export class OverlayView {
         return points;
     }
 
-    /** A move of less than a pixel is not worth redrawing for. */
+    /**
+     * Nothing moved at all, so nothing is redrawn. The allowance is a twentieth of a pixel and not a
+     * whole one: a name that only moves in whole pixels while the land under it moves smoothly is a
+     * name that trembles against the land, which the eye catches at once.
+     */
     private same(labels: PlacedLabel[], captions: PlacedCaption[]): boolean {
         if (labels.length !== this._labels.length || captions.length !== this._captions.length) return false;
         const close = (one: { x: number, y: number }, other: { x: number, y: number }) =>
-            Math.abs(one.x - other.x) < 1 && Math.abs(one.y - other.y) < 1;
+            Math.abs(one.x - other.x) < 0.05 && Math.abs(one.y - other.y) < 0.05;
         return labels.every((label, at) => label.text === this._labels[at].text && close(label, this._labels[at]))
             && captions.every((caption, at) => caption.text === this._captions[at].text
-                && caption.points.every((point, i) => close(point, this._captions[at].points[i])));
+                && close(caption, this._captions[at]));
     }
 }
 
@@ -123,7 +125,8 @@ export interface PlacedLabel {
 }
 
 export interface PlacedCaption {
-    readonly points: Array<{ x: number, y: number }>;
+    readonly x: number;
+    readonly y: number;
     readonly text: string;
     readonly colour?: string;
 }

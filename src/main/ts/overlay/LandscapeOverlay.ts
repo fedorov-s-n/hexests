@@ -4,10 +4,10 @@ import {SettingsStub} from "../util/SettingsStub";
 import {DepthOverlay} from "./DepthOverlay";
 
 /**
- * Names the land: the highest hill and the widest water it can find, written across them.
+ * Names the land: the highest hill and the deepest water it can find, written over them.
  *
- * The names are found once, on the level the world is generated on, and written wherever that
- * stretch of the world happens to be drawn.
+ * The names are found once, on the level the world is generated on, and written wherever that place
+ * of the world happens to be drawn.
  */
 export class LandscapeOverlay implements Overlay {
     readonly name = 'landscape';
@@ -48,28 +48,11 @@ export class LandscapeOverlay implements Overlay {
         }
 
         const captions: OverlayCaption[] = [
-            {cells: this.stretchAround(peak, zoom), zoom, text: 'Great mountain', colour: '#fff3d0'}
+            {cell: peak, zoom, text: 'Great mountain', colour: '#fff3d0'}
         ];
         if (deepest >= 0) {
-            captions.push({cells: this.stretchAround(deepest, zoom), zoom, text: 'The body of water', colour: '#dff3ff'});
+            captions.push({cell: deepest, zoom, text: 'The body of water', colour: '#dff3ff'});
         }
         return captions;
-    }
-
-    /** A few cells in a row through the place, for the words to bend along. */
-    private stretchAround(cell: number, zoom: number): number[] {
-        const field = this.levelManager.cellFields.get(zoom);
-        const neighbours = new Array<number>(6);
-        const cells = [cell];
-        let west = cell, east = cell;
-        for (let step = 0; step < 2; ++step) {
-            field.fillNeighbours(west, neighbours);
-            west = neighbours[3];
-            cells.unshift(west);
-            field.fillNeighbours(east, neighbours);
-            east = neighbours[0];
-            cells.push(east);
-        }
-        return cells;
     }
 }

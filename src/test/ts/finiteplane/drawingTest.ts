@@ -10,7 +10,6 @@ import {CellDataAccessor} from "../../../main/ts/cell/CellDataAccessor";
 import {CellDataKey} from "../../../main/ts/cell/CellDataKey";
 import {DataSourceImpl} from "../../../main/ts/data/DataSourceImpl";
 import {CORNER_DIRECTIONS, SQRT3} from "../../../main/ts/lattice/HexLattice";
-import {beyond, curveThrough, reachFor} from "../../../main/ts/overlay/CaptionCurve";
 
 function field(rowCount: number, columnCount: number, zoom: number): LatticeCellField {
     let result = LatticeCellField.root(rowCount, columnCount);
@@ -155,38 +154,5 @@ describe('what is put on the map', () => {
                 expect(gap).toBeLessThan(turn / 2);
             }
         }
-    });
-});
-
-describe('the line a caption is written along', () => {
-
-    const points = [{x: 100, y: 100}, {x: 130, y: 110}, {x: 160, y: 125}, {x: 190, y: 145}, {x: 220, y: 170}];
-
-    test('is carried past both ends by the room the words asked for', () => {
-        const reach = reachFor('Great mountain', 22);
-        const start = beyond(points[0], points[1], reach);
-        const end = beyond(points[4], points[3], reach);
-
-        expect(Math.hypot(start.x - points[0].x, start.y - points[0].y)).toBeCloseTo(reach, 9);
-        expect(Math.hypot(end.x - points[4].x, end.y - points[4].y)).toBeCloseTo(reach, 9);
-        // away from the stretch, not into it
-        expect(start.x).toBeLessThan(points[0].x);
-        expect(end.x).toBeGreaterThan(points[4].x);
-
-        const path = curveThrough(points, reach);
-        expect(path.startsWith(`M ${start.x} ${start.y} L ${points[0].x} ${points[0].y}`)).toBe(true);
-        expect(path.endsWith(`L ${end.x} ${end.y}`)).toBe(true);
-    });
-
-    test('leaves room for more than the words can take up', () => {
-        // a letter is never as wide as it is tall, so the room asked for outruns the words themselves
-        const text = 'The body of water';
-        const fontSize = 22;
-        expect(reachFor(text, fontSize)).toBeGreaterThan(text.length * fontSize * 0.7);
-    });
-
-    test('is a straight line when there is nothing to bend it', () => {
-        const two = [{x: 0, y: 0}, {x: 10, y: 0}];
-        expect(curveThrough(two, 5)).toBe('M -5 0 L 15 0');
     });
 });
