@@ -267,8 +267,12 @@ export class HexesFieldStartPoint {
 
 /** The correction the panel keeps on top of the level the wheel has chosen. */
 class LevelState {
-    /** How far either way the correction may go. */
-    static readonly REACH = 2;
+    /**
+     * How far either way the correction may go. Far enough to reach the top of the hierarchy: the view
+     * itself no longer opens out to the levels holding fewer cells than the window, since they cannot
+     * fill the screen, and this is the way to them.
+     */
+    static readonly REACH = 3;
 
     levelOffset: number = 0;
 }

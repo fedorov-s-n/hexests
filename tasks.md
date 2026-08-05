@@ -23,6 +23,15 @@
 
 # Finished: to be actualized before a commit
 
+- let the view open no wider than the picture can fill
+    - the widest the wheel may go is where the coarsest level that can fill the window stands: the
+      levels holding fewer cells than the window has places left the whole world a patch in the middle
+      of the screen, a tenth of its width at the top of the range
+    - a cell of the level shown at the widest view is sixty-eight pixels instead of twenty-four, the
+      world reaches half again across the screen, and half of its rows are off it
+    - the level correction reaches three steps either way now, which is how the coarse levels are
+      looked at: the view stays where it is and the lattice over it thickens
+
 - give the window the same reach every way
     - the window into a level is a hexagon of `viewRadius` cells, measured in steps of the lattice
       exactly as a selection is: the same count of cells at every level, and no leaning, stretching or
