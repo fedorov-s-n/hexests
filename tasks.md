@@ -48,6 +48,10 @@
     - the marker under the pointer is picked again as the world flows past it, so it keeps the cell it
       is over instead of vanishing until the pointer stirs
     - moving a disc no longer walks over a whole level's worth of memory
+    - the marker floats the same hair over the ground at every level, instead of a hair at the coarse
+      ones and nine cells at the deep ones, which is what put it beside what it marked under a tilt
+    - the pointer finds the deep levels again: the ball a ray is tested against was worked out once
+      and never again, and a level change moves the ground clean outside it
 
 - name the plates and open the deepest level
     - every plate carries its own name, on the cell of the plate that stands in the middle of it; the

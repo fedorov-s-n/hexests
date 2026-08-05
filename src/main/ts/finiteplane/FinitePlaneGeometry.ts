@@ -78,6 +78,11 @@ export class FinitePlaneGeometry extends BufferGeometry {
         return this.pointIdsByIndices[index];
     }
 
+    /** What a value is multiplied by to become a height: a lift can then be asked for in plane units. */
+    get heightMagnification(): number {
+        return this.finitePlaneModel.height;
+    }
+
     fillCellsXYZ(cellIndexes: number[], xs: number[], ys: number[], zs: number[]) {
         return this.finitePlaneModel.fillCellsXYZ(cellIndexes, xs, ys, zs);
     }
@@ -97,5 +102,9 @@ export class FinitePlaneGeometry extends BufferGeometry {
         }
         this.computeVertexNormals();
         vertices.needsUpdate = true;
+        // the ball the ground is known to lie inside, which a ray is tested against before any
+        // triangle: it is worked out once unless it is asked for again, and a level change moves the
+        // ground far outside the old one -- which is how the pointer stopped finding the deep levels
+        this.computeBoundingSphere();
     }
 }

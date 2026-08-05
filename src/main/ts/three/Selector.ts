@@ -7,6 +7,9 @@ import {FinitePlaneGeometry} from "../finiteplane/FinitePlaneGeometry";
 export class Selector {
     static readonly ACCESSOR_KEY: string = 'selector-height';
 
+    /** How far over the ground the marker floats, in the units of the plane, at any level. */
+    private static readonly LIFT = 0.02;
+
     private static readonly CORNERS = new Array<number>(18);
 
     readonly cellRadius: CellRadius;
@@ -40,9 +43,14 @@ export class Selector {
      * Lifts the marker just over the ground it stands on. The ground is read from the level's own
      * cells, as the ground itself is, and only the cells holding the marker's corners are touched:
      * going over the whole level for one cell would cost more than everything else drawn.
+     *
+     * The lift is a hair in the plane's own units, and the same hair at every level. What is written
+     * here is a value, which the model magnifies on its way to becoming a height -- and that
+     * magnification grows with every level, so a lift given as a value would raise the marker a whole
+     * cell over the ground at the deep levels and leave it standing beside what it marks.
      */
     updateHeights() {
-        const additionalHeight = 0.005;
+        const additionalHeight = Selector.LIFT / this.mesh.finitePlaneGeometry.heightMagnification;
         const corners = Selector.CORNERS;
         const marker = this.data.accessor<number>(Selector.ACCESSOR_KEY).array;
         // the cells the ground's own corners are taken from, so the marker lies on it, not through it
