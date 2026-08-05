@@ -154,6 +154,14 @@ export class FinitePlaneAbstraction {
         );
     }
 
+    /** The place-cell a cell of the level has flowed under: the panning step, undone. */
+    getUnshiftedCellIndex(index: number): number {
+        return this.cellField.indexOf(
+            this.cellField.q(index) - this._shiftQ,
+            this.cellField.r(index) - this._shiftR
+        );
+    }
+
     /** The cell of the window at the given offset from its centre, panning left aside. */
     cellAtOffset(dq: number, dr: number): number {
         return this.cellField.indexOf(this.centreQ + dq, this.centreR + dr);

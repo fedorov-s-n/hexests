@@ -110,10 +110,14 @@ export class HexesFieldStartPoint {
         showLevelNumber(this.describeLevel());
         this.updateGrids(levelState);
         let counter = 0;
+        let panX = Number.NaN, panY = Number.NaN;
         this.scene.animationLoop(() => {
             const notches = this.positionHelper.takeWheelNotches();
             if (notches) this.viewState.zoomBy(notches);
             const wanted = this.wantedZoom(levelState);
+            const panned = this.viewState.panX !== panX || this.viewState.panY !== panY;
+            panX = this.viewState.panX;
+            panY = this.viewState.panY;
             if (wanted !== this.layerManager.visible.level.zoom) {
                 this.showLevel(wanted);
                 showLevelNumber(this.describeLevel());
@@ -121,6 +125,10 @@ export class HexesFieldStartPoint {
             } else if (notches) {
                 // the approach itself moved, so the places have to be laid out anew
                 this.positionHelper.flushAccumulatedShift(this.layerManager.visible);
+                this.updateGrids(levelState);
+            } else if (panned) {
+                // the shown level's own grid has already followed the pan with its ground; the grid
+                // of the level the approach is heading for has its own window and has to be told
                 this.updateGrids(levelState);
             }
             this.overlayView.refresh();

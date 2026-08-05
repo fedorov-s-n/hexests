@@ -1,5 +1,4 @@
 import {
-    AxesHelper,
     BoxGeometry,
     Mesh,
     MeshBasicMaterial,
@@ -40,7 +39,6 @@ export class SecondScene {
 
     installDefaults(container: HTMLElement) {
         this.installScene(container);
-        this.installHelper();
         this.installSky();
         this.installSpotLight(0, 0, 50);
         this.installHexesPlanes();
@@ -76,12 +74,6 @@ export class SecondScene {
         const distance = this.camera.position.length() || this.fittingDistance();
         const half = distance * Math.tan(this.camera.fov * Math.PI / 360);
         this.layerManager.fitGrids(Math.hypot(half * this.camera.aspect, half));
-    }
-
-    installHelper(): Object3D {
-        const ah = new AxesHelper(1);
-        this.scene.add(ah);
-        return ah;
     }
 
     installSky(): Object3D {

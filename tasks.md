@@ -6,6 +6,7 @@
 ## Hierarchy
 
 - define hierarchy levels purposes
+- resolve how to keep data on level 14
 
 ## Flora
 
@@ -21,6 +22,13 @@
 - get model set with idle animation
 
 # Finished: to be actualized before a commit
+
+- make the whole world move as one when the map is panned
+    - the texture was dragged the opposite way from the ground, so every whole cell crossed threw the
+      picture back: panning is smooth again, and the grid, the ground and the colours stay together
+    - labels and captions are pinned to their own cells of the world and travel with them
+    - the grid of the level the approach is heading for follows the pan as well
+    - the axes helper in the middle of the map is gone
 
 - create support for layers
     - an overlay may tint cells, pin labels and write captions along a curve; several may be shown

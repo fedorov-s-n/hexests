@@ -51,19 +51,24 @@ export class FinitePlaneModel {
         }
     }
 
-    /** Takes cells, not places: it answers where a cell of the level is being drawn right now. */
+    /**
+     * Takes cells of the world, not places: it answers where a cell of the level is being drawn
+     * right now. The panning is undone to find the place the cell has flowed under, so whatever is
+     * put here -- a marker, a label, a caption -- travels with the ground it belongs to.
+     */
     fillCellsXYZ(cellIndexes: number[], xs: number[], ys: number[], zs: number[]) {
         const offset = FinitePlaneModel.OFFSET;
         const array = this.dataAccessor.array;
         const shift = this.finitePlaneAbstraction.pointShift;
         for (let i = 0; i < cellIndexes.length; ++i) {
-            const place = this.cellRadius.placeOf(cellIndexes[i]);
+            const place = this.cellRadius.placeOf(
+                this.finitePlaneAbstraction.getUnshiftedCellIndex(cellIndexes[i]));
             if (place < 0) continue;
             this.cellRadius.fillOffset(place, offset);
             this.finitePlaneAbstraction.fillCellXY(offset[0], offset[1], xs, ys, i);
             xs[i] = (xs[i] + shift.x - 0.5) * this.length;
             ys[i] = (ys[i] + shift.y - 0.5) * this.width;
-            zs[i] = array[this.finitePlaneAbstraction.getShiftedCellIndex(cellIndexes[i])] * this.height;
+            zs[i] = array[cellIndexes[i]] * this.height;
         }
     }
 

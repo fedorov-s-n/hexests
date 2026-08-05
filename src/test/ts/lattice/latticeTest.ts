@@ -333,6 +333,38 @@ describe('the window into a level', () => {
         expect(abstraction.pointShift.x).toBeCloseTo(-tenth, 9);
         cellField.forEach(index => expect(abstraction.getShiftedCellIndex(index)).toBe(index));
     });
+
+    test('the texture and the window between them carry exactly the panning', () => {
+        const cellField = field(30, 30, 0);
+        const abstraction = windowInto(cellField, 4);
+        const world = cellField.world;
+        const view = abstraction.viewState;
+        const cell = SQRT3 * cellField.scale;
+
+        // two cells and a bit each way, so both halves of the motion have something to carry
+        abstraction.applyShift(2.3 * cell / view.worldSpan, -1.7 * cell / view.worldSpan);
+
+        // the whole cells are carried by the texture and the remainder by the window itself; their
+        // sum is the panning, which is what keeps the world one picture instead of two
+        expect(abstraction.textureShift.x * world.width / view.worldSpan + abstraction.pointShift.x)
+            .toBeCloseTo(-view.panX / view.worldSpan, 9);
+        expect(abstraction.textureShift.y * world.height / view.worldSpan + abstraction.pointShift.y)
+            .toBeCloseTo(-view.panY / view.worldSpan, 9);
+    });
+
+    test('undoing the panning finds the place a cell of the world has flowed under', () => {
+        const cellField = field(12, 20, 0);
+        const abstraction = windowInto(cellField, 4);
+        const cell = SQRT3 * cellField.scale;
+
+        abstraction.applyShift(3.4 * cell / abstraction.viewState.worldSpan,
+            2.1 * cell / abstraction.viewState.worldSpan);
+
+        cellField.forEach(index => {
+            expect(abstraction.getUnshiftedCellIndex(abstraction.getShiftedCellIndex(index))).toBe(index);
+            expect(abstraction.getShiftedCellIndex(abstraction.getUnshiftedCellIndex(index))).toBe(index);
+        });
+    });
 });
 
 describe('a selection', () => {

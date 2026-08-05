@@ -129,7 +129,8 @@ export class PositionHelper {
                     selectedCellId = abstraction.cellAtOffset(this.offset[0], this.offset[1]);
                     this.dataCell = abstraction.getShiftedCellIndex(selectedCellId);
                     const cell = this.selectedCell;
-                    cell.id[0] = selectedCellId;
+                    // the tooltip is put over the cell of the world, not over the place it flowed to
+                    cell.id[0] = this.dataCell;
                     mesh.finitePlaneGeometry.fillCellsXYZ(cell.id, cell.x, cell.y, cell.z);
                     cell.tooltip.x = cell.x[0];
                     cell.tooltip.y = cell.y[0];

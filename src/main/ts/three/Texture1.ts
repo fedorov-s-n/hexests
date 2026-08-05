@@ -89,13 +89,16 @@ export class Texture1 extends CanvasTexture {
         if (!this.repaintData) return;
         const finitePlaneAbstraction = this.repaintData.finitePlaneAbstraction;
         const workArea = finitePlaneAbstraction.textureWorkArea;
+        // the picture is dragged the same way the data has stepped, so the whole world moves as one:
+        // the shift of the texture is the shift of the mesh, only counted in whole cells
         const dx: number = this.canvas.width * (finitePlaneAbstraction.textureShift.x - finitePlaneAbstraction.orientationOffset.x) / workArea.x;
-        const dy: number = this.canvas.height * (finitePlaneAbstraction.textureShift.y + finitePlaneAbstraction.orientationOffset.y) / workArea.y;
+        // the canvas counts its rows downwards while the world counts them upwards
+        const dy: number = -this.canvas.height * (finitePlaneAbstraction.textureShift.y + finitePlaneAbstraction.orientationOffset.y) / workArea.y;
 
         this.clear();
         this.context.fillStyle = this.repaintData.pattern;
-        this.context.setTransform(1, 0, 0, 1, -dx, dy);
-        this.context.fillRect(dx, -dy, this.canvas.width, this.canvas.height);
+        this.context.setTransform(1, 0, 0, 1, dx, dy);
+        this.context.fillRect(-dx, -dy, this.canvas.width, this.canvas.height);
         this.needsUpdate = true;
     }
 }
