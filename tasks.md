@@ -23,6 +23,11 @@
 
 # Finished: to be actualized before a commit
 
+- show the second grid only from where it is worth showing
+    - two grids fade into one another once the coarser of them is the second level or deeper; over the
+      top level and the one under it a single grid is enough, and a finer one over so few large cells
+      is only clutter
+
 - make the marker an overlay, and make it the grid's own cells
     - the marker is switched from the list of overlays like the outlines; switched off, nothing is
       picked at all and the bubble goes with it

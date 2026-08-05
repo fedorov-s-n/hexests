@@ -26,6 +26,8 @@ import {LineBasicMaterial} from "three";
 export class HexesFieldStartPoint {
     /** Water on the map itself, plain and flat; its depth is an overlay of its own. */
     private static readonly WATER = '#7fb8e0';
+    /** The coarser of the two grids has to be at least this deep before the finer one joins it. */
+    private static readonly SHOW_TWO_GRIDS_FROM = 2;
 
     private readonly scene: SecondScene;
     private readonly heightGeneration: HeightGeneration;
@@ -188,13 +190,20 @@ export class HexesFieldStartPoint {
     /**
      * Two grids at a time: the one of the level being shown and the one of the level the approach is
      * heading for, one dimming as the other lights up, so a switch is not a jump.
+     *
+     * Only from a certain depth, though. While the coarser of the two is the topmost level or the one
+     * under it, its cells are few and large enough to speak for themselves, and a finer grid laid over
+     * them says nothing worth the clutter: that one is left off until the coarser grid is deep enough
+     * to want it.
      */
     private updateGrids(levelState: LevelState) {
         const offset = Number.isFinite(levelState.levelOffset) ? levelState.levelOffset : 0;
         const deepest = this.settingsStub.maxZoom;
         const at = Math.max(0, Math.min(deepest, this.viewState.fractionalLevel + offset));
+        const coarser = Math.floor(at);
+        const both = coarser >= HexesFieldStartPoint.SHOW_TWO_GRIDS_FROM;
 
-        for (const zoom of [Math.floor(at), Math.ceil(at)]) {
+        for (const zoom of both ? [coarser, Math.ceil(at)] : [coarser]) {
             const layer = this.layerManager.layers.get(zoom);
             this.scene.installLayer(layer);
             layer.level.finitePlaneAbstraction.refreshShift();
@@ -202,7 +211,9 @@ export class HexesFieldStartPoint {
         }
 
         this.layerManager.layers.array.forEach(layer => {
-            const light = Math.max(0, 1 - Math.abs(at - layer.level.zoom));
+            const light = both
+                ? Math.max(0, 1 - Math.abs(at - layer.level.zoom))
+                : (layer.level.zoom === coarser ? 1 : 0);
             const material = layer.gridMesh.material as LineBasicMaterial;
             material.opacity = light;
             layer.gridMesh.visible = this.overlays.isOn(this.grid) && light > 0.02;
