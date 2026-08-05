@@ -151,7 +151,8 @@ export class Tooltip<T> extends HTMLComponent {
 
     private show() {
         const element = this._element;
-        if (!element) {
+        // nothing to tell about is what hides the tooltip; a zero, or an empty string, is something
+        if (element === undefined) {
             this.hide();
             return;
         }

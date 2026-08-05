@@ -23,6 +23,16 @@
 
 # Finished: to be actualized before a commit
 
+- make the marker an overlay, and make it the grid's own cells
+    - the marker is switched from the list of overlays like the outlines; switched off, nothing is
+      picked at all and the bubble goes with it
+    - a selection is one cell to begin with
+    - the marker is built over the very heights the ground and the outlines are built over, and asks
+      nothing of the depth buffer, so it covers exactly the cells the outlines draw -- measured to the
+      corner at levels two, three, five and seven, under water as well as over it
+    - its own heights, its lift and the walk that filled them are gone with the reason for them
+    - the bubble over cell zero is back: it was asking whether its value was true
+
 - make the whole world move as one when the map is panned
     - the texture was dragged the opposite way from the ground, so every whole cell crossed threw the
       picture back: panning is smooth again, and the grid, the ground and the colours stay together

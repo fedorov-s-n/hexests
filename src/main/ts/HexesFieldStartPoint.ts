@@ -19,6 +19,7 @@ import {PlateOverlay} from "./overlay/PlateOverlay";
 import {DepthOverlay} from "./overlay/DepthOverlay";
 import {LandscapeOverlay} from "./overlay/LandscapeOverlay";
 import {GridOverlay} from "./overlay/GridOverlay";
+import {SelectionOverlay} from "./overlay/SelectionOverlay";
 import {LineBasicMaterial} from "three";
 
 @Component
@@ -38,8 +39,9 @@ export class HexesFieldStartPoint {
     private readonly selectionState: SelectionState;
     private readonly overlays: OverlayManager;
     private readonly overlayView: OverlayView;
-    /** The outlines of the cells: an overlay of the same list, switched like all the others. */
+    /** The outlines of the cells and the marker under the pointer: overlays like all the others. */
     private readonly grid = new GridOverlay();
+    private readonly selection = new SelectionOverlay();
 
     constructor(scene: SecondScene, heightGeneration: HeightGeneration, flowGeneration: FlowGeneration,
                 layerManager: LayerManager, panel: PanelModel, levelManager: LevelManager,
@@ -91,17 +93,23 @@ export class HexesFieldStartPoint {
         this.overlays.add(new DepthOverlay(this.levelManager));
         this.overlays.add(new LandscapeOverlay(this.levelManager, this.settingsStub));
         this.overlays.add(this.grid);
-        // the outlines are shown to begin with, as they always were
+        this.overlays.add(this.selection);
+        // the outlines and the marker are shown to begin with, as they always were
         this.overlays.show(this.grid);
+        this.overlays.show(this.selection);
         this.overlays.all.forEach(overlay => this.panel.addToggle(overlay.name,
             () => this.overlays.isOn(overlay), () => this.overlays.toggle(overlay)));
         this.overlays.onChange(overlay => {
-            // only a tint calls for the whole texture to be laid down again; the outlines are lines
-            // of their own and cost nothing but a walk over the window
+            // only a tint calls for the whole texture to be laid down again; the outlines and the
+            // marker are patches of their own and cost nothing but a walk over the window
             if (!overlay || overlay.colourOf) {
                 this.paintTexture(waterColorFunction, this.paintZoom(runState.running));
             }
             this.updateGrids(levelState);
+            // the marker is asked for again rather than hidden by hand: switched off it goes, with the
+            // bubble over it, and switched on it comes back over the cell the pointer is still on
+            this.selectionState.shown = this.overlays.isOn(this.selection);
+            this.positionHelper.pickAgain();
         });
 
         this.panel.addSlider('selection', SelectionState.SMALLEST, SelectionState.LARGEST,

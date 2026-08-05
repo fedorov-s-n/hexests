@@ -1,29 +1,22 @@
 import {CellRadius} from "../cell/CellRadius";
 import {FinitePlaneMesh} from "../finiteplane/FinitePlaneMesh";
-import {CellData} from "../cell/CellData";
-import {FinitePlaneAbstraction} from "../finiteplane/FinitePlaneAbstraction";
 import {FinitePlaneGeometry} from "../finiteplane/FinitePlaneGeometry";
 
+/**
+ * The marker under the pointer: a disc of cells, filled in over the ground.
+ *
+ * It is drawn from the very heights the ground and the cell outlines are drawn from, so it lies on
+ * exactly the cells the outlines show and cannot drift from them, whatever the level and whichever
+ * way the camera is turned.
+ */
 export class Selector {
-    static readonly ACCESSOR_KEY: string = 'selector-height';
-
-    /** How far over the ground the marker floats, in the units of the plane, at any level. */
-    private static readonly LIFT = 0.02;
-
-    private static readonly CORNERS = new Array<number>(18);
-
     readonly cellRadius: CellRadius;
     readonly mesh: FinitePlaneMesh;
-    readonly data: CellData;
-    private readonly abstraction: FinitePlaneAbstraction;
     private readonly buildGeometry: () => FinitePlaneGeometry;
 
-    constructor(cellRadius: CellRadius, mesh: FinitePlaneMesh, data: CellData,
-                abstraction: FinitePlaneAbstraction, buildGeometry: () => FinitePlaneGeometry) {
+    constructor(cellRadius: CellRadius, mesh: FinitePlaneMesh, buildGeometry: () => FinitePlaneGeometry) {
         this.cellRadius = cellRadius;
         this.mesh = mesh;
-        this.data = data;
-        this.abstraction = abstraction;
         this.buildGeometry = buildGeometry;
     }
 
@@ -34,36 +27,7 @@ export class Selector {
         const shown = this.mesh.visible;
         this.mesh.geometry.dispose();
         this.mesh.geometry = this.buildGeometry();
-        this.updateHeights();
         this.mesh.finitePlaneGeometry.refreshPositions();
         this.mesh.visible = shown;
-    }
-
-    /**
-     * Lifts the marker just over the ground it stands on. The ground is read from the level's own
-     * cells, as the ground itself is, and only the cells holding the marker's corners are touched:
-     * going over the whole level for one cell would cost more than everything else drawn.
-     *
-     * The lift is a hair in the plane's own units, and the same hair at every level. What is written
-     * here is a value, which the model magnifies on its way to becoming a height -- and that
-     * magnification grows with every level, so a lift given as a value would raise the marker a whole
-     * cell over the ground at the deep levels and leave it standing beside what it marks.
-     */
-    updateHeights() {
-        const additionalHeight = Selector.LIFT / this.mesh.finitePlaneGeometry.heightMagnification;
-        const corners = Selector.CORNERS;
-        const marker = this.data.accessor<number>(Selector.ACCESSOR_KEY).array;
-        // the cells the ground's own corners are taken from, so the marker lies on it, not through it
-        const land = this.data.height.array;
-        const water = this.data.waterLevel.array;
-
-        for (let place = 0; place < this.cellRadius.size; ++place) {
-            const cell = this.abstraction.getShiftedCellIndex(this.cellRadius.cellAt(place));
-            this.abstraction.fillCornerCells(cell, corners);
-            for (let i = 0; i < 18; ++i) {
-                const corner = corners[i];
-                marker[corner] = Math.max(land[corner] || 0, water[corner] || 0) + additionalHeight;
-            }
-        }
     }
 }

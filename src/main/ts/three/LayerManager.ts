@@ -20,6 +20,9 @@ import {SelectionState} from "./SelectionState";
 export class LayerManager {
     /** The cell outlines: a bright colour nothing on the surface uses. */
     private static readonly GRID_COLOUR = '#ffff00';
+    /** Both are drawn after the ground and neither asks the depth buffer; the outlines go on top. */
+    private static readonly MARKER_ORDER = 1;
+    private static readonly GRID_ORDER = 2;
 
     private readonly settingsStub: SettingsStub;
     private readonly positionHelper: PositionHelper;
@@ -73,17 +76,18 @@ export class LayerManager {
         const radius = new LatticeCellRadius(finitePlaneAbstraction, this.selectionState.radius, false);
         const data = this.levelManager.data.get(zoom);
 
-        const build = () => new FinitePlaneGeometry(new FinitePlaneModel(this.settingsStub,
-            finitePlaneAbstraction, data.accessor<number>(Selector.ACCESSOR_KEY), radius));
-        // the marker lies right on the ground, so it is pulled towards the eye to stop the two
-        // surfaces from fighting over which of them is in front
-        const material = new MeshLambertMaterial({
-            color: '#ff0000', polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4
-        });
+        // the marker is the cells of the grid, filled in: it is built over the very heights the ground
+        // and the outlines are built over, so there is nothing left for the two to disagree about
+        const build = () => new FinitePlaneGeometry(
+            new FinitePlaneModel(this.settingsStub, finitePlaneAbstraction, data.height, radius));
+        // and it asks nothing of the depth buffer, as the outlines do not, so the water it lies under
+        // cannot cover it and the two surfaces never fight over which of them is in front
+        const material = new MeshLambertMaterial({color: '#ff0000', depthTest: false});
         const mesh = new FinitePlaneMesh(build(), material);
+        mesh.renderOrder = LayerManager.MARKER_ORDER;
         mesh.selector = true;
         mesh.visible = false;
-        return new Selector(radius, mesh, data, finitePlaneAbstraction, build);
+        return new Selector(radius, mesh, build);
     }
 
     private installLayer(zoom: number): Layer {
@@ -131,11 +135,10 @@ export class LayerManager {
             color: LayerManager.GRID_COLOUR, transparent: true, depthTest: false,
             clippingPlanes: this.gridPlanes
         }));
-        gridMesh.renderOrder = 1;
+        gridMesh.renderOrder = LayerManager.GRID_ORDER;
         gridMesh.visible = false;
 
         const selector = this.installSelector(zoom);
-        selector.updateHeights();
 
         return new Layer(
             this.levelManager.levels.get(zoom),

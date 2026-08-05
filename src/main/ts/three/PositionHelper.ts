@@ -4,10 +4,12 @@ import {SettingsStub} from "../util/SettingsStub";
 import {Layer} from "./Layer";
 import {FinitePlaneMesh} from "../finiteplane/FinitePlaneMesh";
 import {Tooltip} from "../htmlcomponents/Tooltip";
+import {SelectionState} from "./SelectionState";
 
 @Component
 export class PositionHelper {
     private readonly settingsStub: SettingsStub;
+    private readonly selectionState: SelectionState;
 
     private readonly accumulator: Vector3 = new Vector3();
     private readonly temp: Vector3 = new Vector3();
@@ -25,8 +27,9 @@ export class PositionHelper {
     private dataCell: number | undefined = undefined;
     private _wheelNotches: number = 0;
 
-    constructor(settingsStub: SettingsStub) {
+    constructor(settingsStub: SettingsStub, selectionState: SelectionState) {
         this.settingsStub = settingsStub;
+        this.selectionState = selectionState;
     }
 
     subscribe(element: HTMLElement, camera: Camera, raycaster: Raycaster) {
@@ -96,7 +99,7 @@ export class PositionHelper {
         // the world has flowed under a pointer that has not moved, so the cell it is over is another
         // one: the marker is picked again, in this very frame, instead of being hidden until the
         // pointer stirs. The ray is still the one the pointer cast; it is the world that is new.
-        this._selectionChanged = true;
+        this.pickAgain();
 
         this._shiftChanged = false;
     }
@@ -113,6 +116,13 @@ export class PositionHelper {
     }
 
     flushAccumulatedSelection(layer: Layer) {
+        // switched off from the list of overlays: nothing is asked of the world and nothing is drawn
+        if (!this.selectionState.shown) {
+            layer.selector.mesh.visible = false;
+            this.tooltip.element = undefined;
+            this._selectionChanged = false;
+            return;
+        }
         const abstraction = layer.level.finitePlaneAbstraction;
         // a triangle is wanted, and asking whether it has one is asking whether its face is there --
         // not whether the numbers of its corners are all true, which the corner numbered zero is not
@@ -154,7 +164,6 @@ export class PositionHelper {
         if (selectedCellId !== undefined) {
             layer.selector.mesh.visible = true;
             layer.selector.cellRadius.setAnchor(this.offset[0], this.offset[1]);
-            layer.selector.updateHeights();
             layer.selector.mesh.finitePlaneGeometry.refreshPositions();
             this.tooltip.element = this.dataCell;
         } else {
@@ -168,5 +177,10 @@ export class PositionHelper {
 
     get selectionChanged(): boolean {
         return this._selectionChanged;
+    }
+
+    /** Ask for the marker to be worked out again, from the ray the pointer last cast. */
+    pickAgain() {
+        this._selectionChanged = true;
     }
 }
