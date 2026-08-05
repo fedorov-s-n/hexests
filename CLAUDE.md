@@ -67,6 +67,11 @@ heights must be checked against all of them.
    the next pan happens to put them right.
 7. **Nothing on the map hides the grid.** The outlines ask nothing of the depth buffer and are drawn
    last, so a hill in front of them cannot swallow them.
+8. **Zero is an index like any other.** Cells, places, corners, vertices and plates are all numbered
+   from zero, so `if (something.index)` is a bug wherever it appears: ask whether the thing is there,
+   not whether its number is true. This cost three cells around the middle of the window their right
+   to be picked at all — the pointer discarded every triangle that used vertex number zero, so those
+   cells flickered and took several tries to select, ninety times out of ninety-six.
 
 Two of these cannot be reached from a unit test, because they live in a canvas and in a browser's
 text layout. After touching the texture or the captions, look at the running app: pan with `W`, `A`,

@@ -114,9 +114,11 @@ export class PositionHelper {
 
     flushAccumulatedSelection(layer: Layer) {
         const abstraction = layer.level.finitePlaneAbstraction;
+        // a triangle is wanted, and asking whether it has one is asking whether its face is there --
+        // not whether the numbers of its corners are all true, which the corner numbered zero is not
         const intersections = this.raycaster
             .intersectObjects([layer.landMesh, layer.waterMesh])
-            .filter(i => i.object instanceof FinitePlaneMesh && !i.object.selector && i.face?.a && i.face?.b && i.face?.c);
+            .filter(i => i.object instanceof FinitePlaneMesh && !i.object.selector && i.face != null);
         let selectedCellId: number | undefined = undefined;
         if (intersections.length) {
             const intersection = intersections.reduce((i1, i2) => i1.point.z >= i2.point.z ? i1 : i2);
