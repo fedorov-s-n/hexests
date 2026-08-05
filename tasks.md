@@ -23,14 +23,7 @@
 
 # Finished: to be actualized before a commit
 
-- keep the near ground when the camera is tilted, and let the view open out on request
-    - the point the camera looks at slides back along the way it is pointed, by however much the tilt
-      costs, so the bottom edge of the picture lies over the same ground it lay over from straight
-      above: a tilt now adds the far ground instead of trading the near ground away for it. Measured at
-      twenty, forty and sixty degrees: the near edge stays put, the far edge runs from two and eight to
-      over the horizon
-    - the grids are cut to where the picture actually lands on the ground, corner by corner, instead of
-      to a circle around the middle that a tilt would leave inside the picture
+- let the view open out on request
     - `open out` in the panel lets the wheel past the level that fills the screen, out to the coarse
       levels the world is too small to fill; off by default, and switching it off brings the view back
 
