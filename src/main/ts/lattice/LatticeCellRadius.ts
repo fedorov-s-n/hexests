@@ -1,9 +1,17 @@
 import {CellRadius} from "../cell/CellRadius";
 import {FinitePlaneAbstraction} from "../finiteplane/FinitePlaneAbstraction";
-import {SQRT3, stepDistance} from "./HexLattice";
+import {stepDistance} from "./HexLattice";
 
 /**
  * The disc of places of a window that are drawn, by distance from its anchor.
+ *
+ * A disc is measured in steps of the lattice, so it comes out as a hexagon of cells of its own
+ * level: the same reach in every direction, however that level's lattice happens to be turned. A
+ * circle drawn in the world would not, from the reach at which it starts taking in the cells beyond
+ * the hexagon's corners, and a disc stretched to the shape of the screen would not even be that.
+ * Whatever the disc is for -- the window into a level or a selection under the pointer -- it is this
+ * same shape, and the radius is the same count of cells at every level; only the cells differ in
+ * size, so a deeper level covers a smaller stretch of the world.
  *
  * A place is kept only if no place before it stands over the same cell, so a level holding fewer
  * cells than the disc draws each of them exactly once, gathered around the centre, instead of
@@ -11,8 +19,6 @@ import {SQRT3, stepDistance} from "./HexLattice";
  */
 export class LatticeCellRadius implements CellRadius {
     private _radius: number;
-    /** A window is stretched to the shape of the screen; a selection is a hexagon of cells. */
-    private readonly stretched: boolean;
 
     private readonly abstraction: FinitePlaneAbstraction;
 
@@ -25,10 +31,9 @@ export class LatticeCellRadius implements CellRadius {
     /** Place of every cell of the level, one more than the place, so that zero means none. */
     private placeByCell: Int32Array = new Int32Array(0);
 
-    constructor(abstraction: FinitePlaneAbstraction, radius: number, stretched: boolean = true) {
+    constructor(abstraction: FinitePlaneAbstraction, radius: number) {
         this.abstraction = abstraction;
         this._radius = radius;
-        this.stretched = stretched;
         this.rebuild();
     }
 
@@ -72,30 +77,16 @@ export class LatticeCellRadius implements CellRadius {
     }
 
     private rebuild() {
-        // a window is measured in cells but in the world, whose axes the screen keeps rather than this
-        // level's own, and it is stretched to the shape of the screen so that none of it is wasted. A
-        // selection is measured in steps of the lattice itself, so it comes out as a hexagon of cells
-        // however the lattice is turned -- which a circle drawn in the world does not, from the reach
-        // at which it starts taking in the cells beyond the hexagon's corners.
-        const aspect = this.stretched ? Math.max(1, this.abstraction.viewState.aspect) : 1;
-        const cell = SQRT3 * this.abstraction.cellField.scale;
-        const tall = cell;
-        const wide = cell * aspect;
-        const reach = Math.ceil(this._radius * aspect) + 1;
         // measured from the anchor by the step of the lattice itself, so that moving the disc about
-        // never changes which place is which: the mesh keeps its points between the moves
+        // never changes which place is which: the mesh keeps its points between the moves. Nothing
+        // within the reach is left out, and nothing beyond it is taken in: a place that many steps
+        // away has both of its offsets within the same count, so the square below holds the hexagon
+        // whole and no corner of it is ever cut off.
         const places: number[][] = [];
-        for (let dq = -reach; dq <= reach; ++dq) {
-            for (let dr = -reach; dr <= reach; ++dr) {
-                let distance;
-                if (this.stretched) {
-                    const x = this.abstraction.vectorWorldX(dq, dr) / wide;
-                    const y = this.abstraction.vectorWorldY(dq, dr) / tall;
-                    distance = Math.sqrt(x * x + y * y);
-                } else {
-                    distance = stepDistance(dq, dr);
-                }
-                if (distance > this._radius + 1e-9) continue;
+        for (let dq = -this._radius; dq <= this._radius; ++dq) {
+            for (let dr = -this._radius; dr <= this._radius; ++dr) {
+                const distance = stepDistance(dq, dr);
+                if (distance > this._radius) continue;
                 places.push([distance, dq, dr]);
             }
         }

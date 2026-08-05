@@ -18,8 +18,6 @@ export class ViewState {
 
     /** How much of the world the plane shows across, in the units of the topmost lattice. */
     worldSpan: number;
-    /** The shape of the screen: the window is stretched to it, so nothing of it is wasted. */
-    aspect: number = 1;
     /** Where the window looks, as an offset from the middle of the world, in the same units. */
     panX: number = 0;
     panY: number = 0;
@@ -27,9 +25,6 @@ export class ViewState {
     constructor(settingsStub: SettingsStub) {
         this.settingsStub = settingsStub;
         this.worldSpan = this.spanAt(settingsStub.initialZoom);
-        if (typeof window !== 'undefined' && window.innerHeight) {
-            this.aspect = window.innerWidth / window.innerHeight;
-        }
     }
 
     /** What the window spans when a level fills it with the cells it is meant to hold. */

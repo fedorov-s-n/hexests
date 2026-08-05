@@ -276,9 +276,48 @@ describe('the window into a level', () => {
         expect(Math.max(...distances)).toBeLessThanOrEqual(1);
     });
 
+    test.each(SIZES)('leaves out no cell of a level it can reach around (%i by %i)',
+        (rowCount, columnCount) => {
+            // a hexagon of the lattice laid over a rectangle of the world spends some of its reach on
+            // cells it has already taken, so holding as many cells as the level has is not the same as
+            // reaching all of them: the window reaches around the whole level or it tears a corner off
+            const cellField = field(rowCount, columnCount, 0);
+            const abstraction = windowInto(cellField, 18);
+            if (abstraction.viewRadius >= 18) return;
+
+            expect(new LatticeCellRadius(abstraction, abstraction.viewRadius).size).toBe(cellField.size);
+        });
+
     test('takes the whole disc when the level is larger than it', () => {
         const abstraction = windowInto(field(30, 30, 0), 3);
         expect(new LatticeCellRadius(abstraction, 3).size).toBe(3 * 3 * 3 + 3 * 3 + 1);
+    });
+
+    test('reaches the same number of cells every way, however the level is turned', () => {
+        const radius = 18;
+        // a turn of the lattice per level, and four of them make the whole sixth of a circle the
+        // hexagon repeats itself over: whatever the turn, the window must come out the same shape
+        for (let zoom = 0; zoom <= 3; ++zoom) {
+            // large enough that the disc is nowhere held down to what the level itself holds
+            const abstraction = windowInto(field(40, 40, zoom), radius);
+            const window = new LatticeCellRadius(abstraction, radius);
+
+            // a hexagon of cells and the whole of it: the shape is the lattice's own, so it does not
+            // lean, stretch or lose a corner as the level's lattice turns underneath it
+            expect(window.size).toBe(3 * radius * radius + 3 * radius + 1);
+            const offset = new Array<number>(2);
+            const reached = new Array<number>(radius + 1).fill(0);
+            for (let place = 0; place < window.size; ++place) {
+                window.fillOffset(place, offset);
+                const distance = stepDistance(offset[0], offset[1]);
+                expect(distance).toBeLessThanOrEqual(radius);
+                ++reached[distance];
+            }
+            // every ring is whole: one cell in the middle and six times the ring's number around it
+            for (let ring = 0; ring <= radius; ++ring) {
+                expect(reached[ring]).toBe(ring === 0 ? 1 : 6 * ring);
+            }
+        }
     });
 
     test.each(SIZES)('gives neighbouring places two common corners (%i by %i)', (rowCount, columnCount) => {
@@ -379,7 +418,7 @@ describe('a selection', () => {
     test.each([1, 2, 3, 4, 5, 6, 7])('of radius %i reaches no farther than that many cells', radius => {
         const cellField = field(30, 30, 0);
         const abstraction = windowInto(cellField, 18);
-        const selection = new LatticeCellRadius(abstraction, radius, false);
+        const selection = new LatticeCellRadius(abstraction, radius);
 
         // the rule, and the whole of it: a radius of seven takes in what is seven cells away and not
         // what is eight, however tempting a circle drawn in the world may find that eighth ring
@@ -410,7 +449,7 @@ describe('a selection', () => {
     test('of the smallest radius holds one cell, at every level', () => {
         for (let zoom = 0; zoom <= 3; ++zoom) {
             const abstraction = windowInto(field(30, 30, zoom), 18);
-            expect(new LatticeCellRadius(abstraction, 0, false).size).toBe(1);
+            expect(new LatticeCellRadius(abstraction, 0).size).toBe(1);
         }
     });
 });

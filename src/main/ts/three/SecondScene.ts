@@ -18,6 +18,7 @@ import {Layer} from "./Layer";
 import {SettingsStub} from "../util/SettingsStub";
 import {BackSide} from "three/src/constants";
 import {OrbitControls} from "three/examples/jsm/controls/OrbitControls";
+import {SQRT3} from "../lattice/HexLattice";
 
 @Component
 export class SecondScene {
@@ -59,13 +60,18 @@ export class SecondScene {
         container.appendChild(this.renderer.domElement);
         const eventElement = this.renderer.domElement.parentElement!;
         this.positionHelper.subscribe(eventElement, this.camera, this.raycaster);
-        eventElement.addEventListener('resize', () => this.onWindowResize());
+        // the window is the only thing that says it has been resized: an element never does, which is
+        // why the picture used to be left stretched by the browser instead of drawn afresh
+        window.addEventListener('resize', () => this.onWindowResize());
     }
 
     onWindowResize() {
         this.camera.aspect = this.container.clientWidth / this.container.clientHeight
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+        // a wider screen reaches further into the window from the same distance, so the camera is put
+        // back where the whole of the screen fits inside it again
+        this.camera.position.setLength(this.fittingDistance());
         this.fitGrids();
     }
 
@@ -117,10 +123,20 @@ export class SecondScene {
         this.fitGrids();
     }
 
-    /** How far the camera has to stand for the window to fill the screen. */
+    /**
+     * How far the camera has to stand for the window to hold the whole screen, corners included.
+     *
+     * The window is a hexagon of `viewRadius` cells and the plane holds `2 * viewRadius + 1` of them
+     * across, so the hexagon reaches that share of the plane -- and only its flat sides are that
+     * close, which is what the screen has to fit inside whichever way the level's lattice is turned.
+     * The corner of the screen is the far point of it, so it is the diagonal that is measured, and
+     * `screenFill` is what is left of the window beyond it.
+     */
     private fittingDistance(): number {
-        const half = this.settingsStub.planeSideSize / 2;
-        return half / (this.settingsStub.screenFill * Math.tan(this.camera.fov * Math.PI / 360));
+        const radius = this.settingsStub.viewRadius;
+        const reach = this.settingsStub.planeSideSize * radius * SQRT3 / 2 / (2 * radius + 1);
+        const half = reach * this.settingsStub.screenFill / Math.hypot(this.camera.aspect, 1);
+        return half / Math.tan(this.camera.fov * Math.PI / 360);
     }
 
     animationLoop(action: () => void) {

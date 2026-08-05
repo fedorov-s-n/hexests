@@ -13,9 +13,14 @@ export class SettingsStub {
     initialZoom = 3;
     /** The level the colours are painted from: the texture is finer than the cells being drawn. */
     textureZoom = 5;
-    /** The window is a disc of this many cells around its centre, whatever the level. */
+    /**
+     * The window is a hexagon of this many cells around its centre, whatever the level. It decides
+     * how much of the world is on the screen as well: the screen is fitted inside the hexagon, so
+     * about one and a half times this many cells lie across it, and the count of them drawn grows as
+     * the square of it.
+     */
     viewRadius = 18;
-    /** The share of the screen the window fills. */
+    /** How much of the window's reach the corner of the screen takes; the rest is a margin. */
     screenFill = 0.95;
     bigTextureSize = 512;
     planeSideSize = 10;

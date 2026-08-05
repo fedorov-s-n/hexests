@@ -23,7 +23,6 @@ function windowInto(cellField: LatticeCellField, radius: number) {
     settingsStub.viewRadius = radius;
     settingsStub.initialZoom = cellField.zoom;
     const viewState = new ViewState(settingsStub);
-    viewState.aspect = 1;
     const abstraction = new FinitePlaneAbstraction(cellField, viewState, radius);
     return {settingsStub, viewState, abstraction};
 }

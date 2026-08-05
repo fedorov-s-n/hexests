@@ -9,7 +9,8 @@ import {
     CORNER_X,
     CORNER_Y,
     DIRECTION_Q,
-    DIRECTION_R
+    DIRECTION_R,
+    stepDistance
 } from "../lattice/HexLattice";
 
 /**
@@ -63,8 +64,9 @@ export class FinitePlaneAbstraction {
                 higher?: FinitePlaneAbstraction) {
         this.cellField = cellField;
         this.viewState = viewState;
-        // never wider than the level itself: a level smaller than the window shows all it has, once
-        this.viewRadius = Math.min(viewRadius, FinitePlaneAbstraction.radiusHolding(cellField.size));
+        // never wider than it takes to reach every cell of the level: a level smaller than the window
+        // shows all it has, once, and nothing is enumerated that could only repeat what is there
+        this.viewRadius = Math.min(viewRadius, FinitePlaneAbstraction.radiusCovering(cellField));
 
         this.depth = 0;
         this.size = cellField.size;
@@ -86,15 +88,20 @@ export class FinitePlaneAbstraction {
         this.centreQ = cellField.q(centre);
         this.centreR = cellField.r(centre);
 
-        this._points = new Lazy(() => new PointNumbering(
-            Math.ceil(this.viewRadius * Math.max(1, viewState.aspect)) + 1));
+        this._points = new Lazy(() => new PointNumbering(this.viewRadius));
         this._lower = new Lazy(() => new FinitePlaneAbstraction(cellField.lower, viewState, viewRadius, this));
         this._higher = higher;
     }
 
-    /** The smallest disc holding that many cells: three r squared plus three r plus one of them. */
-    private static radiusHolding(size: number): number {
-        return Math.ceil((-3 + Math.sqrt(9 + 12 * (size - 1))) / 6);
+    /**
+     * How far a disc has to reach to hold every cell of a level -- not merely as many cells as the
+     * level has, which a hexagon of the lattice may spend on repeats while leaving a corner of the
+     * torus out. Every cell has a representative within half a period each way, and the step distance
+     * is a length, so half the two periods together is reach enough for all of them.
+     */
+    private static radiusCovering(cellField: LatticeCellField): number {
+        return Math.ceil((stepDistance(cellField.aq, cellField.ar)
+            + stepDistance(cellField.bq, cellField.br)) / 2);
     }
 
     /** The cell of the window centre; the window is built around it. */

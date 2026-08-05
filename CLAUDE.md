@@ -67,7 +67,20 @@ heights must be checked against all of them.
    the next pan happens to put them right.
 7. **Nothing on the map hides the grid.** The outlines ask nothing of the depth buffer and are drawn
    last, so a hill in front of them cannot swallow them.
-8. **Zero is an index like any other.** Cells, places, corners, vertices and plates are all numbered
+8. **A window is a hexagon of cells, and the screen fits inside it.** Every disc of places — the
+   window into a level and the selection alike — is measured in steps of the lattice, so it reaches
+   the same number of cells every way, whichever way that level's lattice is turned; the radius is the
+   same count of cells at every level, and only the cells differ in size. The screen is then fitted
+   inside the hexagon (`SecondScene.fittingDistance`), which is what keeps the ground under the
+   corners of the screen instead of leaving sky there. Guarded by *reaches the same number of cells
+   every way, however the level is turned* and *leaves out no cell of a level it can reach around*
+   (`src/test/ts/lattice/latticeTest.ts`). Two ways of getting this wrong have already been tried: a
+   disc stretched to the shape of the screen, which came out an ellipse leaning with the lattice and
+   losing corners to a search box too small for it; and a disc measured as a circle of the world,
+   which takes in the cells beyond the hexagon's corners and, over a level small enough to be seen
+   whole, still leaves a corner of the torus out — a hexagon holding as many cells as the level has is
+   not the same as one reaching all of them, which is what `radiusCovering` is for.
+9. **Zero is an index like any other.** Cells, places, corners, vertices and plates are all numbered
    from zero, so `if (something.index)` is a bug wherever it appears: ask whether the thing is there,
    not whether its number is true. This cost three cells around the middle of the window their right
    to be picked at all — the pointer discarded every triangle that used vertex number zero, so those

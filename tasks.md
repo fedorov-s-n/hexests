@@ -23,6 +23,18 @@
 
 # Finished: to be actualized before a commit
 
+- give the window the same reach every way
+    - the window into a level is a hexagon of `viewRadius` cells, measured in steps of the lattice
+      exactly as a selection is: the same count of cells at every level, and no leaning, stretching or
+      lost corner as the lattice turns underneath it
+    - it used to be an ellipse stretched to the shape of the browser window -- twice as wide as it was
+      tall, stretched by a ratio that was neither the canvas's nor ever refreshed, and clipped along
+      two opposite corners by a search box too small for a turned lattice
+    - the camera now stands where the whole screen fits inside that hexagon, corners included, so the
+      ground reaches the edges of the screen at every level instead of falling short of them; about
+      one and a half times `viewRadius` cells lie across the screen
+    - a resize is noticed at last: the listener was on an element, which never says it was resized
+
 - show the second grid only from where it is worth showing
     - two grids fade into one another once the coarser of them is the second level or deeper; over the
       top level and the one under it a single grid is enough, and a finer one over so few large cells
