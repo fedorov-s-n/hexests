@@ -6,13 +6,10 @@ import {
     cartX,
     cartY,
     CORNER_DIRECTIONS,
-    CORNER_LOWER_CELLS,
     CORNER_X,
     CORNER_Y,
     DIRECTION_Q,
-    DIRECTION_R,
-    refineQ,
-    refineR
+    DIRECTION_R
 } from "../lattice/HexLattice";
 
 /**
@@ -234,16 +231,18 @@ export class FinitePlaneAbstraction {
     }
 
     /**
-     * Height of every corner of a cell: a corner of a cell is a corner of the lattice below as well,
-     * where three of its cells meet, so their mean is what the corner stands at.
+     * Height of every corner of a cell: a corner is where three cells of this very level meet, and
+     * it stands at their centroid, so the mean of their three values is what it is worth. A level is
+     * read only from its own data -- never from the finer lattice below it, whose cells no longer sit
+     * inside the coarser ones and whose values are nobody's business here.
      */
-    fillPointsZ(cellIndex: number, zs: number[], lowerArray: number[]) {
+    fillPointsZ(cellIndex: number, zs: number[], array: number[]) {
         const cells = this.cornerCellsOf(cellIndex);
         const at = 18 * cellIndex;
         for (let corner = 0; corner < 6; ++corner) {
-            zs[corner] = (lowerArray[cells[at + 3 * corner] - 1]
-                + lowerArray[cells[at + 3 * corner + 1] - 1]
-                + lowerArray[cells[at + 3 * corner + 2] - 1]) / 3;
+            zs[corner] = (array[cells[at + 3 * corner] - 1]
+                + array[cells[at + 3 * corner + 1] - 1]
+                + array[cells[at + 3 * corner + 2] - 1]) / 3;
         }
     }
 
@@ -252,20 +251,17 @@ export class FinitePlaneAbstraction {
         const cells = this._cornerCells.value;
         const at = 18 * cellIndex;
         if (cells[at] === 0) {
-            const lower = this.cellField.lower;
-            const lq = refineQ(this.cellField.q(cellIndex), this.cellField.r(cellIndex));
-            const lr = refineR(this.cellField.q(cellIndex), this.cellField.r(cellIndex));
             for (let corner = 0; corner < 6; ++corner) {
-                const triple = CORNER_LOWER_CELLS[corner];
-                for (let i = 0; i < 3; ++i) {
-                    cells[at + 3 * corner + i] = lower.indexOf(lq + triple[i][0], lr + triple[i][1]) + 1;
-                }
+                const directions = CORNER_DIRECTIONS[corner];
+                cells[at + 3 * corner] = cellIndex + 1;
+                cells[at + 3 * corner + 1] = this.cellField.neighbour(cellIndex, directions[0]) + 1;
+                cells[at + 3 * corner + 2] = this.cellField.neighbour(cellIndex, directions[1]) + 1;
             }
         }
         return cells;
     }
 
-    /** The eighteen cells of the level below that hold the six corners of a cell. */
+    /** The eighteen cells of this level that hold the six corners of a cell, three to a corner. */
     fillCornerCells(cellIndex: number, out: number[]) {
         const cells = this.cornerCellsOf(cellIndex);
         for (let i = 0; i < 18; ++i) out[i] = cells[18 * cellIndex + i] - 1;

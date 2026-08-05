@@ -31,9 +31,12 @@ export class FinitePlaneModel {
         this.finitePlaneAbstraction.fillPointsP(offset[0], offset[1], ps);
     }
 
-    /** The heights of the level below, which the corners are read from: taken once per refresh. */
+    /**
+     * The values the corners are read from: this level's own, and nothing else's, taken once per
+     * refresh. A corner is the meeting point of three cells of this level and is worth their mean.
+     */
     get cornerHeights(): number[] {
-        return this.dataAccessor.lower.array;
+        return this.dataAccessor.array;
     }
 
     fillPointsXYZ(place: number, xs: number[], ys: number[], zs: number[], cornerHeights: number[]) {
@@ -55,11 +58,21 @@ export class FinitePlaneModel {
      * Takes cells of the world, not places: it answers where a cell of the level is being drawn
      * right now. The panning is undone to find the place the cell has flowed under, so whatever is
      * put here -- a marker, a label, a caption -- travels with the ground it belongs to.
+     *
+     * Cells asked for together are kept together. The world closes on itself, and a cell is drawn
+     * where its own turn around it falls, so a stretch of the world lying across the seam would come
+     * back as two pieces a whole world apart. Every cell is put on the turn of the first one instead,
+     * which keeps a stretch whole and lets it walk off the edge of the map in one piece.
      */
     fillCellsXYZ(cellIndexes: number[], xs: number[], ys: number[], zs: number[]) {
         const offset = FinitePlaneModel.OFFSET;
         const array = this.dataAccessor.array;
         const shift = this.finitePlaneAbstraction.pointShift;
+        const world = this.finitePlaneAbstraction.cellField.world;
+        const span = this.finitePlaneAbstraction.viewState.worldSpan;
+        const turnX = world.width / span * this.length;
+        const turnY = world.height / span * this.width;
+        let firstX = Number.NaN, firstY = Number.NaN;
         for (let i = 0; i < cellIndexes.length; ++i) {
             const place = this.cellRadius.placeOf(
                 this.finitePlaneAbstraction.getUnshiftedCellIndex(cellIndexes[i]));
@@ -69,6 +82,13 @@ export class FinitePlaneModel {
             xs[i] = (xs[i] + shift.x - 0.5) * this.length;
             ys[i] = (ys[i] + shift.y - 0.5) * this.width;
             zs[i] = array[cellIndexes[i]] * this.height;
+            if (Number.isNaN(firstX)) {
+                firstX = xs[i];
+                firstY = ys[i];
+            } else {
+                xs[i] -= turnX * Math.round((xs[i] - firstX) / turnX);
+                ys[i] -= turnY * Math.round((ys[i] - firstY) / turnY);
+            }
         }
     }
 

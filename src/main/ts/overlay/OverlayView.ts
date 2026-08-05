@@ -53,17 +53,15 @@ export class OverlayView {
     refresh() {
         const labels: PlacedLabel[] = [];
         this.overlays.labels.forEach(label => {
-            const at = this.screenPositionOf(label.cell, label.zoom);
-            if (at) labels.push({...at, text: label.text, colour: label.colour, background: label.background});
+            const at = this.screenPositionsOf([label.cell], label.zoom);
+            if (at) labels.push({...at[0], text: label.text, colour: label.colour, background: label.background});
         });
 
         const captions: PlacedCaption[] = [];
         this.overlays.captions.forEach(caption => {
-            const points = caption.cells
-                .map(cell => this.screenPositionOf(cell, caption.zoom))
-                .filter(point => point) as Array<{ x: number, y: number }>;
+            const points = this.screenPositionsOf(caption.cells, caption.zoom);
             // a caption is written only while the whole stretch it belongs to is on the screen
-            if (points.length === caption.cells.length && points.length >= 2) {
+            if (points && points.length >= 2) {
                 captions.push({points, text: caption.text, colour: caption.colour});
             }
         });
@@ -74,25 +72,35 @@ export class OverlayView {
         this.listeners.forEach(listener => listener());
     }
 
-    private screenPositionOf(cell: number, zoom: number): { x: number, y: number } | undefined {
+    /**
+     * Where a stretch of the world is on the screen, or nothing while the window does not reach the
+     * whole of it. The stretch is asked for in one go, so the seam where the map closes on itself
+     * cannot tear it in two: it travels, and leaves, as one piece.
+     */
+    private screenPositionsOf(cells: number[], zoom: number): Array<{ x: number, y: number }> | undefined {
         const layer = this.layerManager.visible;
         const shownZoom = layer.level.zoom;
-        const here = zoom === shownZoom ? cell : this.levelManager.mapCell(cell, zoom, shownZoom);
 
-        this.cells[0] = here;
-        this.xs[0] = Number.NaN;
+        this.cells.length = cells.length;
+        for (let at = 0; at < cells.length; ++at) {
+            this.cells[at] = zoom === shownZoom ? cells[at] : this.levelManager.mapCell(cells[at], zoom, shownZoom);
+            this.xs[at] = Number.NaN;
+        }
         layer.landGeometry.fillCellsXYZ(this.cells, this.xs, this.ys, this.zs);
-        if (!Number.isFinite(this.xs[0])) return undefined;
-
-        this.point.set(this.xs[0], this.ys[0], this.zs[0]);
-        this.point.project(this.scene.camera);
-        if (Math.abs(this.point.x) > 1 || Math.abs(this.point.y) > 1) return undefined;
 
         const container = this.scene.container;
-        return {
-            x: (this.point.x * 0.5 + 0.5) * container.clientWidth,
-            y: (-this.point.y * 0.5 + 0.5) * container.clientHeight
-        };
+        const points: Array<{ x: number, y: number }> = [];
+        for (let at = 0; at < cells.length; ++at) {
+            if (!Number.isFinite(this.xs[at])) return undefined;
+            this.point.set(this.xs[at], this.ys[at], this.zs[at]);
+            this.point.project(this.scene.camera);
+            if (Math.abs(this.point.x) > 1 || Math.abs(this.point.y) > 1) return undefined;
+            points.push({
+                x: (this.point.x * 0.5 + 0.5) * container.clientWidth,
+                y: (-this.point.y * 0.5 + 0.5) * container.clientHeight
+            });
+        }
+        return points;
     }
 
     /** A move of less than a pixel is not worth redrawing for. */

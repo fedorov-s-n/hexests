@@ -18,9 +18,8 @@ import {SelectionState} from "./SelectionState";
 
 @Component
 export class LayerManager {
-    /** The cell outlines: a bright colour nothing on the surface uses, lifted clear of it. */
+    /** The cell outlines: a bright colour nothing on the surface uses. */
     private static readonly GRID_COLOUR = '#ffff00';
-    private static readonly GRID_LIFT = 0.02;
 
     private readonly settingsStub: SettingsStub;
     private readonly positionHelper: PositionHelper;
@@ -125,10 +124,14 @@ export class LayerManager {
         waterMesh.visible = false;
 
         const gridGeometry = new FinitePlaneGridGeometry(new FinitePlaneModel(this.settingsStub, finitePlaneAbstraction,
-            this.levelManager.data.get(zoom).height, window), LayerManager.GRID_LIFT);
+            this.levelManager.data.get(zoom).height, window));
+        // nothing on the map may hide the outlines: they ask nothing of the depth buffer and are
+        // drawn after everything else, so a hill in front of them no longer swallows them
         const gridMesh = new LineSegments(gridGeometry, new LineBasicMaterial({
-            color: LayerManager.GRID_COLOUR, transparent: true, clippingPlanes: this.gridPlanes
+            color: LayerManager.GRID_COLOUR, transparent: true, depthTest: false,
+            clippingPlanes: this.gridPlanes
         }));
+        gridMesh.renderOrder = 1;
         gridMesh.visible = false;
 
         const selector = this.installSelector(zoom);

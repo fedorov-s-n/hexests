@@ -37,23 +37,24 @@ export class Selector {
     }
 
     /**
-     * Lifts the marker just over the ground it stands on. Only the corners of its own cells are
-     * touched: spreading the whole level for one cell would cost more than everything else drawn.
+     * Lifts the marker just over the ground it stands on. The ground is read from the level's own
+     * cells, as the ground itself is, and only the cells holding the marker's corners are touched:
+     * going over the whole level for one cell would cost more than everything else drawn.
      */
     updateHeights() {
         const additionalHeight = 0.005;
         const corners = Selector.CORNERS;
-        const below = this.data.accessor<number>(Selector.ACCESSOR_KEY).lower.array;
-        // the corners of the ground itself, so that the marker lies on it instead of cutting through
-        const land = this.data.height.lower.array;
-        const water = this.data.waterLevel.lower.array;
+        const marker = this.data.accessor<number>(Selector.ACCESSOR_KEY).array;
+        // the cells the ground's own corners are taken from, so the marker lies on it, not through it
+        const land = this.data.height.array;
+        const water = this.data.waterLevel.array;
 
         for (let place = 0; place < this.cellRadius.size; ++place) {
             const cell = this.abstraction.getShiftedCellIndex(this.cellRadius.cellAt(place));
             this.abstraction.fillCornerCells(cell, corners);
             for (let i = 0; i < 18; ++i) {
                 const corner = corners[i];
-                below[corner] = Math.max(land[corner] || 0, water[corner] || 0) + additionalHeight;
+                marker[corner] = Math.max(land[corner] || 0, water[corner] || 0) + additionalHeight;
             }
         }
     }

@@ -2,7 +2,9 @@ import 'reflect-metadata';
 import {describe, expect, test} from '@jest/globals';
 import {LatticeCellField} from "../../../main/ts/lattice/LatticeCellField";
 import {
-    CORNER_LOWER_CELLS,
+    cartX,
+    cartY,
+    CORNER_DIRECTIONS,
     CORNER_X,
     CORNER_Y,
     DIRECTION_Q,
@@ -139,25 +141,28 @@ describe('hexagonal lattice on a torus', () => {
         }
     });
 
-    test.each(SIZES)('a corner of a cell is a corner of the lattice below (%i by %i)', (rowCount, columnCount) => {
+    test.each(SIZES)('a corner is where three cells of the same level meet (%i by %i)', (rowCount, columnCount) => {
         const cellField = field(rowCount, columnCount, 0);
-        const lower = cellField.lower;
+        const neighbours = new Array<number>(6);
         cellField.forEach(index => {
             const q = cellField.q(index);
             const r = cellField.r(index);
-            const lq = refineQ(q, r);
-            const lr = refineR(q, r);
+            cellField.fillNeighbours(index, neighbours);
             for (let corner = 0; corner < 6; ++corner) {
                 const cornerX = cellField.worldX(q, r) + cellField.offsetX(CORNER_X[corner], CORNER_Y[corner]);
                 const cornerY = cellField.worldY(q, r) + cellField.offsetY(CORNER_X[corner], CORNER_Y[corner]);
 
-                let meanX = 0, meanY = 0;
-                CORNER_LOWER_CELLS[corner].forEach(offset => {
-                    const cell = lower.indexOf(lq + offset[0], lr + offset[1]);
-                    expect(cell).toBeGreaterThanOrEqual(0);
-                    meanX += lower.worldX(lq + offset[0], lr + offset[1]) / 3;
-                    meanY += lower.worldY(lq + offset[0], lr + offset[1]) / 3;
-                });
+                // the cell itself and the two neighbours the corner belongs to, nothing from below;
+                // counted as steps away from the cell, so that the torus does not fold the mean
+                let meanX = cellField.worldX(q, r), meanY = cellField.worldY(q, r);
+                for (const direction of CORNER_DIRECTIONS[corner]) {
+                    expect(neighbours[direction]).toBeGreaterThanOrEqual(0);
+                    const dq = DIRECTION_Q[direction], dr = DIRECTION_R[direction];
+                    meanX += cellField.worldX(q, r) + cellField.offsetX(cartX(dq, dr), cartY(dq, dr));
+                    meanY += cellField.worldY(q, r) + cellField.offsetY(cartX(dq, dr), cartY(dq, dr));
+                }
+                meanX /= 3;
+                meanY /= 3;
 
                 expect(torusDistance(cellField, cornerX, cornerY, meanX, meanY)).toBeCloseTo(0, 9);
             }

@@ -24,7 +24,14 @@ export class Texture1 extends CanvasTexture {
         this.needsUpdate = true;
     }
 
-    loadFrom(finitePlaneAbstraction: FinitePlaneAbstraction, fillStyleProcedure: (index: number) => string | CanvasGradient | CanvasPattern) {
+    /**
+     * Paints the whole of a level into the texture. The colours come from a level of their own, finer
+     * than the one being drawn, while the panning the picture has to follow is the one of the level on
+     * the screen -- that is the lattice the data has stepped along. So the shift is taken from there,
+     * and a fresh picture arrives already in its place instead of waiting for the next pan.
+     */
+    loadFrom(finitePlaneAbstraction: FinitePlaneAbstraction, shiftedBy: FinitePlaneAbstraction,
+             fillStyleProcedure: (index: number) => string | CanvasGradient | CanvasPattern) {
         this.clear();
 
         const xs = new Array<number>(6);
@@ -69,7 +76,7 @@ export class Texture1 extends CanvasTexture {
 
         this.repeat.set(1 / workArea.x, 1 / workArea.y);
         const canvasAsPattern = this.context.createPattern(this.canvas, "repeat")!!;
-        this.repaintData = new RepaintData(finitePlaneAbstraction, canvasAsPattern);
+        this.repaintData = new RepaintData(shiftedBy, canvasAsPattern);
         this.repaint();
     }
 

@@ -9,11 +9,16 @@ import {Overlay, OverlayCaption, OverlayLabel} from "./Overlay";
 export class OverlayManager {
     private readonly overlays: Overlay[] = [];
     private readonly switchedOn = new Set<string>();
-    private readonly listeners: Array<() => void> = [];
+    private readonly listeners: Array<(overlay?: Overlay) => void> = [];
 
     add(overlay: Overlay) {
         this.overlays.push(overlay);
-        this.changed();
+        this.changed(overlay);
+    }
+
+    /** Switched on without being asked: an overlay the map opens with. */
+    show(overlay: Overlay) {
+        if (!this.isOn(overlay)) this.toggle(overlay);
     }
 
     get all(): ReadonlyArray<Overlay> {
@@ -27,7 +32,7 @@ export class OverlayManager {
     toggle(overlay: Overlay) {
         if (this.switchedOn.has(overlay.name)) this.switchedOn.delete(overlay.name);
         else this.switchedOn.add(overlay.name);
-        this.changed();
+        this.changed(overlay);
     }
 
     get shown(): Overlay[] {
@@ -52,13 +57,13 @@ export class OverlayManager {
         return this.shown.flatMap(overlay => overlay.captions?.() || []);
     }
 
-    /** Anything that draws overlays follows this. */
-    onChange(listener: () => void) {
+    /** Anything that draws overlays follows this, and is told which overlay it was that changed. */
+    onChange(listener: (overlay?: Overlay) => void) {
         this.listeners.push(listener);
     }
 
-    changed() {
-        this.listeners.forEach(listener => listener());
+    changed(overlay?: Overlay) {
+        this.listeners.forEach(listener => listener(overlay));
     }
 }
 

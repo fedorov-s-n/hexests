@@ -17,24 +17,11 @@ export const CORNER_X = [0, +SQRT3 / 2, +SQRT3 / 2, 0, -SQRT3 / 2, -SQRT3 / 2];
 export const CORNER_Y = [+1, +0.5, -0.5, -1, -0.5, +0.5];
 
 /**
- * The two neighbour directions sharing every corner with the cell itself: a corner belongs to
- * three cells at once.
+ * The two neighbour directions sharing every corner with the cell itself: a corner belongs to three
+ * cells of the same level at once, and stands at the centroid of the three. That is what makes the
+ * value of a corner well defined from the level's own data alone, without asking a finer lattice.
  */
 export const CORNER_DIRECTIONS = [[1, 2], [0, 1], [0, 5], [4, 5], [3, 4], [2, 3]];
-
-/**
- * The three cells of the level below that meet at every corner, as axial offsets from the image
- * of the cell on that level. A corner of a cell is always a corner of the denser lattice too,
- * which is what makes the heights of the corners well defined.
- */
-export const CORNER_LOWER_CELLS = [
-    [[-1, +1], [-1, +2], [-2, +2]],
-    [[0, +1], [+1, +1], [0, +2]],
-    [[+1, 0], [+2, 0], [+2, -1]],
-    [[+1, -1], [+1, -2], [+2, -2]],
-    [[0, -1], [-1, -1], [0, -2]],
-    [[-1, 0], [-2, 0], [-2, +1]]
-];
 
 /** Axial coordinates of the image of a cell on the level below: seven times denser lattice. */
 export function refineQ(q: number, r: number): number {

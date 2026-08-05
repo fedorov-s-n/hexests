@@ -24,6 +24,54 @@ as before. A part that lags, leads, jumps by a cell, or drifts the other way is 
 plausible its own arithmetic looks in isolation. Panning must also be *smooth* — no jerking back and
 forth as whole cells are crossed.
 
+## What must not break, and how it broke before
+
+These are the invariants of the drawing. Every one of them has already been broken once, each time by
+a change that looked perfectly reasonable on its own, and each break showed up as jerking, jumping or
+smearing rather than as an error. Anything touching the window, the texture, the overlays or the
+heights must be checked against all of them.
+
+1. **The world moves as one.** See above. Guarded by *the texture and the window between them carry
+   exactly the panning* and *undoing the panning finds the place a cell of the world has flowed
+   under* (`src/test/ts/lattice/latticeTest.ts`). The pan is split into whole cells of the lattice,
+   carried by the texture, and the remainder below one cell, carried by the mesh; the two must add up
+   to the pan itself. Flipping the sign of either one alone makes the picture lurch back and forth by
+   two cells at every cell boundary — which is exactly what happened.
+2. **A level is drawn from its own data, and from nothing else.** A corner of a cell is where three
+   cells *of that same level* meet, and it stands at their centroid, so its value is their mean. The
+   finer lattice below is not consulted: its cells do not sit inside the coarser ones, so its values
+   are not the coarser level's business. Guarded by *takes the corners of its cells from its own data
+   and nothing else* and *leaves no crack between neighbours: a shared corner has one height*
+   (`src/test/ts/finiteplane/drawingTest.ts`). If two cells ever disagree about a corner they share,
+   the ground tears open along that edge.
+3. **A label or a caption is pinned to a cell of the world, not to a place of the window.** Asking
+   where a cell is drawn undoes the panning step first (`FinitePlaneAbstraction.getUnshiftedCellIndex`).
+   Get this wrong and the names sit still while the land slides out from under them. Guarded by *a
+   cell is drawn where the place it has flowed under is drawn*.
+4. **A stretch of the world is never torn by the seam.** The world closes on itself, and every cell
+   is drawn on the turn around the torus nearest the middle of the window, so a stretch lying across
+   that seam would come back as two pieces a whole world apart. `FinitePlaneModel.fillCellsXYZ` puts
+   every cell of a request on the turn of the first one; so a caption must be asked for in **one**
+   call, never cell by cell. Guarded by *a stretch of the world is never torn by the seam the map
+   closes on*.
+5. **A caption's line is longer than its words.** A letter that falls off the end of its path is not
+   drawn at all, and which letters those are changes with every step of a pan, so the words rebuild
+   themselves as the map moves. The line is carried past both ends by more than the words can need
+   (`src/main/ts/overlay/CaptionCurve.ts`). Guarded by *is carried past both ends by the room the
+   words asked for*.
+6. **A fresh texture arrives already in its place.** The colours are painted from a level of their
+   own, finer than the one on the screen, but the shift they must follow belongs to the level on the
+   screen — that is the lattice the data has stepped along. `Texture1.loadFrom` takes the two apart
+   for that reason. Get it wrong and switching an overlay lays the new colours a few cells off, until
+   the next pan happens to put them right.
+7. **Nothing on the map hides the grid.** The outlines ask nothing of the depth buffer and are drawn
+   last, so a hill in front of them cannot swallow them.
+
+Two of these cannot be reached from a unit test, because they live in a canvas and in a browser's
+text layout. After touching the texture or the captions, look at the running app: pan with `W`, `A`,
+`S`, `D` a good twenty times with an overlay switched on, and check that nothing shears, that every
+letter of every caption is present, and that switching an overlay does not shift the colours.
+
 ## Committing
 
 Commit on `master` itself: no feature branch, no merge step. It is a personal single-author

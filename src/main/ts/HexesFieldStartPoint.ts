@@ -18,6 +18,7 @@ import {OverlayView} from "./overlay/OverlayView";
 import {PlateOverlay} from "./overlay/PlateOverlay";
 import {DepthOverlay} from "./overlay/DepthOverlay";
 import {LandscapeOverlay} from "./overlay/LandscapeOverlay";
+import {GridOverlay} from "./overlay/GridOverlay";
 import {LineBasicMaterial} from "three";
 
 @Component
@@ -37,7 +38,8 @@ export class HexesFieldStartPoint {
     private readonly selectionState: SelectionState;
     private readonly overlays: OverlayManager;
     private readonly overlayView: OverlayView;
-    private gridShown: boolean = true;
+    /** The outlines of the cells: an overlay of the same list, switched like all the others. */
+    private readonly grid = new GridOverlay();
 
     constructor(scene: SecondScene, heightGeneration: HeightGeneration, flowGeneration: FlowGeneration,
                 layerManager: LayerManager, panel: PanelModel, levelManager: LevelManager,
@@ -91,9 +93,19 @@ export class HexesFieldStartPoint {
         this.overlays.add(new PlateOverlay(this.levelManager, this.settingsStub));
         this.overlays.add(new DepthOverlay(this.levelManager));
         this.overlays.add(new LandscapeOverlay(this.levelManager, this.settingsStub));
+        this.overlays.add(this.grid);
+        // the outlines are shown to begin with, as they always were
+        this.overlays.show(this.grid);
         this.overlays.all.forEach(overlay => this.panel.addToggle(overlay.name,
             () => this.overlays.isOn(overlay), () => this.overlays.toggle(overlay)));
-        this.overlays.onChange(() => this.paintTexture(waterColorFunction, this.paintZoom(runState.running)));
+        this.overlays.onChange(overlay => {
+            // only a tint calls for the whole texture to be laid down again; the outlines are lines
+            // of their own and cost nothing but a walk over the window
+            if (!overlay || overlay.colourOf) {
+                this.paintTexture(waterColorFunction, this.paintZoom(runState.running));
+            }
+            this.updateGrids(levelState);
+        });
 
         this.panel.addSlider('selection', SelectionState.SMALLEST, SelectionState.LARGEST,
             () => this.selectionState.radius,
@@ -101,10 +113,6 @@ export class HexesFieldStartPoint {
                 this.selectionState.radius = radius;
                 this.layerManager.layers.array.forEach(layer => layer.selector.setRadius(radius));
             });
-        this.panel.addButton('grid()', () => {
-            this.gridShown = !this.gridShown;
-            this.updateGrids(levelState);
-        });
 
         updateWaterLevel();
         showLevelNumber(this.describeLevel());
@@ -155,6 +163,7 @@ export class HexesFieldStartPoint {
         const height = data.height.array;
         this.layerManager.visible.landTexture.loadFrom(
             this.levelManager.finitePlainAbstractions.get(zoom),
+            this.layerManager.visible.level.finitePlaneAbstraction,
             (index) => {
                 const depth = water[index] - height[index];
                 // the map itself only says land or water; how deep it is, is for an overlay to tell
@@ -184,7 +193,7 @@ export class HexesFieldStartPoint {
             const light = Math.max(0, 1 - Math.abs(at - layer.level.zoom));
             const material = layer.gridMesh.material as LineBasicMaterial;
             material.opacity = light;
-            layer.gridMesh.visible = this.gridShown && light > 0.02;
+            layer.gridMesh.visible = this.overlays.isOn(this.grid) && light > 0.02;
         });
     }
 

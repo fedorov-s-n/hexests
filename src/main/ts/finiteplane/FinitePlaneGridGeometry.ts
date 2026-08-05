@@ -2,8 +2,9 @@ import {BufferGeometry, Float32BufferAttribute} from "three";
 import {FinitePlaneModel} from "./FinitePlaneModel";
 
 /**
- * The outlines of the cells of one level, drawn as lines just above its surface, so that it is
- * visible where the cells of the level being looked at actually are.
+ * The outlines of the cells of one level, drawn as lines over its surface, so that it is visible
+ * where the cells of the level being looked at actually are. The lines lie exactly on the ground and
+ * are kept in front of it by the material, not by being nudged up towards the eye.
  */
 export class FinitePlaneGridGeometry extends BufferGeometry {
     private static readonly XS = new Array<number>(6);
@@ -11,14 +12,12 @@ export class FinitePlaneGridGeometry extends BufferGeometry {
     private static readonly ZS = new Array<number>(6);
 
     private readonly finitePlaneModel: FinitePlaneModel;
-    private readonly lift: number;
     private readonly cellIndices: number[] = [];
 
-    constructor(finitePlaneModel: FinitePlaneModel, lift: number) {
+    constructor(finitePlaneModel: FinitePlaneModel) {
         super();
         this.type = 'FinitePlaneGridGeometry';
         this.finitePlaneModel = finitePlaneModel;
-        this.lift = lift;
 
         const vertices: number[] = [];
         const indices: number[] = [];
@@ -45,7 +44,7 @@ export class FinitePlaneGridGeometry extends BufferGeometry {
         for (let i = 0; i < this.cellIndices.length; ++i) {
             this.finitePlaneModel.fillPointsXYZ(this.cellIndices[i], XS, YS, ZS, cornerHeights);
             for (let corner = 0; corner < 6; ++corner) {
-                position.setXYZ(6 * i + corner, XS[corner], YS[corner], ZS[corner] + this.lift);
+                position.setXYZ(6 * i + corner, XS[corner], YS[corner], ZS[corner]);
             }
         }
         position.needsUpdate = true;

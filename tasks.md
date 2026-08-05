@@ -30,6 +30,16 @@
     - the grid of the level the approach is heading for follows the pan as well
     - the axes helper in the middle of the map is gone
 
+- keep every part of the map together, and read a level from itself
+    - a corner of a cell is the mean of the three cells of its own level that meet there; the finer
+      lattice below is no longer consulted for heights, or for anything else drawn
+    - a stretch of the world is asked for in one go and never torn by the seam the torus closes on
+    - a caption's line runs past both of its ends, so no letter of it is ever dropped
+    - a fresh texture arrives already shifted: switching an overlay no longer needs a pan to settle
+    - nothing on the map hides the grid, and the grid is an overlay of the common list
+    - a selection may be a single cell: the radius starts at nothing
+    - all of it is guarded by tests, and the invariants are written into `CLAUDE.md`
+
 - create support for layers
     - an overlay may tint cells, pin labels and write captions along a curve; several may be shown
       at once, each with a switch in the panel
