@@ -86,10 +86,7 @@ export class HexesFieldStartPoint {
         this.panel.addNumberFields(state);
         this.panel.addFunctionButtons(state, updateWaterLevel);
         const levelState = new LevelState();
-        this.panel.addNumberFields(levelState);
         const showLevelNumber = this.panel.addIndicator('level');
-        this.panel.addButton('zoom in()', () => this.changeZoom(+1));
-        this.panel.addButton('zoom out()', () => this.changeZoom(-1));
         this.overlays.add(new PlateOverlay(this.levelManager, this.settingsStub));
         this.overlays.add(new DepthOverlay(this.levelManager));
         this.overlays.add(new LandscapeOverlay(this.levelManager, this.settingsStub));
@@ -113,6 +110,11 @@ export class HexesFieldStartPoint {
                 this.selectionState.radius = radius;
                 this.layerManager.layers.array.forEach(layer => layer.selector.setRadius(radius));
             });
+        // a step or two either way from the level the wheel has chosen; it can never ask for a level
+        // that is not there, since wantedZoom runs it into the ends of the hierarchy and holds it
+        this.panel.addSlider('shift', -LevelState.REACH, LevelState.REACH,
+            () => levelState.levelOffset,
+            offset => levelState.levelOffset = offset);
 
         updateWaterLevel();
         showLevelNumber(this.describeLevel());
@@ -179,7 +181,7 @@ export class HexesFieldStartPoint {
      */
     private updateGrids(levelState: LevelState) {
         const offset = Number.isFinite(levelState.levelOffset) ? levelState.levelOffset : 0;
-        const deepest = this.settingsStub.maxZoom - 1;
+        const deepest = this.settingsStub.maxZoom;
         const at = Math.max(0, Math.min(deepest, this.viewState.fractionalLevel + offset));
 
         for (const zoom of [Math.floor(at), Math.ceil(at)]) {
@@ -207,18 +209,13 @@ export class HexesFieldStartPoint {
         return `${level.zoom} (${level.cellField.size} cells)`;
     }
 
-    /** The level the approach asks for, with the correction from the panel on top of it. */
+    /**
+     * The level the approach asks for, with the shift from the panel on top of it. The shift can
+     * never ask for a level that is not there: it runs into the ends of the hierarchy and stays.
+     */
     private wantedZoom(levelState: LevelState): number {
         const offset = Number.isFinite(levelState.levelOffset) ? levelState.levelOffset : 0;
-        // the deepest level of the hierarchy can only serve the corners of the one above it
-        return Math.max(0, Math.min(this.settingsStub.maxZoom - 1, this.viewState.level + offset));
-    }
-
-    /** Steps the approach a whole level in or out. */
-    private changeZoom(delta: number) {
-        const current = this.layerManager.visible.level.zoom;
-        const zoom = Math.max(0, Math.min(this.settingsStub.maxZoom - 1, current + delta));
-        if (zoom !== current) this.viewState.worldSpan = this.viewState.spanAt(zoom);
+        return Math.max(0, Math.min(this.settingsStub.maxZoom, this.viewState.level + offset));
     }
 
     private showLevel(zoom: number) {
@@ -231,13 +228,13 @@ export class HexesFieldStartPoint {
 
     /**
      * Carries the generated data to every level in use: the coarser ones gather the mean of the
-     * seven cells they cover, the finer ones are interpolated. It has to reach one level below the
-     * visible one, whose corners it feeds, and the level the texture is painted from.
+     * seven cells they cover, the finer ones are interpolated. It has to reach the visible level,
+     * which is drawn from its own cells and no others, and the level the texture is painted from.
      */
     private spread(pick: (data: CellData) => CellDataAccessor<number>,
                    paintZoom: number = this.settingsStub.textureZoom) {
         const generation = this.settingsStub.generationZoom;
-        const deepest = Math.max(this.levelManager.visible.zoom + 1, paintZoom);
+        const deepest = Math.max(this.levelManager.visible.zoom, paintZoom);
         for (let zoom = generation - 1; zoom >= 0; --zoom) {
             pick(this.levelManager.data.get(zoom)).gather();
         }
@@ -249,5 +246,8 @@ export class HexesFieldStartPoint {
 
 /** The correction the panel keeps on top of the level the wheel has chosen. */
 class LevelState {
+    /** How far either way the correction may go. */
+    static readonly REACH = 2;
+
     levelOffset: number = 0;
 }

@@ -86,6 +86,7 @@ export class BrownianDrift {
         this.init(cellField, options.plateTagger);
         this.steps(options.stepCount || 700);
         this.fillOutput(options.output);
+        options.plates?.(this.cellIndexToDomain);
         this.clear();
     }
 }
@@ -94,5 +95,10 @@ export interface BrownianDriftOptions {
     stepCount?: number,
     zoomLevel?: number,
     plateTagger: (index: number) => number,
-    output: (index: number, value: number) => void
+    output: (index: number, value: number) => void,
+    /**
+     * Told the plate of every cell -- a patch of one tag, numbered in the order the search found
+     * them -- while the working memory is still there. That numbering is the plates' own.
+     */
+    plates?: (plateOfCell: number[]) => void
 }

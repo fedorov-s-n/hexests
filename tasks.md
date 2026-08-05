@@ -40,6 +40,13 @@
     - a selection may be a single cell: the radius starts at nothing
     - all of it is guarded by tests, and the invariants are written into `CLAUDE.md`
 
+- name the plates and open the deepest level
+    - every plate carries its own name, on the cell of the plate that stands in the middle of it; the
+      colour still tells the kind the plate was drawn from, of which there are only a few
+    - one more level is drawable now that a level is read from itself: the hierarchy is shown whole
+    - the level correction is a slider of its own beside the selection, two steps either way, and it
+      can never ask for a level that is not there
+
 - create support for layers
     - an overlay may tint cells, pin labels and write captions along a curve; several may be shown
       at once, each with a switch in the panel

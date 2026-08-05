@@ -6,8 +6,13 @@ import {SettingsStub} from "../util/SettingsStub";
 
 @Component
 export class HeightGeneration {
-    /** Where the plates of the last generation are kept, on the level they were made on. */
+    /**
+     * Where the plates of the last generation are kept, on the level they were made on: the plate of
+     * every cell, numbered as the generation found them, and the kind the plate was drawn from.
+     * Plates of one kind drift alike but are each their own patch of the world.
+     */
     static readonly PLATES = 'plate';
+    static readonly PLATE_KINDS = 'plate-kind';
 
     private readonly levelManager: LevelManager;
     private readonly genericMetropolis: GenericMetropolis;
@@ -30,16 +35,20 @@ export class HeightGeneration {
             temperatures: options.temperatures,
             skipClear: true
         });
+        // which plate a cell belonged to outlives the generation: an overlay shows them
+        const data = this.levelManager.levels.get(options.zoomLevel || 0).data;
         this.brownianDrift.run({
             stepCount: options.driftStepCount,
             zoomLevel: options.zoomLevel,
             plateTagger: (index: number) => this.genericMetropolis.data.array[index],
-            output: options.output
+            output: options.output,
+            plates: plateOfCell => {
+                const plates = data.accessor<number>(HeightGeneration.PLATES, 0).array;
+                plateOfCell.forEach((plate, index) => plates[index] = plate);
+            }
         });
-        // which plate a cell belonged to outlives the generation: an overlay shows them
-        const plates = this.levelManager.levels.get(options.zoomLevel || 0)
-            .data.accessor<number>(HeightGeneration.PLATES, 0).array;
-        this.genericMetropolis.data.array.forEach((plate, index) => plates[index] = plate);
+        const kinds = data.accessor<number>(HeightGeneration.PLATE_KINDS, 0).array;
+        this.genericMetropolis.data.array.forEach((kind, index) => kinds[index] = kind);
         this.genericMetropolis.clear();
     }
 

@@ -67,11 +67,19 @@ html, body, .ht-root, .ht-application, .ht-three-js-panel {
     display: flex;
     flex-direction: column;
 }
-.ht-slider {
+/* the sliders stand side by side, each under its own reading */
+.ht-panel-sliders {
     display: flex;
     flex-direction: row;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.ht-slider {
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
 }
 
 .ht-slider-input {

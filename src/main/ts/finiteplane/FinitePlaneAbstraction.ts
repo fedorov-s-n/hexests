@@ -55,7 +55,6 @@ export class FinitePlaneAbstraction {
     private readonly cornerWorldY = new Array<number>(6);
 
     private readonly _points: Lazy<PointNumbering>;
-    private readonly _cornerCells: Lazy<Int32Array>;
 
     private readonly _lower: Lazy<FinitePlaneAbstraction>;
     private readonly _higher: FinitePlaneAbstraction | undefined;
@@ -89,7 +88,6 @@ export class FinitePlaneAbstraction {
 
         this._points = new Lazy(() => new PointNumbering(
             Math.ceil(this.viewRadius * Math.max(1, viewState.aspect)) + 1));
-        this._cornerCells = new Lazy(() => new Int32Array(18 * this.size));
         this._lower = new Lazy(() => new FinitePlaneAbstraction(cellField.lower, viewState, viewRadius, this));
         this._higher = higher;
     }
@@ -237,34 +235,28 @@ export class FinitePlaneAbstraction {
      * inside the coarser ones and whose values are nobody's business here.
      */
     fillPointsZ(cellIndex: number, zs: number[], array: number[]) {
-        const cells = this.cornerCellsOf(cellIndex);
-        const at = 18 * cellIndex;
+        const field = this.cellField;
+        const own = array[cellIndex];
         for (let corner = 0; corner < 6; ++corner) {
-            zs[corner] = (array[cells[at + 3 * corner] - 1]
-                + array[cells[at + 3 * corner + 1] - 1]
-                + array[cells[at + 3 * corner + 2] - 1]) / 3;
+            const directions = CORNER_DIRECTIONS[corner];
+            zs[corner] = (own
+                + array[field.neighbour(cellIndex, directions[0])]
+                + array[field.neighbour(cellIndex, directions[1])]) / 3;
         }
     }
 
-    /** Kept one more than the cell, so that a zero means it has not been worked out yet. */
-    private cornerCellsOf(cellIndex: number): Int32Array {
-        const cells = this._cornerCells.value;
-        const at = 18 * cellIndex;
-        if (cells[at] === 0) {
-            for (let corner = 0; corner < 6; ++corner) {
-                const directions = CORNER_DIRECTIONS[corner];
-                cells[at + 3 * corner] = cellIndex + 1;
-                cells[at + 3 * corner + 1] = this.cellField.neighbour(cellIndex, directions[0]) + 1;
-                cells[at + 3 * corner + 2] = this.cellField.neighbour(cellIndex, directions[1]) + 1;
-            }
-        }
-        return cells;
-    }
-
-    /** The eighteen cells of this level that hold the six corners of a cell, three to a corner. */
+    /**
+     * The eighteen cells of this level that hold the six corners of a cell, three to a corner. Worked
+     * out afresh every time: it is three lookups in a table the lattice keeps anyway, which is not
+     * worth eighteen numbers of its own for every cell of a level of millions.
+     */
     fillCornerCells(cellIndex: number, out: number[]) {
-        const cells = this.cornerCellsOf(cellIndex);
-        for (let i = 0; i < 18; ++i) out[i] = cells[18 * cellIndex + i] - 1;
+        for (let corner = 0; corner < 6; ++corner) {
+            const directions = CORNER_DIRECTIONS[corner];
+            out[3 * corner] = cellIndex;
+            out[3 * corner + 1] = this.cellField.neighbour(cellIndex, directions[0]);
+            out[3 * corner + 2] = this.cellField.neighbour(cellIndex, directions[1]);
+        }
     }
 
     /** Names of the corners of a place of the window, shared with the places next to it. */

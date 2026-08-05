@@ -48,7 +48,7 @@ export class ViewState {
     /** Where the approach stands between the levels; whole numbers are the levels themselves. */
     get fractionalLevel(): number {
         const zoom = 2 * Math.log(this.spanAt(0) / this.worldSpan) / Math.log(7);
-        return Math.max(0, Math.min(this.settingsStub.maxZoom - 1, zoom));
+        return Math.max(0, Math.min(this.settingsStub.maxZoom, zoom));
     }
 
     /**
