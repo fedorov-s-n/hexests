@@ -127,6 +127,13 @@ export class HexesFieldStartPoint {
         this.panel.addSlider('shift', -LevelState.REACH, LevelState.REACH,
             () => levelState.levelOffset,
             offset => levelState.levelOffset = offset);
+        // the wheel stops opening out where the picture still fills the screen; this lets it past that,
+        // out to the levels the world is too small to fill, with the sky around them that follows
+        this.panel.addToggle('open out', () => this.viewState.openWide, () => {
+            this.viewState.openWide = !this.viewState.openWide;
+            // and coming back holds the view down to where the picture fills the screen again
+            this.viewState.zoomBy(0);
+        });
 
         updateWaterLevel();
         showLevelNumber(this.describeLevel());

@@ -21,6 +21,13 @@ export class ViewState {
     /** Where the window looks, as an offset from the middle of the world, in the same units. */
     panX: number = 0;
     panY: number = 0;
+    /**
+     * Whether the wheel may open out past the coarsest level that still fills the screen. Left alone
+     * it may not, and it stops there: the levels above hold fewer cells than the window has places, so
+     * they leave the world a patch in the middle with sky all around it. Asked for, the whole range of
+     * the hierarchy is there to be turned through, sky and all.
+     */
+    openWide: boolean = false;
 
     constructor(settingsStub: SettingsStub) {
         this.settingsStub = settingsStub;
@@ -40,10 +47,11 @@ export class ViewState {
      * the torus. So opening out that far would leave the whole world a patch in the middle of the
      * screen with sky all around it, and the further out, the smaller the patch. The view stops where
      * the last level that fills the screen stands; the coarser ones are reached by the level
-     * correction, which draws them over a view that stays where it is.
+     * correction, which draws them over a view that stays where it is -- or by asking for the whole
+     * range with `openWide`, which is what that is for.
      */
     get widestSpan(): number {
-        return this.spanAt(this.coarsestFillingZoom);
+        return this.spanAt(this.openWide ? 0 : this.coarsestFillingZoom);
     }
 
     /**
