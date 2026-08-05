@@ -4,3 +4,4 @@ node_modules/
 opera-user-data/
 chrome-user-data/
 .playwright-mcp/
+heights.csv
