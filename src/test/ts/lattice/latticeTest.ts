@@ -17,6 +17,7 @@ import {FinitePlaneAbstraction} from "../../../main/ts/finiteplane/FinitePlaneAb
 import {LatticeCellRadius} from "../../../main/ts/lattice/LatticeCellRadius";
 import {ViewState} from "../../../main/ts/three/ViewState";
 import {SettingsStub} from "../../../main/ts/util/SettingsStub";
+import {SelectionState} from "../../../main/ts/three/SelectionState";
 
 const SIZES: number[][] = [[30, 30], [12, 20], [6, 6], [4, 10]];
 
@@ -394,6 +395,21 @@ describe('a selection', () => {
             const y = abstraction.offsetWorldY(offset[0], offset[1]) - centreY;
             expect(Math.hypot(x, y) / cell).toBeLessThanOrEqual(radius + 1e-6);
         }
+    });
+
+    test('is never as wide as two to the power of the level', () => {
+        const state = new SelectionState();
+
+        state.radius = SelectionState.LARGEST;
+        // one cell at the top, one or two a level down, and the whole range from the third level on
+        expect([0, 1, 2, 3, 4, 5, 6, 7].map(zoom => state.radiusAt(zoom))).toEqual([0, 1, 3, 7, 7, 7, 7, 7]);
+
+        state.radius = 2;
+        // what was chosen is what is drawn, wherever the level allows it
+        expect([0, 1, 2, 3, 4].map(zoom => state.radiusAt(zoom))).toEqual([0, 1, 2, 2, 2]);
+
+        state.radius = SelectionState.SMALLEST;
+        expect([0, 1, 2, 3, 4].map(zoom => state.radiusAt(zoom))).toEqual([0, 0, 0, 0, 0]);
     });
 
     test('of the smallest radius holds one cell, at every level', () => {

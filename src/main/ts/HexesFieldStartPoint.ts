@@ -116,7 +116,9 @@ export class HexesFieldStartPoint {
             () => this.selectionState.radius,
             radius => {
                 this.selectionState.radius = radius;
-                this.layerManager.layers.array.forEach(layer => layer.selector.setRadius(radius));
+                // every level holds it down to what that level allows, which is its own business
+                this.layerManager.layers.array.forEach(layer =>
+                    layer.selector.setRadius(this.selectionState.radiusAt(layer.level.zoom)));
             });
         // a step or two either way from the level the wheel has chosen; it can never ask for a level
         // that is not there, since wantedZoom runs it into the ends of the hierarchy and holds it

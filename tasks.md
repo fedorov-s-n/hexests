@@ -32,6 +32,9 @@
       corner at levels two, three, five and seven, under water as well as over it
     - its own heights, its lift and the walk that filled them are gone with the reason for them
     - the bubble over cell zero is back: it was asking whether its value was true
+    - a selection is never as wide as two to the power of the level: one cell at the top, one or two a
+      level below, and the whole range the slider offers from the third level down. The slider keeps
+      what was chosen; each level holds it down to what it allows
 
 - make the whole world move as one when the map is panned
     - the texture was dragged the opposite way from the ground, so every whole cell crossed threw the

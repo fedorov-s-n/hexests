@@ -73,7 +73,7 @@ export class LayerManager {
     private installSelector(zoom: number): Selector {
         const finitePlaneAbstraction = this.levelManager.finitePlainAbstractions.get(zoom);
         // a round disc of cells, moved around the window by the pointer
-        const radius = new LatticeCellRadius(finitePlaneAbstraction, this.selectionState.radius, false);
+        const radius = new LatticeCellRadius(finitePlaneAbstraction, this.selectionState.radiusAt(zoom), false);
         const data = this.levelManager.data.get(zoom);
 
         // the marker is the cells of the grid, filled in: it is built over the very heights the ground

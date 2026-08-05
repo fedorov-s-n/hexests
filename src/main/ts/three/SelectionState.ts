@@ -10,4 +10,14 @@ export class SelectionState {
     radius: number = SelectionState.SMALLEST;
     /** Switched from the list of overlays: when it is off, nothing is picked and nothing is drawn. */
     shown: boolean = true;
+
+    /**
+     * What the radius comes to on a level: the chosen one, held down to strictly less than two to the
+     * power of the level. The coarser the lattice, the fewer of its cells a selection may hold -- one
+     * only at the top, one or two a level below, and from the third level down the whole range the
+     * slider offers. What the slider shows is what was chosen; this is what is drawn.
+     */
+    radiusAt(zoom: number): number {
+        return Math.min(this.radius, Math.pow(2, zoom) - 1);
+    }
 }
