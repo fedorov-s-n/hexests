@@ -133,8 +133,7 @@ export class LayerManager {
         // nothing on the map may hide the outlines: they ask nothing of the depth buffer and are
         // drawn after everything else, so a hill in front of them no longer swallows them
         const gridMesh = new LineSegments(gridGeometry, new LineBasicMaterial({
-            color: LayerManager.GRID_COLOUR, transparent: true, depthTest: false,
-            clippingPlanes: this.gridPlanes
+            color: LayerManager.GRID_COLOUR, transparent: true, depthTest: false
         }));
         gridMesh.renderOrder = LayerManager.GRID_ORDER;
         gridMesh.visible = false;

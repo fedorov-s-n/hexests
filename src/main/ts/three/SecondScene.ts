@@ -53,8 +53,6 @@ export class SecondScene {
         this.renderer = new WebGLRenderer({
             antialias: true
         });
-        // only the grids are cut, and only to the screen
-        (this.renderer as WebGLRenderer).localClippingEnabled = true;
         this.container = container;
         this.onWindowResize();
         container.appendChild(this.renderer.domElement);
