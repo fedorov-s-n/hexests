@@ -32,6 +32,7 @@ repository with no review flow, so a branch and a merge are pure overhead. Keep 
   arrays;
 - `npx jest` runs the tests.
 
-## Extra rules
+## Restrictions - mandatory!
 
 - Never write a new rule without explicit confirmation of its explicit text
+- Don't write any comments in code without being asked to
