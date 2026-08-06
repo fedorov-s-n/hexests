@@ -68,6 +68,9 @@ export class HexesFieldStartPoint {
         this.heightGeneration.generateDefault();
         this.showLevel(this.settingsStub.initialZoom);
 
+        this.spread(data => data.height, 2, this.settingsStub.maxZoom);
+        this.spread(data => data.waterLevel, 2, this.settingsStub.maxZoom);
+
         // generate water levels
         const waterColorFunction = ColorGenerator.getWaterColorsIndexFunction();
         const runState = new RunState(false, 10);
@@ -78,7 +81,7 @@ export class HexesFieldStartPoint {
             const paintZoom = this.paintZoom(running);
             const generated = this.levelManager.data.get(this.settingsStub.generationZoom);
             generated.waterLevel.array.forEach((_, i, a) => a[i] = state.field[i]);
-            this.spread(data => data.waterLevel, paintZoom);
+            this.spread(data => data.waterLevel, 2, running ? paintZoom : this.settingsStub.maxZoom);
             // only the layer on the screen is worth refreshing; the others are laid out when shown
             this.layerManager.visible.waterGeometry.refreshPositions();
             this.paintTexture(waterColorFunction, paintZoom);
@@ -248,25 +251,16 @@ export class HexesFieldStartPoint {
 
     private showLevel(zoom: number) {
         this.levelManager.visible = this.levelManager.levels.get(zoom);
-        this.spread(data => data.height);
-        this.spread(data => data.waterLevel);
         this.scene.installLayer(this.layerManager.layers.get(zoom));
         this.layerManager.notify();
     }
 
-    /**
-     * Carries the generated data to every level in use: the coarser ones gather the mean of the
-     * seven cells they cover, the finer ones are interpolated. It has to reach the visible level,
-     * which is drawn from its own cells and no others, and the level the texture is painted from.
-     */
     private spread(pick: (data: CellData) => CellDataAccessor<number>,
-                   paintZoom: number = this.settingsStub.textureZoom) {
-        const generation = this.settingsStub.generationZoom;
-        const deepest = Math.max(this.levelManager.visible.zoom, paintZoom);
-        for (let zoom = generation - 1; zoom >= 0; --zoom) {
+                   from: number, to: number) {
+        for (let zoom = from - 1; zoom >= 0; --zoom) {
             pick(this.levelManager.data.get(zoom)).gather();
         }
-        for (let zoom = generation; zoom < deepest; ++zoom) {
+        for (let zoom = from; zoom < to; ++zoom) {
             pick(this.levelManager.data.get(zoom)).interpolate();
         }
     }
