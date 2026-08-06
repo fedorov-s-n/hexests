@@ -19,7 +19,7 @@ export class SettingsStub {
      * about one and a half times this many cells lie across it, and the count of them drawn grows as
      * the square of it.
      */
-    viewRadius = 18;
+    viewRadius = 28;
     /** How much of the window's reach the corner of the screen takes; the rest is a margin. */
     screenFill = 0.95;
     bigTextureSize = 512;

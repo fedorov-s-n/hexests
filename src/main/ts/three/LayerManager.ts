@@ -35,6 +35,8 @@ export class LayerManager {
     private readonly flowMapTexture: Texture1;
 
     private _visible: Layer;
+    /** The level the selection marker sits on: the matched one, which may be finer than the ground. */
+    private _matched: Layer;
     readonly layers: LazyGeneratedArray<Layer>;
 
     constructor(settingsStub: SettingsStub, positionHelper: PositionHelper, levelManager: LevelManager,
@@ -63,6 +65,7 @@ export class LayerManager {
         this.layers = new LazyGeneratedArray(this.installLayer(0), l => this.installLayer(l.level.zoom + 1));
         this._visible = this.layers.initial;
         this._visible.visible = true;
+        this._matched = this._visible;
     }
 
     /** How far from the middle the grids are allowed to reach, in the units of the plane. */
@@ -152,6 +155,18 @@ export class LayerManager {
 
     get visible() {
         return this._visible;
+    }
+
+    /** The level the selection works on: the matched one. Leaving a level drops its marker. */
+    get matched() {
+        return this._matched;
+    }
+
+    set matched(layer: Layer) {
+        if (this._matched !== layer) {
+            this._matched.selector.mesh.visible = false;
+            this._matched = layer;
+        }
     }
 
     set visible(visible: Layer) {

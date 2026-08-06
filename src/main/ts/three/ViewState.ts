@@ -40,18 +40,17 @@ export class ViewState {
     }
 
     /**
-     * The widest the view may open: where the coarsest level that can fill the window stands.
+     * The widest the view may open: out to the level it starts at, and further, to the coarsest level
+     * that still fills the window, when the world is large enough to have one coarser than the start.
      *
-     * The topmost levels hold fewer cells than the window has places -- four of them, and
-     * twenty-eight -- and the world is drawn once, gathered around the middle, never repeated around
-     * the torus. So opening out that far would leave the whole world a patch in the middle of the
-     * screen with sky all around it, and the further out, the smaller the patch. The view stops where
-     * the last level that fills the screen stands; the coarser ones are reached by the level
-     * correction, which draws them over a view that stays where it is -- or by asking for the whole
-     * range with `openWide`, which is what that is for.
+     * A wide drawing radius can want more cells than the starting level holds, so opening out to it
+     * leaves some sky around the edges; that is allowed -- the view opens no wider than where it
+     * starts. The whole range above that, the levels too small to fill however wide the world, is
+     * reached by asking for it with `openWide`, which is what that is for.
      */
     get widestSpan(): number {
-        return this.spanAt(this.openWide ? 0 : this.coarsestFillingZoom);
+        return this.spanAt(this.openWide ? 0
+            : Math.min(this.coarsestFillingZoom, this.settingsStub.initialZoom));
     }
 
     /**

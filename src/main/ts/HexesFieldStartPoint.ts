@@ -28,6 +28,19 @@ export class HexesFieldStartPoint {
     private static readonly WATER = '#7fb8e0';
     /** The coarser of the two grids has to be at least this deep before the finer one joins it. */
     private static readonly SHOW_TWO_GRIDS_FROM = 2;
+    /** Width of each grid's fade, in levels: half a level, so a grid rises or falls twice as fast. */
+    private static readonly GRID_FADE_SPAN = 0.5;
+    /** Where in the approach the finer grid begins to rise, counted from the coarser level. */
+    private static readonly FINE_APPEARS_AT = 0.15;
+    /** Where the coarser grid begins to fade -- later, so the finer one is already showing. */
+    private static readonly COARSE_FADES_AT = 0.35;
+    /**
+     * Where in the approach the two grids stand at equal opacity: the boundary the matched level flips
+     * at. Read off the fade shape, not off the drawn opacities, so the matched level is a plain
+     * function of where the camera is scrolled to and nothing that is rendered feeds back into it.
+     */
+    private static readonly GRID_CROSSOVER = (HexesFieldStartPoint.GRID_FADE_SPAN
+        + HexesFieldStartPoint.FINE_APPEARS_AT + HexesFieldStartPoint.COARSE_FADES_AT) / 2;
 
     private readonly scene: SecondScene;
     private readonly heightGeneration: HeightGeneration;
@@ -139,7 +152,7 @@ export class HexesFieldStartPoint {
         });
 
         updateWaterLevel();
-        showLevelNumber(this.describeLevel());
+        showLevelNumber(this.describeLevel(this.levelReadout(levelState)));
         this.updateGrids(levelState);
         let counter = 0;
         let panX = Number.NaN, panY = Number.NaN;
@@ -152,7 +165,6 @@ export class HexesFieldStartPoint {
             panY = this.viewState.panY;
             if (wanted !== this.layerManager.visible.level.zoom) {
                 this.showLevel(wanted);
-                showLevelNumber(this.describeLevel());
                 this.updateGrids(levelState);
             } else if (notches) {
                 // the approach itself moved, so the places have to be laid out anew
@@ -163,6 +175,12 @@ export class HexesFieldStartPoint {
                 // of the level the approach is heading for has its own window and has to be told
                 this.updateGrids(levelState);
             }
+            // the matched level can flip without the ground changing -- at the crossover inside one
+            // level -- so it is read every frame; the indicator itself redraws only when it moves, and
+            // the marker is moved to the matched layer as it flips
+            const readout = this.levelReadout(levelState);
+            this.layerManager.matched = this.layerManager.layers.get(readout.matched);
+            showLevelNumber(this.describeLevel(readout));
             this.overlayView.refresh();
             if (runState.running) {
                 state.steps(runState.stepCount);
@@ -218,12 +236,29 @@ export class HexesFieldStartPoint {
             this.scene.installLayer(layer);
             layer.level.finitePlaneAbstraction.refreshShift();
             layer.gridGeometry.refreshPositions();
+            // the finer of the pair is not the ground and is not laid out by the ground's own flush,
+            // yet the marker may sit on it, so its surface is kept current for the pick to ray-cast
+            layer.landGeometry.refreshPositions();
+            layer.waterGeometry.refreshPositions();
         }
 
         this.layerManager.layers.array.forEach(layer => {
-            const light = both
-                ? Math.max(0, 1 - Math.abs(at - layer.level.zoom))
-                : (layer.level.zoom === coarser ? 1 : 0);
+            const zoom = layer.level.zoom;
+            const frac = at - coarser;
+            let light: number;
+            if (!both) {
+                light = zoom === coarser ? 1 : 0;
+            } else if (zoom === coarser + 1) {
+                // the finer grid holds off, then rises to full over its stretch of the approach
+                light = (frac - HexesFieldStartPoint.FINE_APPEARS_AT) / HexesFieldStartPoint.GRID_FADE_SPAN;
+            } else if (zoom === coarser) {
+                // the coarser grid holds full, then fades once the finer one is already showing, at the
+                // same speed, and is gone for the last stretch: never both absent at once
+                light = 1 - (frac - HexesFieldStartPoint.COARSE_FADES_AT) / HexesFieldStartPoint.GRID_FADE_SPAN;
+            } else {
+                light = 0;
+            }
+            light = Math.max(0, Math.min(1, light));
             const material = layer.gridMesh.material as LineBasicMaterial;
             material.opacity = light;
             layer.gridMesh.visible = this.overlays.isOn(this.grid) && light > 0.02;
@@ -235,9 +270,26 @@ export class HexesFieldStartPoint {
         return running ? this.settingsStub.generationZoom : this.settingsStub.textureZoom;
     }
 
-    private describeLevel(): string {
-        const level = this.layerManager.visible.level;
-        return `${level.zoom} (${level.cellField.size} cells)`;
+    /**
+     * The current level as three numbers rather than one: the coarser grid on screen, the finer one,
+     * and the matched one -- whichever of the two the approach is nearer to, so the more solidly drawn
+     * of the pair, the one that counts as the level in view. The match is taken from where the camera
+     * is scrolled, at the crossover of the fade, never from the opacities actually drawn.
+     */
+    private levelReadout(levelState: LevelState): { coarse: number, fine: number, matched: number } {
+        const offset = Number.isFinite(levelState.levelOffset) ? levelState.levelOffset : 0;
+        const deepest = this.settingsStub.maxZoom;
+        const at = Math.max(0, Math.min(deepest, this.viewState.fractionalLevel + offset));
+        const coarse = Math.floor(at);
+        const both = coarse >= HexesFieldStartPoint.SHOW_TWO_GRIDS_FROM && coarse < deepest;
+        const fine = both ? coarse + 1 : coarse;
+        const matched = both && at - coarse >= HexesFieldStartPoint.GRID_CROSSOVER ? fine : coarse;
+        return {coarse, fine, matched};
+    }
+
+    private describeLevel(readout: { coarse: number, fine: number, matched: number }): string {
+        const cells = this.levelManager.levels.get(readout.matched).cellField.size;
+        return `${readout.matched} — coarse ${readout.coarse}, fine ${readout.fine} (${cells} cells)`;
     }
 
     /**

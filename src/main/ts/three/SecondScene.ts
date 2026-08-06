@@ -129,7 +129,8 @@ export class SecondScene {
                 self.positionHelper.flushAccumulatedShift(self.layerManager.visible);
             }
             if (self.positionHelper.selectionChanged) {
-                self.positionHelper.flushAccumulatedSelection(self.layerManager.visible);
+                // the marker sits on the matched level, not the ground: the finer one once it dominates
+                self.positionHelper.flushAccumulatedSelection(self.layerManager.matched);
             }
             action();
             self.renderer.render(self.scene, self.camera);

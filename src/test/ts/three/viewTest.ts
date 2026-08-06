@@ -5,21 +5,24 @@ import {SettingsStub} from "../../../main/ts/util/SettingsStub";
 
 describe('the approach', () => {
 
-    test('never opens wider than the coarsest level that can fill the window', () => {
+    test('opens out no wider than the level it starts at, or the coarsest that fills a large world', () => {
         const settingsStub = new SettingsStub();
         const view = new ViewState(settingsStub);
         const radius = settingsStub.viewRadius;
         const places = 3 * radius * radius + 3 * radius + 1;
         const cells = settingsStub.initialRowCount * settingsStub.initialColumnCount;
 
+        // the coarsest level that still holds enough cells for the window
+        let fill = 0;
+        while (fill < settingsStub.maxZoom && cells * Math.pow(7, fill) < places) ++fill;
+
         // as far out as it goes, and then some: the wheel runs into the limit and stays there
         view.zoomBy(-400);
 
-        // the level it stops at holds enough cells for the window, and the one above it does not, so
-        // this is the widest view with no sky around the world
-        const zoom = view.level;
-        expect(cells * Math.pow(7, zoom)).toBeGreaterThanOrEqual(places);
-        expect(cells * Math.pow(7, zoom - 1)).toBeLessThan(places);
+        // it stops at the coarser of where it opens and the coarsest filling level: for a small world
+        // that is the starting level, sky and all; for a large one it can be coarser
+        const zoom = Math.min(fill, settingsStub.initialZoom);
+        expect(view.level).toBe(zoom);
         expect(view.worldSpan).toBeCloseTo(view.spanAt(zoom), 9);
     });
 
@@ -34,8 +37,10 @@ describe('the approach', () => {
     test('opens as wide as the topmost level over a world large enough to fill the window', () => {
         const settingsStub = new SettingsStub();
         // a world whose topmost level already holds more cells than the window has places
-        settingsStub.initialRowCount = 40;
-        settingsStub.initialColumnCount = 40;
+        const radius = settingsStub.viewRadius;
+        const side = Math.ceil(Math.sqrt(3 * radius * radius + 3 * radius + 1));
+        settingsStub.initialRowCount = side;
+        settingsStub.initialColumnCount = side;
         const view = new ViewState(settingsStub);
 
         view.zoomBy(-400);
