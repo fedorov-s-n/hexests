@@ -84,8 +84,8 @@ export class PositionHelper {
 
             if (this.middleButtonPanning) {
                 this.makeStep(
-                    event.movementX * this.dragMoveStep,
-                    -event.movementY * this.dragMoveStep,
+                    -event.movementX * this.dragMoveStep,
+                    event.movementY * this.dragMoveStep,
                     camera.quaternion
                 );
             }
