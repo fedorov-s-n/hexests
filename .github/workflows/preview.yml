@@ -24,7 +24,7 @@ jobs:
 
       - name: Build
         if: github.event.action != 'closed'
-        run: npm install
+        run: npm ci
 
       - name: Deploy PR preview
         uses: rossjrw/pr-preview-action@v1
