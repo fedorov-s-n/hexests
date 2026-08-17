@@ -16,6 +16,8 @@ export class PositionHelper {
     private _shiftChanged: boolean = false; // to trigger shifting code right on the start
     private _selectionChanged: boolean = false; // to trigger shifting code right on the start
     private cameraMoveStep: number = 0.2;
+    private dragMoveStep: number = 0.02;
+    private middleButtonPanning: boolean = false;
     private raycaster!: Raycaster;
     private camera!: Camera;
     private container!: HTMLElement;
@@ -61,9 +63,32 @@ export class PositionHelper {
         );
         this.tooltip.attach(element);
 
+        element.addEventListener('pointerdown', event => {
+            if (event.button === 1) {
+                event.preventDefault();
+                this.middleButtonPanning = true;
+                element.setPointerCapture(event.pointerId);
+            }
+        });
+        const stopPanning = (event: PointerEvent) => {
+            if (event.button === 1 || event.type !== 'pointerup') {
+                this.middleButtonPanning = false;
+            }
+        };
+        element.addEventListener('pointerup', stopPanning);
+        element.addEventListener('pointercancel', stopPanning);
+
         const mouse = new Vector2(1, 1);
         element.addEventListener('pointermove', event => {
             event.preventDefault();
+
+            if (this.middleButtonPanning) {
+                this.makeStep(
+                    -event.movementX * this.dragMoveStep,
+                    event.movementY * this.dragMoveStep,
+                    camera.quaternion
+                );
+            }
 
             mouse.x = (event.clientX / element.clientWidth) * 2 - 1;
             mouse.y = -(event.clientY / element.clientHeight) * 2 + 1;
