@@ -1,0 +1,44 @@
+repo: fedorov-s-n/hexests
+
+base_branch: master
+
+branch_prefix: agent/issue-
+
+worktrees_dir: .agent-preview/worktrees
+
+labels:
+  in_progress: agent:in-progress
+
+agent:
+  command: claude -p
+  preferences: |
+    This is a TypeScript + React + three.js project bundled with webpack.
+
+    Build with `npm ci` (it runs the `postinstall` script, which cleans `target`,
+    runs webpack, and copies HTML/CSS into `target`). The result is static and is
+    served from `target/`; the entry page is `target/html/index.html`.
+
+    Keep changes minimal and focused on the issue. Match the existing code style.
+    Do not touch CI, secrets, `.github/`, or the preview workflow.
+    Do not add or upgrade dependencies unless the issue explicitly requires it;
+    the lockfile pins working versions.
+
+    Required workflow for every issue — do this every time, in order, do not skip
+    the verification:
+    1. Implement the change.
+    2. Build locally with `npm ci`. Fix any build error before continuing.
+    3. Run the tests with `npm test` and make them pass. Do not weaken or delete
+       tests to make them pass.
+    4. Verify in a real browser using the Playwright MCP server: open the built
+       entry page `target/html/index.html`, interact with the change, and confirm
+       it actually works and nothing is broken.
+    5. Only after tests and the browser check pass is the work done. If either
+       fails, go back to step 1.
+    6. Write a concise Markdown summary of what you actually changed and how to
+       test it in the browser to a file named `PR_BODY.md` at the repository
+       root. This becomes the pull request description, so describe the change
+       you made, not the task. Do not commit this file; the orchestrator reads
+       and removes it.
+
+    You have local shell access and the Playwright MCP browser tools — use them.
+    The build and the browser both run on this machine.

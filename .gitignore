@@ -5,3 +5,4 @@ opera-user-data/
 chrome-user-data/
 .playwright-mcp/
 heights.csv
+.agent-preview/
