@@ -110,13 +110,19 @@ export class SecondScene {
     }
 
     installControls() {
+        this.camera.up.set(0, 0, 1);
+        this.camera.position.set(0, -2.8, 2.8);
+        this.camera.lookAt(this.scene.position);
+
         const controls = new OrbitControls(this.camera, this.renderer.domElement);
         // the wheel chooses the level instead of the distance, and the window stays in the middle
         controls.enableZoom = false;
         controls.enablePan = false;
-
-        this.camera.position.set(0, -2.8, 2.8);
-        this.camera.lookAt(this.scene.position);
+        controls.minAzimuthAngle = 0;
+        controls.maxAzimuthAngle = 0;
+        controls.minPolarAngle = 0;
+        controls.maxPolarAngle = Math.PI / 2;
+        controls.update();
         this.fitGrids();
     }
 
