@@ -39,10 +39,14 @@ jobs:
             const pr = context.payload.pull_request;
             const preview = `https://${context.repo.owner}.github.io/${context.repo.repo}/pr-preview/pr-${pr.number}/html/`;
             const marker = '<!-- direct-links -->';
+            const overview = (pr.body || '').trim();
             const body = [
               '### Preview & diff',
               `- ▶️ Play with the result: ${preview}`,
               `- 📝 Review the diff: ${pr.html_url}/files`,
+              '',
+              '#### Overview',
+              overview ? overview : '_No description provided._',
               marker,
             ].join('\n');
             const { data: comments } = await github.rest.issues.listComments({
