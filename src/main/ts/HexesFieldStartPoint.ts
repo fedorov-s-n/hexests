@@ -145,6 +145,12 @@ export class HexesFieldStartPoint {
             offset => levelState.levelOffset = offset);
         // the wheel stops opening out where the picture still fills the screen; this lets it past that,
         // out to the levels the world is too small to fill, with the sky around them that follows
+        // off to begin with; switching it off hides a bubble already up, switching it on brings it
+        // back over the cell the pointer is still on, so the marker is simply asked for again
+        this.panel.addToggle('cell index', () => this.selectionState.tooltipShown, () => {
+            this.selectionState.tooltipShown = !this.selectionState.tooltipShown;
+            this.positionHelper.pickAgain();
+        });
         this.panel.addToggle('open out', () => this.viewState.openWide, () => {
             this.viewState.openWide = !this.viewState.openWide;
             // and coming back holds the view down to where the picture fills the screen again

@@ -165,7 +165,8 @@ export class PositionHelper {
             layer.selector.mesh.visible = true;
             layer.selector.cellRadius.setAnchor(this.offset[0], this.offset[1]);
             layer.selector.mesh.finitePlaneGeometry.refreshPositions();
-            this.tooltip.element = this.dataCell;
+            // the selection itself is worked out either way; only the bubble waits on the toggle
+            this.tooltip.element = this.selectionState.tooltipShown ? this.dataCell : undefined;
         } else {
             layer.selector.mesh.visible = false;
             this.tooltip.element = undefined;
