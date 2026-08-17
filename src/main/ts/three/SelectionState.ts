@@ -10,6 +10,8 @@ export class SelectionState {
     radius: number = SelectionState.SMALLEST;
     /** Switched from the list of overlays: when it is off, nothing is picked and nothing is drawn. */
     shown: boolean = true;
+    /** Whether the cell-index tooltip is shown over the selected cell. Off to begin with. */
+    tooltipShown: boolean = false;
 
     /**
      * What the radius comes to on a level: the chosen one, held down to strictly less than two to the
