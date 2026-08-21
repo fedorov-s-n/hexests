@@ -4,62 +4,11 @@ on:
   pull_request:
     types: [opened, reopened, synchronize, closed]
 
-concurrency:
-  group: preview-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
-
-permissions:
-  contents: write
-  pull-requests: write
-
 jobs:
   preview:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
-      - name: Build
-        if: github.event.action != 'closed'
-        run: npm ci
-
-      - name: Deploy PR preview
-        uses: rossjrw/pr-preview-action@v1
-        with:
-          source-dir: target
-          comment: false
-
-      - name: Comment direct links
-        if: github.event.action != 'closed'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const pr = context.payload.pull_request;
-            const preview = `https://${context.repo.owner}.github.io/${context.repo.repo}/pr-preview/pr-${pr.number}/html/`;
-            const marker = '<!-- direct-links -->';
-            const overview = (pr.body || '').trim();
-            const body = [
-              '### Preview & diff',
-              `- ▶️ Play with the result: ${preview}`,
-              `- 📝 Review the diff: ${pr.html_url}/files`,
-              '',
-              '#### Overview',
-              overview ? overview : '_No description provided._',
-              marker,
-            ].join('\n');
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner, repo: context.repo.repo, issue_number: pr.number,
-            });
-            const existing = comments.find(c => c.body && c.body.includes(marker));
-            if (existing) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner, repo: context.repo.repo, comment_id: existing.id, body,
-              });
-            } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner, repo: context.repo.repo, issue_number: pr.number, body,
-              });
-            }
+    uses: fedorov-s-n/gh-agent-preview/.github/workflows/preview.yml@main
+    with:
+      build_command: "npm ci"
+      output_dir: target
+      node_version: "20"
+      entry_path: "html/"
