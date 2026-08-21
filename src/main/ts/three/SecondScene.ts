@@ -122,6 +122,8 @@ export class SecondScene {
         controls.maxAzimuthAngle = 0;
         controls.minPolarAngle = 0;
         controls.maxPolarAngle = Math.PI / 2;
+        // touch is handled by hand, by tap and by finger gestures, so the controls leave it alone
+        controls.touches = {ONE: -1, TWO: -1} as any;
         controls.update();
         this.fitGrids();
     }
