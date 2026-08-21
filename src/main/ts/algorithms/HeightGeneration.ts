@@ -56,17 +56,19 @@ export class HeightGeneration {
     generateDefault() {
         const zoomLevel = this.settingsStub.generationZoom;
         const heights = this.levelManager.data.get(zoomLevel).height.array.fill(0);
-        // A small level coarsens into a single domain, which drifts as a whole and leaves no
-        // relief. Every next attempt stirs the domains less, so more of them survive.
-        for (const metropolisStepCountMultiplier of [150, 50, 20, 5, 1]) {
-            this.run({
-                metropolisStepCountMultiplier,
-                zoomLevel,
-                domainTypeCount: 3,
-                output: (index: number, value: number) => heights[index] = value
-            });
-            if (Math.max(...heights) - Math.min(...heights) > 0.01) break;
-        }
+        // Annealing, not a quench. A hot start (100) scatters the three kinds into many little
+        // clusters; a warm middle (8) lets them gather into firm patches; the final cold (2) settles
+        // the boundaries but stops well short of the cold that would fuse the world into one domain
+        // and leave no relief. What survives is a patchwork of many plates -- a few kinds, but each
+        // kind broken into several separate patches. More steps only coarsen it further, so 30 is
+        // where the patchwork is richest.
+        this.run({
+            metropolisStepCountMultiplier: 30,
+            zoomLevel,
+            domainTypeCount: 3,
+            temperatures: [100, 8, 2],
+            output: (index: number, value: number) => heights[index] = value
+        });
     }
 }
 

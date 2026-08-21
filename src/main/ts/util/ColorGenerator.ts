@@ -33,6 +33,33 @@ export class ColorGenerator {
         // return "rgba(" + [r, g, b, a].join(",") + ")";
     }
 
+    /**
+     * A colour of its own for every whole number, spread apart so that neighbouring numbers land far
+     * around the wheel. Meant for plates: each plate keeps its colour whatever its kind, and two
+     * plates of one kind still come out different. The same number always gives the same colour.
+     */
+    toDistinctColor(index: number): string {
+        const hue = (index * 137.508) % 360;
+        const saturation = 0.55 + 0.25 * ((index % 3) / 2);
+        const lightness = 0.42 + 0.16 * (index % 2);
+        return ColorGenerator.hslToHex(hue, saturation, lightness);
+    }
+
+    private static hslToHex(h: number, s: number, l: number): string {
+        const c = (1 - Math.abs(2 * l - 1)) * s;
+        const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+        const m = l - c / 2;
+        let r = 0, g = 0, b = 0;
+        if (h < 60) { r = c; g = x; }
+        else if (h < 120) { r = x; g = c; }
+        else if (h < 180) { g = c; b = x; }
+        else if (h < 240) { g = x; b = c; }
+        else if (h < 300) { r = x; b = c; }
+        else { r = c; b = x; }
+        const channel = (v: number) => Math.round((v + m) * 255).toString(16).padStart(2, '0');
+        return '#' + channel(r) + channel(g) + channel(b);
+    }
+
     static getWaterColorsIndexFunction(): (value: number) => string {
         const wheightBuckets = [
             0.001, 0.002, 0.005, 0.01,

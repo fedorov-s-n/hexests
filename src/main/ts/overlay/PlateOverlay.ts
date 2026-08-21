@@ -8,9 +8,9 @@ import {ColorGenerator} from "../util/ColorGenerator";
  * The plates the relief was drifted from. They are known on the level the relief was generated on
  * and shown on any level, since a cell of any level lies over one of them.
  *
- * A plate is a patch of the world that drifted as one piece. The colour tells the kind it was drawn
- * from, of which there are only a few, so plates far apart may share one; the label tells the plate
- * itself, by the number the generation gave it.
+ * A plate is a patch of the world that drifted as one piece. The colour tells the plate itself, by
+ * the number the generation gave it, so every plate stands apart -- two plates drawn from one kind
+ * are still two colours. The label repeats that number for those who want to read it.
  */
 export class PlateOverlay implements Overlay {
     readonly name = 'plates';
@@ -28,9 +28,9 @@ export class PlateOverlay implements Overlay {
 
     colourOf(cell: number, zoom: number): string | undefined {
         const home = this.settingsStub.generationZoom;
-        const kinds = this.levelManager.data.get(home).accessor<number>(HeightGeneration.PLATE_KINDS, 0).array;
-        const kind = kinds[zoom === home ? cell : this.levelManager.mapCell(cell, zoom, home)];
-        return kind === undefined ? undefined : this.colours.toColor(kind);
+        const plates = this.levelManager.data.get(home).accessor<number>(HeightGeneration.PLATES, 0).array;
+        const plate = plates[zoom === home ? cell : this.levelManager.mapCell(cell, zoom, home)];
+        return plate === undefined ? undefined : this.colours.toDistinctColor(plate);
     }
 
     labels(): OverlayLabel[] {
@@ -46,7 +46,6 @@ export class PlateOverlay implements Overlay {
     private findThem(): OverlayLabel[] {
         const zoom = this.settingsStub.generationZoom;
         const plates = this.levelManager.data.get(zoom).accessor<number>(HeightGeneration.PLATES, 0).array;
-        const kinds = this.levelManager.data.get(zoom).accessor<number>(HeightGeneration.PLATE_KINDS, 0).array;
 
         const cellsOf = new Map<number, number[]>();
         plates.forEach((plate, cell) => {
@@ -61,7 +60,7 @@ export class PlateOverlay implements Overlay {
                 cell, zoom,
                 text: `Plate ${plate}`,
                 colour: '#ffffff',
-                background: this.colours.toColor(kinds[cell])
+                background: this.colours.toDistinctColor(plate)
             };
         });
     }
