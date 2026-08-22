@@ -1,6 +1,9 @@
 name: PR preview
 
 on:
+  # Publish the default branch to the Pages root (always-on live site).
+  push:
+    branches: [master]
   pull_request:
     types: [opened, reopened, synchronize, closed]
 
