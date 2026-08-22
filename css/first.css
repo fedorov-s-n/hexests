@@ -1,0 +1,221 @@
+body {
+    margin: 0;
+    overflow: hidden;
+}
+
+html, body, .ht-root, .ht-application, .ht-three-js-panel {
+    height: 100%;
+}
+
+.ht-application {
+    display: flex;
+    flex-direction: row;
+    /* the dynamic viewport unit follows the mobile browser's chrome as it comes and goes */
+    height: 100dvh;
+}
+
+.ht-three-js-panel {
+    flex: 1 1 auto;
+    min-width: 0;
+    /* the finger gestures are the app's own; the browser must not pan or zoom the page instead */
+    touch-action: none;
+}
+
+/* the button that calls the panel up on a narrow screen; on a wide one the panel is always there */
+.ht-panel-toggle {
+    display: none;
+}
+
+.ht-panel {
+    flex: 0 0 220px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 6px;
+    overflow-y: auto;
+    font: 14px sans-serif;
+    background: #f6f8fa;
+    border-left: 1px solid #d3d9df;
+}
+
+.ht-panel-numbers, .ht-panel-buttons, .ht-panel-indicators {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.ht-panel-buttons {
+    margin-top: auto;
+}
+
+.ht-panel-indicator {
+    color: #24292f;
+}
+
+.ht-help-panel {
+    min-width: 200px;
+    overflow-y: auto;
+}
+
+.ht-command-line {
+    width: calc(100% - 12px);
+    padding: 5px;
+    border-color: #d3d9df;
+    border-radius: 3px;
+    border-width: 1px;
+    line-height: 21px;
+    font-size: 16px;
+}
+
+.ht-horizontal-list-component {
+    display: flex;
+    flex-direction: row;
+}
+
+.ht-vertical-list-component {
+    display: flex;
+    flex-direction: column;
+}
+/* the sliders stand side by side, each under its own reading */
+.ht-panel-sliders {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.ht-slider {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.ht-slider-input {
+    writing-mode: vertical-lr;
+    direction: rtl;
+    width: 24px;
+    height: 120px;
+}
+
+.ht-panel-toggles {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.ht-toggle {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+}
+
+.ht-map {
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+    touch-action: none;
+}
+
+/*
+ * The narrow screen: the map keeps the whole viewport, the options wait off the bottom edge and
+ * slide up over it only when the button asks for them, and everything is large enough for a finger.
+ */
+@media (max-width: 768px) {
+    .ht-application {
+        position: relative;
+    }
+
+    .ht-panel-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        z-index: 1200;
+        top: calc(8px + env(safe-area-inset-top));
+        right: calc(8px + env(safe-area-inset-right));
+        width: 48px;
+        height: 48px;
+        font-size: 22px;
+        line-height: 1;
+        border: 1px solid #d3d9df;
+        border-radius: 8px;
+        background: rgba(246, 248, 250, 0.95);
+        color: #24292f;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .ht-panel {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        flex: 0 0 auto;
+        max-height: 70dvh;
+        overflow-y: auto;
+        border-left: none;
+        border-top: 1px solid #d3d9df;
+        border-radius: 12px 12px 0 0;
+        box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.25);
+        padding-bottom: calc(6px + env(safe-area-inset-bottom));
+        padding-left: calc(6px + env(safe-area-inset-left));
+        padding-right: calc(6px + env(safe-area-inset-right));
+        transform: translateY(110%);
+        transition: transform 0.2s ease;
+        z-index: 1150;
+        font-size: 16px;
+    }
+
+    .ht-panel-open .ht-panel {
+        transform: translateY(0);
+    }
+
+    .ht-panel button {
+        min-height: 44px;
+        padding: 0 12px;
+        font-size: 16px;
+    }
+
+    .ht-toggle {
+        min-height: 40px;
+    }
+
+    .ht-toggle input[type=checkbox] {
+        width: 22px;
+        height: 22px;
+    }
+
+    .ht-number-input-input {
+        min-height: 40px;
+        font-size: 16px;
+    }
+
+    .ht-slider-input {
+        width: 40px;
+    }
+}
+
+.ht-overlays {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.ht-overlay-label {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font: 13px sans-serif;
+    text-align: center;
+    white-space: pre;
+}
+
+/* floats over its place, flat and upright, whichever way the world is being looked at */
+.ht-overlay-caption {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    overflow: visible;
+    font: bold 22px sans-serif;
+}
