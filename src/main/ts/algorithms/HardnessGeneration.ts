@@ -12,21 +12,26 @@ import {LatticeCellField} from "../lattice/LatticeCellField";
  * It is not another simulation. The bulk of it is a few octaves of value noise read off the level
  * hierarchy itself -- the coarse levels give the broad rock masses, the finer ones the ridges and
  * the small clusters -- so structures fall out at every scale for the cost of a handful of passes
- * over a couple of hundred cells. The plates only lean on it: each plate carries a hardness of its
- * own, and the seams between plates, where the lithosphere grinds against itself, are raised into
- * broken ranges. None of that fixes the field; the noise breaks the plate outlines so hardness never
- * simply retraces the plate map, and it varies within a plate as much as between plates.
+ * over a couple of hundred cells, and the finest octave is given its full weight so the last level
+ * carries real cell-to-cell detail and not a smoothed-over interpolation. The seams between plates,
+ * where the lithosphere grinds against itself, do not draw a line: they raise the chance that a clump
+ * of really hard cells crops up along them, so the seam shows as scattered hard clusters, sharp
+ * against the ground around, and the field is then stretched hard to bring its gradation out.
  */
 @Component
 export class HardnessGeneration {
-    /** Each finer octave weighs half of the one above it, so the broad shapes lead. */
-    private static readonly PERSISTENCE = 0.5;
-    /** How many cells out from a seam the range it raises still reaches. */
+    /** Each finer octave weighs a little less than the one above, but not so much the fine detail is lost. */
+    private static readonly PERSISTENCE = 0.6;
+    /** The finest octave is lifted again so the last level keeps a distinct cell-by-cell grain. */
+    private static readonly FINEST_BOOST = 2.5;
+    /** How many cells out from a seam a hard clump can still crop up. */
     private static readonly BOUNDARY_REACH = 3;
-    /** The share of the three parts in the raw field, before it is stretched to fill 0..1. */
-    private static readonly W_NOISE = 0.55;
-    private static readonly W_PLATE = 0.3;
-    private static readonly W_BOUNDARY = 0.4;
+    /** How much a fired seam clump is pushed up towards really hard rock. */
+    private static readonly SEAM_BOOST = 0.9;
+    /** How readily the seam band fires into hard clumps, right on the seam. */
+    private static readonly SEAM_CHANCE = 0.6;
+    /** How hard the gradation is stretched around the middle, to sharpen it. */
+    private static readonly CONTRAST = 2.2;
 
     private readonly levelManager: LevelManager;
     private readonly settingsStub: SettingsStub;
@@ -50,18 +55,17 @@ export class HardnessGeneration {
         const plates = data.accessor<number>(HeightGeneration.PLATES, 0).array;
 
         const noise = this.fractalNoise(zoom, size);
-        const plateBaseline = this.plateBaseline(plates, size);
         const proximity = this.boundaryProximity(cellField, plates, size);
-        const grain = new Array<number>(size);
-        for (let i = 0; i < size; ++i) grain[i] = this.random.nextFloat();
+        const clump = this.clumpMask(zoom, size);
 
         const raw = new Array<number>(size);
         for (let i = 0; i < size; ++i) {
-            // the seam range is itself broken by the grain, so it comes out a broken range, not a wall
-            const seam = proximity[i] * (0.3 + 0.7 * grain[i]);
-            raw[i] = HardnessGeneration.W_NOISE * noise[i]
-                + HardnessGeneration.W_PLATE * plateBaseline[i]
-                + HardnessGeneration.W_BOUNDARY * seam;
+            // the seam is not a line: near it the clump mask can fire, and where it does a patch of
+            // neighbouring cells is shoved up together into a cluster of really hard rock.
+            let value = noise[i];
+            const threshold = 1 - proximity[i] * HardnessGeneration.SEAM_CHANCE;
+            if (clump[i] >= threshold) value += HardnessGeneration.SEAM_BOOST * clump[i];
+            raw[i] = value;
         }
 
         let min = Number.POSITIVE_INFINITY, max = Number.NEGATIVE_INFINITY;
@@ -71,7 +75,15 @@ export class HardnessGeneration {
         }
         const span = max - min || 1;
         const hardness = data.hardness.array;
-        for (let i = 0; i < size; ++i) hardness[i] = (raw[i] - min) / span;
+        for (let i = 0; i < size; ++i) {
+            hardness[i] = this.sharpen((raw[i] - min) / span);
+        }
+    }
+
+    /** Pull the values apart around the middle so the gradation comes out sharp, not washed flat. */
+    private sharpen(value: number): number {
+        const stretched = 0.5 + (value - 0.5) * HardnessGeneration.CONTRAST;
+        return stretched < 0 ? 0 : stretched > 1 ? 1 : stretched;
     }
 
     /**
@@ -83,7 +95,8 @@ export class HardnessGeneration {
         const result = new Array<number>(size).fill(0);
         let total = 0;
         for (let level = 0; level <= zoom; ++level) {
-            const amplitude = Math.pow(HardnessGeneration.PERSISTENCE, level);
+            let amplitude = Math.pow(HardnessGeneration.PERSISTENCE, level);
+            if (level === zoom) amplitude *= HardnessGeneration.FINEST_BOOST;
             total += amplitude;
             const coarseSize = this.levelManager.cellFields.get(level).size;
             const values = new Array<number>(coarseSize);
@@ -97,18 +110,20 @@ export class HardnessGeneration {
         return result;
     }
 
-    /** A hardness of its own for every plate: some plates are simply harder rock than others. */
-    private plateBaseline(plates: number[], size: number): number[] {
-        const valueOf = new Map<number, number>();
+    /**
+     * A clumping mask: a random value read off the level one coarser than the one being made on, so
+     * a patch of neighbouring fine cells shares the same draw. A high draw is what lets a seam fire a
+     * whole cluster of hard cells at once rather than a scatter of lone ones.
+     */
+    private clumpMask(zoom: number, size: number): number[] {
+        const clumpLevel = Math.max(0, zoom - 1);
+        const coarseSize = this.levelManager.cellFields.get(clumpLevel).size;
+        const values = new Array<number>(coarseSize);
+        for (let c = 0; c < coarseSize; ++c) values[c] = this.random.nextFloat();
         const result = new Array<number>(size);
         for (let i = 0; i < size; ++i) {
-            const plate = plates[i];
-            let value = valueOf.get(plate);
-            if (value === undefined) {
-                value = this.random.nextFloat();
-                valueOf.set(plate, value);
-            }
-            result[i] = value;
+            const coarse = clumpLevel === zoom ? i : this.levelManager.mapCell(i, zoom, clumpLevel);
+            result[i] = values[coarse];
         }
         return result;
     }
