@@ -7,6 +7,7 @@ export class CellData {
     static readonly HEIGHT = 'height';
     static readonly WATER_LEVEL = 'water-level';
     static readonly COLOR = 'color';
+    static readonly HARDNESS = 'hardness';
 
     readonly zoom: number;
     readonly depth: number;
@@ -17,6 +18,7 @@ export class CellData {
     readonly height: CellDataAccessor<number>;
     readonly waterLevel: CellDataAccessor<number>;
     readonly color: CellDataAccessor<string>;
+    readonly hardness: CellDataAccessor<number>;
 
     constructor(dataSource: DataSource, cellField: CellField, zoom: number, depth: number) {
         this.dataSource = dataSource;
@@ -26,6 +28,7 @@ export class CellData {
         this.height = this.accessor(CellData.HEIGHT, 0);
         this.waterLevel = this.accessor(CellData.WATER_LEVEL, 0);
         this.color = this.accessor(CellData.COLOR, '#ffffff');
+        this.hardness = this.accessor(CellData.HARDNESS, 0);
     }
 
     accessor<T>(name: string, defaultValue?: T): CellDataAccessor<T> {

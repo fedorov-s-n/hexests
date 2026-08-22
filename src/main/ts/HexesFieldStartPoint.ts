@@ -2,6 +2,7 @@ import {Component} from "./di/Component";
 import {SecondScene} from "./three/SecondScene";
 import {LayerManager} from "./three/LayerManager";
 import {HeightGeneration} from "./algorithms/HeightGeneration";
+import {HardnessGeneration} from "./algorithms/HardnessGeneration";
 import {FlowGeneration} from "./algorithms/FlowGeneration";
 import {PanelModel} from "./panel/PanelModel";
 import {RunState} from "./algorithms/RunState";
@@ -16,6 +17,7 @@ import {SelectionState} from "./three/SelectionState";
 import {OverlayManager} from "./overlay/OverlayManager";
 import {OverlayView} from "./overlay/OverlayView";
 import {PlateOverlay} from "./overlay/PlateOverlay";
+import {HardnessOverlay} from "./overlay/HardnessOverlay";
 import {DepthOverlay} from "./overlay/DepthOverlay";
 import {LandscapeOverlay} from "./overlay/LandscapeOverlay";
 import {GridOverlay} from "./overlay/GridOverlay";
@@ -44,6 +46,7 @@ export class HexesFieldStartPoint {
 
     private readonly scene: SecondScene;
     private readonly heightGeneration: HeightGeneration;
+    private readonly hardnessGeneration: HardnessGeneration;
     private readonly flowGeneration: FlowGeneration;
     private readonly layerManager: LayerManager;
     private readonly panel: PanelModel;
@@ -58,12 +61,14 @@ export class HexesFieldStartPoint {
     private readonly grid = new GridOverlay();
     private readonly selection = new SelectionOverlay();
 
-    constructor(scene: SecondScene, heightGeneration: HeightGeneration, flowGeneration: FlowGeneration,
+    constructor(scene: SecondScene, heightGeneration: HeightGeneration,
+                hardnessGeneration: HardnessGeneration, flowGeneration: FlowGeneration,
                 layerManager: LayerManager, panel: PanelModel, levelManager: LevelManager,
                 settingsStub: SettingsStub, positionHelper: PositionHelper, viewState: ViewState,
                 selectionState: SelectionState, overlays: OverlayManager, overlayView: OverlayView) {
         this.scene = scene;
         this.heightGeneration = heightGeneration;
+        this.hardnessGeneration = hardnessGeneration;
         this.flowGeneration = flowGeneration;
         this.layerManager = layerManager;
         this.panel = panel;
@@ -79,10 +84,13 @@ export class HexesFieldStartPoint {
     gogogo(container: HTMLElement) {
         this.scene.installDefaults(container);
         this.heightGeneration.generateDefault();
+        // cheap beside the relief: the plates it just made are all hardness needs to read
+        this.hardnessGeneration.generateDefault();
         this.showLevel(this.settingsStub.initialZoom);
 
         this.spread(data => data.height, 2, this.settingsStub.maxZoom);
         this.spread(data => data.waterLevel, 2, this.settingsStub.maxZoom);
+        this.spread(data => data.hardness, 2, this.settingsStub.maxZoom);
 
         // generate water levels
         const waterColorFunction = ColorGenerator.getWaterColorsIndexFunction();
@@ -108,6 +116,7 @@ export class HexesFieldStartPoint {
         const levelState = new LevelState();
         const showLevelNumber = this.panel.addIndicator('level');
         this.overlays.add(new PlateOverlay(this.levelManager, this.settingsStub));
+        this.overlays.add(new HardnessOverlay(this.levelManager));
         this.overlays.add(new DepthOverlay(this.levelManager));
         this.overlays.add(new LandscapeOverlay(this.levelManager, this.settingsStub));
         this.overlays.add(this.grid);
