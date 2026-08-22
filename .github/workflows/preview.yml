@@ -4,6 +4,9 @@ on:
   pull_request:
     types: [opened, reopened, synchronize, closed]
 
+permissions:
+  contents: write
+
 jobs:
   preview:
     uses: fedorov-s-n/gh-agent-preview/.github/workflows/preview.yml@main

@@ -60,6 +60,40 @@ export class ColorGenerator {
         return '#' + channel(r) + channel(g) + channel(b);
     }
 
+    /**
+     * A continuous ramp for a value in 0..1, mixed between its stops rather than bucketed, so the
+     * whole range reads as one smooth run from soft to hard. Soft blues, a pale middle for the
+     * in-between ground, and a deep red for the hardest rock.
+     */
+    static getHardnessColorsFunction(): (value: number) => string {
+        const stops = [
+            {at: 0.0, color: '#2c7bb6'},
+            {at: 0.25, color: '#abd9e9'},
+            {at: 0.5, color: '#ffffbf'},
+            {at: 0.75, color: '#fdae61'},
+            {at: 1.0, color: '#d7191c'}
+        ];
+        const parse = (hex: string) => [
+            parseInt(hex.slice(1, 3), 16),
+            parseInt(hex.slice(3, 5), 16),
+            parseInt(hex.slice(5, 7), 16)
+        ];
+        const rgb = stops.map(stop => ({at: stop.at, channels: parse(stop.color)}));
+        return value => {
+            const clamped = value < 0 ? 0 : value > 1 ? 1 : value;
+            let upper = 1;
+            while (upper < rgb.length - 1 && rgb[upper].at < clamped) upper++;
+            const lower = upper - 1;
+            const span = rgb[upper].at - rgb[lower].at || 1;
+            const t = (clamped - rgb[lower].at) / span;
+            const channel = (index: number) => {
+                const mixed = rgb[lower].channels[index] + t * (rgb[upper].channels[index] - rgb[lower].channels[index]);
+                return Math.round(mixed).toString(16).padStart(2, '0');
+            };
+            return '#' + channel(0) + channel(1) + channel(2);
+        };
+    }
+
     static getWaterColorsIndexFunction(): (value: number) => string {
         const wheightBuckets = [
             0.001, 0.002, 0.005, 0.01,
